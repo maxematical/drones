@@ -12,7 +12,7 @@ uniform sampler2D theTexture;
 
 void main()
 {
-    float fontTextureSize = 128.0;
+    vec2 fontTextureDimensions = vec2(256.0, 128.0);
     int fontLineHeight = 14;
 
     FragColor = texture(theTexture, vec2(uv.x, -uv.y));
@@ -34,19 +34,19 @@ void main()
         squareUv.y = 1.0 - squareUv.y;
 
         vec2 characterTopLeft = vec2(characterCoordsLut[char] >> 24,
-            (characterCoordsLut[char] >> 16) & 255) / fontTextureSize;
+            (characterCoordsLut[char] >> 16) & 255) / fontTextureDimensions;
         vec2 characterWidthHeight = vec2((characterCoordsLut[char] >> 8) & 255,
-            (characterCoordsLut[char]) & 255) / fontTextureSize;
+            (characterCoordsLut[char]) & 255) / fontTextureDimensions;
 
         vec2 characterUv = characterTopLeft + squareUv * characterWidthHeight;
         FragColor = texture(theTexture, characterUv);
+        //FragColor = vec4(squareUv, 0.0, 1.0);
         //FragColor = vec4((characterCoordsLut[charData[charIndex]] >> 24) / 128.0, 0.0, 0.0, 1.0);
 
         //FragColor = vec4(charData[charIndex] / 127.0, 0.0, 0.0, 1.0);
     }
     else
-        //FragColor = vec4(0.0, 0.0, charIndex / 64.0, 1.0);
-    FragColor = vec4(69.0 / 128.0, 0.0, 0.0, 1.0);
+        FragColor = vec4(0.0, 0.0, charIndex / 64.0, 1.0);
 
     // Enable this to see areas with partial transparency
     //if (FragColor.a == 0.0) FragColor = vec4(0.0, 0.0, 1.0, 1.0);

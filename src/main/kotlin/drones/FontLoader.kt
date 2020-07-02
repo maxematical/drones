@@ -10,12 +10,12 @@ import javax.xml.bind.annotation.XmlRootElement
 import kotlin.math.min
 
 fun loadFont(): GameFont {
-    val lemonStream = getFontXmlStream("lemon/lemon_medium_14.xml")
+    val xmlStream = getFontXmlStream("consolas/consolas_regular_14.xml")
 
     val ctx = JAXBContext.newInstance(XmlFontEntry::class.java)
     val unmarshaller = ctx.createUnmarshaller()
 
-    val font = unmarshaller.unmarshal(lemonStream) as XmlFontEntry
+    val font = unmarshaller.unmarshal(xmlStream) as XmlFontEntry
     val chars = font.children
 
     val characterLut = CharArray(128)
@@ -29,26 +29,43 @@ fun loadFont(): GameFont {
         if (rect.size != 4)
             throw RuntimeException("Invalid rect attribute for character '${chars[idx].code}'")
 
-        characterCoordinatesLut[idx] = (rect[0].toInt() shl 24) or
-                (rect[1].toInt() shl 16) or
-                (rect[2].toInt() shl 8) or
-                rect[3].toInt()
+        val offset = chars[idx].offset.split(' ')
+        if (offset.size != 2)
+            throw RuntimeException("Invalid offset attribute for character '${chars[idx].code}")
+
+        val offsetX = offset[0].toInt() - 1
+        val offsetY = offset[1].toInt() - 1
+
+        val characterX = rect[0].toInt() - offsetX
+        val characterY = rect[1].toInt() - offsetY
+        val characterWidth = rect[2].toInt() + offsetX
+        val characterHeight = rect[3].toInt() + offsetY
+
+        characterCoordinatesLut[idx] = (characterX shl 24) or
+                (characterY shl 16) or
+                (characterWidth shl 8) or
+                characterHeight
 
         characterCodeLut[chars[idx].code[0]] = idx
     }
 
+    if (' ' in characterCodeLut) {
+        val spaceCode = characterCodeLut[' ']!!
+        characterCoordinatesLut[spaceCode] = 0
+    }
+
     val (bitmapWidth, bitmapHeight, bitmap) = readImage(
-        "C:\\Users\\ofwar\\Documents\\Programming\\drones\\src\\main\\resources\\fonts\\lemon\\lemon_medium_14.png"
+        "C:\\Users\\ofwar\\Documents\\Programming\\drones\\src\\main\\resources\\fonts\\consolas\\consolas_regular_14.png"
     )
 
-    return GameFont("Lemon",
+    return GameFont("Consolas",
         bitmap, bitmapWidth, bitmapHeight,
         characterLut, characterCodeLut, characterCoordinatesLut)
 }
 
 fun getFontXmlStream(filename: String): InputStream =
     Main::class.java.getResourceAsStream("/fonts/$filename")
-        ?: throw FileNotFoundException("Could not find shader 'fonts/$filename'")
+        ?: throw FileNotFoundException("Could not find font 'fonts/$filename'")
 
 @XmlRootElement(name = "Font")
 class XmlFontEntry {
@@ -57,7 +74,7 @@ class XmlFontEntry {
     var children: MutableList<XmlCharEntry> = mutableListOf()
 }
 
-data class XmlCharEntry(@JvmField @XmlAttribute var width: Int = 0,
+data class XmlCharEntry(@JvmField @XmlAttribute var offset: String = "",
                         @JvmField @XmlAttribute var rect: String = "",
                         @JvmField @XmlAttribute var code: String = "")
 

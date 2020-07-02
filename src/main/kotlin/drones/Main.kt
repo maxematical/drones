@@ -91,7 +91,7 @@ fun main(args: Array<String>) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 128, 128, 0, GL_RGBA, GL_UNSIGNED_BYTE, font.bitmapTexture)
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, font.bitmapWidth, font.bitmapHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, font.bitmapTexture)
     glGenerateMipmap(GL_TEXTURE_2D)
 
     // Set up alpha blending
@@ -104,7 +104,7 @@ fun main(args: Array<String>) {
     glBufferData(GL_SHADER_STORAGE_BUFFER, 2048, GL_DYNAMIC_DRAW)
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, font.characterCoordinatesLut)
     //glBufferSubData(GL_SHADER_STORAGE_BUFFER, 128*4, stringToBitmapArray("1", font))
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 512, stringToBitmapArray("Hello World", font))
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 512, stringToBitmapArray("Hello World!! LOL. AbcdefgHIjlkm    nopeCrapTheCoding  is  !!#@@overwhelmingme", font))
     //glBufferData(GL_SHADER_STORAGE_BUFFER, stringToBitmapArray("Hello World"), GL_DYNAMIC_DRAW)
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
