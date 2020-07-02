@@ -10,7 +10,6 @@ import org.lwjgl.stb.STBImage
 import org.lwjgl.system.MemoryUtil.*
 import java.io.*
 import java.nio.ByteBuffer
-import java.nio.IntBuffer
 
 class Main
 
@@ -83,9 +82,8 @@ fun main(args: Array<String>) {
     glDeleteShader(fragmentShader)
 
     // Set up bitmap (font) texture
-    val (x, y, imageData) = readImage(
-        "C:\\Users\\ofwar\\Documents\\Programming\\drones\\src\\main\\resources\\fonts\\lemon\\lemon_medium_14.png"
-    )
+    val font = loadFont()
+//    println(Integer.toBinaryString(font.characterCoordinatesLut[font.characterCodeLut['H']!!])) // <-- this works
 
     val texture = glGenTextures()
     glBindTexture(GL_TEXTURE_2D, texture)
@@ -93,7 +91,7 @@ fun main(args: Array<String>) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 128, 128, 0, GL_RGBA, GL_UNSIGNED_BYTE, imageData)// readImage("fonts/lemon/lemon_medium_14.png"))
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 128, 128, 0, GL_RGBA, GL_UNSIGNED_BYTE, font.bitmapTexture)
     glGenerateMipmap(GL_TEXTURE_2D)
 
     // Set up alpha blending
@@ -103,10 +101,16 @@ fun main(args: Array<String>) {
 
     val ssbo = glGenBuffers()
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo)
-    glBufferData(GL_SHADER_STORAGE_BUFFER, stringToBitmapArray("~Hello World"), GL_DYNAMIC_DRAW)
+    glBufferData(GL_SHADER_STORAGE_BUFFER, 2048, GL_DYNAMIC_DRAW)
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, font.characterCoordinatesLut)
+    //glBufferSubData(GL_SHADER_STORAGE_BUFFER, 128*4, stringToBitmapArray("1", font))
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 512, stringToBitmapArray("Hello World", font))
+    //glBufferData(GL_SHADER_STORAGE_BUFFER, stringToBitmapArray("Hello World"), GL_DYNAMIC_DRAW)
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
+
+    println(font.characterCoordinatesLut[stringToBitmapArray("d", font)[1]] shr 24)
 
     // Loop
     while (!glfwWindowShouldClose(window)) {
@@ -168,7 +172,6 @@ fun readImage(filename: String): Triple<Int, Int, ByteBuffer> {
     val channels = IntArray(1)
     val bytes = STBImage.stbi_load(filename, x, y, channels, 4) ?:
         throw FileNotFoundException("Could not find file '$filename'")
-    println(channels[0])
 
     return Triple(x[0], y[0], bytes)
 }
@@ -176,10 +179,12 @@ fun readImage(filename: String): Triple<Int, Int, ByteBuffer> {
 /**
  * Prepares a string for use by the shader
  */
-fun stringToBitmapArray(string: String): IntArray {
+fun stringToBitmapArray(string: String, font: GameFont): IntArray {
     // http://forum.lwjgl.org/index.php?topic=6546.0
-    val arr = IntArray(string.length)
+    val arr = IntArray(string.length + 1)
+    arr[0] = string.length
+
     for (idx in string.indices)
-        arr[idx] = string[idx].toInt()
+        arr[idx + 1] = font.characterCodeLut[string[idx]] ?: error("Font does not support character '${string[idx]}'")
     return arr
 }
