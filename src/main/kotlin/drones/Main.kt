@@ -3,11 +3,14 @@ package drones
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL11
+import org.lwjgl.opengl.GL15
 import org.lwjgl.opengl.GL30.*
+import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.stb.STBImage
 import org.lwjgl.system.MemoryUtil.*
 import java.io.*
 import java.nio.ByteBuffer
+import java.nio.IntBuffer
 
 class Main
 
@@ -16,7 +19,7 @@ fun main(args: Array<String>) {
 
     // Set up OpenGL
     glfwInit()
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3)
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3)
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE)
 
@@ -97,6 +100,14 @@ fun main(args: Array<String>) {
     glEnable(GL_BLEND)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
+
+    val ssbo = glGenBuffers()
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo)
+    glBufferData(GL_SHADER_STORAGE_BUFFER, stringToBitmapArray("~Hello World"), GL_DYNAMIC_DRAW)
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo)
+    glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
+
+
     // Loop
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0f, 1f, 0f, 1f)
@@ -160,4 +171,15 @@ fun readImage(filename: String): Triple<Int, Int, ByteBuffer> {
     println(channels[0])
 
     return Triple(x[0], y[0], bytes)
+}
+
+/**
+ * Prepares a string for use by the shader
+ */
+fun stringToBitmapArray(string: String): IntArray {
+    // http://forum.lwjgl.org/index.php?topic=6546.0
+    val arr = IntArray(string.length)
+    for (idx in string.indices)
+        arr[idx] = string[idx].toInt()
+    return arr
 }
