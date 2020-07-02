@@ -1,0 +1,58 @@
+The goal of this project is to create an ENGINEERING and PROGRAMMING-BASED game where you have to script "drones" to
+build a space colony and collect resources to keep going.
+
+The player will have to use their creativity and try different approaches to building their robots to gather resources
+and explore locations.
+
+The drones operate on their own, so the challenge is primarily designing them in the right way.
+
+Drones will be scripted using either:
+- custom, node-based solution (most control, more flexibility for the developer, less for the user, harder to program?)
+- lua (less control, more advanced scripting options, more complicated for the user)
+- something else?
+
+Lua might be better, because it's hard to make complicated strategies and designs with just nodes. At that point you
+need to implement loops, etc. in your node-based language and it just becomes cumbersome.
+
+The game takes place on a 2D grid.
+
+Example gameplay:
+- The robots set up a "hive" where they can store their possessions and are safe from enemies.
+- robots have "wifi" (can use signals between different robots)
+- Other robots can sense signals from other robots, so it can be used to find out where you are. Now you have strategies
+  where you avoid sending signals when you think baddies could be nearby. Or you send a signal to try to fool them
+- Encountering a "Dreadnought" robot, that is composed of multiple drones moving together, where the drones on the
+  outside tend to be armor or guns and the drones on the inside are powering the other ones
+
+
+
+
+Other ideas
+- coupling systems and mechanics together makes them more interesting to work with. E.g. the "Bee Dance" is an example
+  of using a simple movement system to communicate. Players should be using the systems in different and creative ways.
+- interactions with other drone colonies, these can often be adversarial and leads to arms races as players try
+  different strategies to counter each other
+- this game can have other drone factions without being MP. We can pre-design certain drone factions that you can fight
+  in SP.
+- how do we make combat between drones interesting? The game should rest strongly upon strategy and predicting or
+  countering your opponent.
+- can place different hardware pieces on your drone that give it access to different abilities. these, however will
+  affect stats like its weight, speed, etc -- design different drones for different roles
+- drones are fragile -- you cant just brute force your way through things, you need to think about them before they
+  happen
+- e.g. armor components, some drones could be composed mostly of armor and then are used as "moving shields", where they
+  protect more fragile drones inside
+- components on a drone have a location, so they could e.g. have armor on front but not on back, guns on certain side,
+  etc. Makes rotation/movement actually important
+- weapons - lasers need power(which can be redirected from other subsystems), but don't require physical weight for
+  ammo. Gatlings need (heavy) ammunition to be carried, don't need lots of power, also apply physical momentum to
+  whatever they hit
+- add bombs or something else to counter "wall-of-gatling" designs??
+- drones need some way to transfer power and inventory between each other -- charging platforms?
+- heat mechanic? another tradeoff to constant activity, along with power
+- components can only scan in a line/arc around the drone -- makes rotating and moving around more important since
+  otherwise these components will lose effectiveness
+- randomize gameplay factors to avoid having a single meta
+- implement pathing algorithms for the player so they don't have to get caught up on this
+
+- mechanics/systems in the game: Power, Movement, Weapons/combat, Signals/comms
