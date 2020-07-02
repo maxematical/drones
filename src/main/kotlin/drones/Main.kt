@@ -101,10 +101,11 @@ fun main(args: Array<String>) {
 
     val ssbo = glGenBuffers()
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo)
-    glBufferData(GL_SHADER_STORAGE_BUFFER, 2048, GL_DYNAMIC_DRAW)
+    glBufferData(GL_SHADER_STORAGE_BUFFER, 4096, GL_DYNAMIC_DRAW)
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, font.characterCoordinatesLut)
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 512, font.characterOffsetLut)
     //glBufferSubData(GL_SHADER_STORAGE_BUFFER, 128*4, stringToBitmapArray("1", font))
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 512, stringToBitmapArray("Hello World!! LOL. AbcdefgHIjlkm    nopeCrapTheCoding  is  !!#@@overwhelmingme", font))
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1024, stringToBitmapArray("Hello World.", font))
     //glBufferData(GL_SHADER_STORAGE_BUFFER, stringToBitmapArray("Hello World"), GL_DYNAMIC_DRAW)
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)

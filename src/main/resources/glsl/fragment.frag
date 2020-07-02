@@ -3,6 +3,7 @@ in vec2 uv;
 layout (std430, binding = 0) buffer myBuffer
 {
     int characterCoordsLut[128];
+    int characterOffsetLut[128];
     int charData[];
 };
 
@@ -37,13 +38,13 @@ void main()
             (characterCoordsLut[char] >> 16) & 255) / fontTextureDimensions;
         vec2 characterWidthHeight = vec2((characterCoordsLut[char] >> 8) & 255,
             (characterCoordsLut[char]) & 255) / fontTextureDimensions;
+        vec2 characterOffset = vec2((characterOffsetLut[char] >> 8) & 255,
+            characterOffsetLut[char] & 255) / fontTextureDimensions;
 
-        vec2 characterUv = characterTopLeft + squareUv * characterWidthHeight;
-        FragColor = texture(theTexture, characterUv);
-        //FragColor = vec4(squareUv, 0.0, 1.0);
-        //FragColor = vec4((characterCoordsLut[charData[charIndex]] >> 24) / 128.0, 0.0, 0.0, 1.0);
+        vec2 characterUv = (characterTopLeft - characterOffset) + squareUv * (characterWidthHeight + characterOffset);
+        bool isOutsideOffsetArea = characterUv.x >= characterTopLeft.x || characterUv.y >= characterTopLeft.y;
 
-        //FragColor = vec4(charData[charIndex] / 127.0, 0.0, 0.0, 1.0);
+        FragColor = texture(theTexture, characterUv) * int(isOutsideOffsetArea);
     }
     else
         FragColor = vec4(0.0, 0.0, charIndex / 64.0, 1.0);

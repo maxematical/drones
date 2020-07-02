@@ -20,6 +20,7 @@ fun loadFont(): GameFont {
 
     val characterLut = CharArray(128)
     val characterCoordinatesLut = IntArray(128)
+    val characterOffsetLut = IntArray(128)
     val characterCodeLut = mutableMapOf<Char, Int>()
 
     for (idx in 0..min(127, chars.lastIndex)) {
@@ -33,18 +34,21 @@ fun loadFont(): GameFont {
         if (offset.size != 2)
             throw RuntimeException("Invalid offset attribute for character '${chars[idx].code}")
 
-        val offsetX = offset[0].toInt() - 1
-        val offsetY = offset[1].toInt() - 1
+        val offsetX = offset[0].toInt()
+        val offsetY = offset[1].toInt()
 
-        val characterX = rect[0].toInt() - offsetX
-        val characterY = rect[1].toInt() - offsetY
-        val characterWidth = rect[2].toInt() + offsetX
-        val characterHeight = rect[3].toInt() + offsetY
+        val characterX = rect[0].toInt()
+        val characterY = rect[1].toInt()
+        val characterWidth = rect[2].toInt()
+        val characterHeight = rect[3].toInt()
 
         characterCoordinatesLut[idx] = (characterX shl 24) or
                 (characterY shl 16) or
                 (characterWidth shl 8) or
                 characterHeight
+
+        characterOffsetLut[idx] = ((offsetX and 255) shl 8) or
+                (offsetY and 255)
 
         characterCodeLut[chars[idx].code[0]] = idx
     }
@@ -52,6 +56,7 @@ fun loadFont(): GameFont {
     if (' ' in characterCodeLut) {
         val spaceCode = characterCodeLut[' ']!!
         characterCoordinatesLut[spaceCode] = 0
+        characterOffsetLut[spaceCode] = 0
     }
 
     val (bitmapWidth, bitmapHeight, bitmap) = readImage(
@@ -60,7 +65,7 @@ fun loadFont(): GameFont {
 
     return GameFont("Consolas",
         bitmap, bitmapWidth, bitmapHeight,
-        characterLut, characterCodeLut, characterCoordinatesLut)
+        characterLut, characterCodeLut, characterCoordinatesLut, characterOffsetLut)
 }
 
 fun getFontXmlStream(filename: String): InputStream =
@@ -84,4 +89,5 @@ class GameFont(val name: String,
                val bitmapHeight: Int,
                val characterLut: CharArray,
                val characterCodeLut: Map<Char, Int>,
-               val characterCoordinatesLut: IntArray) // length of array is 128
+               val characterCoordinatesLut: IntArray, // length of array is 128
+               val characterOffsetLut: IntArray) // similar to characterCoordinatesLut
