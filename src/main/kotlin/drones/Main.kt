@@ -113,7 +113,7 @@ fun main(args: Array<String>) {
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 512, font.characterOffsetLut)
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1024, floatArrayOf(font.bitmapWidth.toFloat(), font.bitmapHeight.toFloat()))
     //glBufferSubData(GL_SHADER_STORAGE_BUFFER, 128*4, stringToBitmapArray("1", font))
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1032, stringToBitmapArray("xxx@@a..B\\", font))
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1032, stringToBitmapArray("xxx@@a..B\\~{}%$", font))
     //glBufferData(GL_SHADER_STORAGE_BUFFER, stringToBitmapArray("Hello World"), GL_DYNAMIC_DRAW)
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)

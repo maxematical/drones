@@ -48,8 +48,8 @@ fun loadFont(): GameFont {
                 (characterWidth shl 8) or
                 characterHeight
 
-        characterOffsetLut[idx] = ((if (offsetX < 0) 1 else 0) shl 10) or
-            ((if (offsetY < 0) 1 else 0) shl 9) or
+        characterOffsetLut[idx] = ((if (offsetX < 0) 1 else 0) shl 17) or
+                ((if (offsetY < 0) 1 else 0) shl 16) or
             ((abs(offsetX) and 255) shl 8) or
             (abs(offsetY) and 255)
 

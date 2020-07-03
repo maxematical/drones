@@ -45,16 +45,13 @@ void main()
         vec2 characterOffset = vec2((characterOffsetLut[char] >> 8) & 255, characterOffsetLut[char] & 255) /
             fontTextureDimensions;
 
-        if ((characterOffsetLut[char] >> 10 & 1) == 1)
+        if ((characterOffsetLut[char] >> 17 & 1) == 1)
             characterOffset.x *= -1;
-        if ((characterOffsetLut[char] >> 9 & 1) == 1)
+        if ((characterOffsetLut[char] >> 16 & 1) == 1)
             characterOffset.y *= -1;
 
-        characterOffset*=0;
-
-
-        float charWidth = (characterWidthHeight.x +1* characterOffset.x) * fontTextureDimensions.x * 2;
-        float charHeight = (characterWidthHeight.y+1* characterOffset.y) * fontTextureDimensions.y * 2;
+        float charWidth = (characterWidthHeight.x + characterOffset.x) * fontTextureDimensions.x * 3;
+        float charHeight = (characterWidthHeight.y + characterOffset.y) * fontTextureDimensions.y * 3;
         // I have no idea how these calculations make sense, but it works
         vec2 squareUv2 = vec2(TileSize / charWidth, TileSize / charHeight) *
             (squareUv - vec2((TileSize - charWidth) / 2 / TileSize, (TileSize - charHeight) / 2 / TileSize));
@@ -66,8 +63,6 @@ void main()
 
         FragColor = texture(theTexture, characterUv) * int(isOutsideOffsetArea);
 
-
-        //FragColor = vec4(squareUv2, 0.0, 1.0);
         FragColor = (clamp(squareUv2, 0.0, 1.0) == squareUv2) ? FragColor : vec4(1.0, 0.0, 0.0, 0.0);
         if (mod(pixel.x + 1, TileSize) <= 2.0 || mod(pixel.y + 1, TileSize) <= 2.0)
             FragColor = vec4(0.0, 0.0, 1.0, 1.0);
