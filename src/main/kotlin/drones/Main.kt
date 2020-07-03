@@ -2,15 +2,15 @@ package drones
 
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
-import org.lwjgl.opengl.GL11
-import org.lwjgl.opengl.GL15
-import org.lwjgl.opengl.GL20
 import org.lwjgl.opengl.GL30.*
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.stb.STBImage
 import org.lwjgl.system.MemoryUtil.*
 import java.io.*
+import java.lang.Float.min
 import java.nio.ByteBuffer
+import kotlin.math.sign
+import kotlin.math.sqrt
 
 class Main
 
@@ -142,22 +142,65 @@ fun main(args: Array<String>) {
     val startTime = System.currentTimeMillis()
 
     val world = World(8, 8)
+    world.grid[3][3] = TileStone
+    world.grid[3][4] = TileStone
+    world.grid[4][3] = TileStone
+    world.grid[4][4] = TileStone
+
+    var cameraX: Float = 0f
+    var cameraY: Float = 0f
+    var cameraVelX: Float = 0f
+    var cameraVelY: Float = 0f
+    val cameraMaxVel = 5f
+    val cameraMaxSqVel = cameraMaxVel * cameraMaxVel
+    val cameraAccel = cameraMaxVel * 5f
+
+    var lastTime = System.currentTimeMillis()
 
     // Loop
     while (!glfwWindowShouldClose(window)) {
+        val deltaTime = (System.currentTimeMillis() - lastTime) * 0.001f
+        lastTime = System.currentTimeMillis()
+
+        // Update camera movement
+        var inputX = 0
+        var inputY = 0
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) inputX--
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) inputX++
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) inputY--
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) inputY++
+
+        var desiredVelX = inputX * cameraMaxVel
+        var desiredVelY = inputY * cameraMaxVel
+        val desiredSqSpeed = desiredVelX * desiredVelX + desiredVelY * desiredVelY
+        if (desiredSqSpeed > cameraMaxSqVel) {
+            val desiredSpeed = sqrt(desiredSqSpeed)
+            desiredVelX *= cameraMaxVel / desiredSpeed
+            desiredVelY *= cameraMaxVel / desiredSpeed
+        }
+
+        cameraVelX += sign(desiredVelX - cameraVelX) * min(cameraAccel * deltaTime, Math.abs(desiredVelX - cameraVelX))
+        cameraVelY += sign(desiredVelY - cameraVelY) * min(cameraAccel * deltaTime, Math.abs(desiredVelY - cameraVelY))
+
+        cameraX += cameraVelX * deltaTime
+        cameraY += cameraVelY * deltaTime
+
+        // Render
         glClearColor(0f, 1f, 0f, 1f)
         glClear(GL_COLOR_BUFFER_BIT)
 
         glUseProgram(shaderProgram)
         glUniform2f(glGetUniformLocation(shaderProgram, "WindowSize"), windowWidth.toFloat(), windowHeight.toFloat())
         glUniform1f(glGetUniformLocation(shaderProgram, "TileSize"), tileSize)
+        glUniform2f(glGetUniformLocation(shaderProgram, "CameraPos"), cameraX, cameraY)
 
         val message: String = (System.currentTimeMillis() - startTime).toString()
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo)
         //glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1096, stringToBitmapArray(message, font))
         val renderedWorld = world.toBitmapArray(font)
-        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1096, intArrayOf(renderedWorld.size))
-        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1100, renderedWorld)
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1096, intArrayOf(world.width))
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1100, intArrayOf(renderedWorld.size))
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1104, renderedWorld)
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
         glBindTexture(GL_TEXTURE_2D, texture)

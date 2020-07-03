@@ -5,6 +5,7 @@ layout (std430, binding = 0) buffer myBuffer
     int characterOffsetLut[128];
     vec2 fontTextureDimensions;
     int colorTheme[16];
+    int lineLength;
     int nChars;
     int charData[];
 };
@@ -14,6 +15,7 @@ out vec4 FragColor;
 uniform sampler2D theTexture;
 uniform vec2 WindowSize;
 uniform float TileSize;
+uniform vec2 CameraPos;
 
 vec4 drawCharacter(vec2 pixel, int charIndex);
 vec4 drawEmptyTile(vec2 pixel, int charIndex);
@@ -24,9 +26,14 @@ void main()
 
     vec2 pixel = gl_FragCoord.xy;
     pixel.y = WindowSize.y - pixel.y;
+    pixel.x += CameraPos.x * TileSize;
+    pixel.y -= CameraPos.y * TileSize;
 
-    int charIndex = int(floor(pixel.x / TileSize) + (WindowSize.x / TileSize) * floor(pixel.y / TileSize));
-    bool isCharacterHere = charIndex < nChars;
+    float tileX = floor(pixel.x / TileSize);
+    float tileY = floor(pixel.y / TileSize);
+
+    int charIndex = int(mix(nChars, tileX + lineLength * tileY, int(tileX < lineLength)));
+    bool isCharacterHere = charIndex < nChars && charIndex >= 0 && tileX >= 0;
     FragColor = mix(drawEmptyTile(pixel, charIndex), drawCharacter(pixel, charIndex), bool(isCharacterHere));
 
     // Enable this to see areas with partial transparency
