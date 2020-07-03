@@ -105,6 +105,25 @@ fun main(args: Array<String>) {
     glEnable(GL_BLEND)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
+    // Campbell color theme -- https://github.com/microsoft/terminal/releases/tag/1904.29002
+    val colors = intArrayOf(
+        0x0C0C0C,
+        0x0037DA,
+        0x13A10E,
+        0x3A96DD,
+        0xC50F1F,
+        0x881798,
+        0xC19C00,
+        0xCCCCCC,
+        0x767676,
+        0x3B78FF,
+        0x16C60C,
+        0x61D6D6,
+        0xE74856,
+        0xB4009E,
+        0xF9F1A5,
+        0xF2F2F2
+    )
 
     val ssbo = glGenBuffers()
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo)
@@ -112,14 +131,15 @@ fun main(args: Array<String>) {
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, font.characterCoordinatesLut)
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 512, font.characterOffsetLut)
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1024, floatArrayOf(font.bitmapWidth.toFloat(), font.bitmapHeight.toFloat()))
-    //glBufferSubData(GL_SHADER_STORAGE_BUFFER, 128*4, stringToBitmapArray("1", font))
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1032, stringToBitmapArray("xxx@@a..B\\~{}%$", font))
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1032, colors)
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1096, stringToBitmapArray("xxx@@a..B\\~{}%$", font))
     //glBufferData(GL_SHADER_STORAGE_BUFFER, stringToBitmapArray("Hello World"), GL_DYNAMIC_DRAW)
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
 
-    println(font.characterCoordinatesLut[stringToBitmapArray("d", font)[1]] shr 24)
+    println(font.characterCoordinatesLut[stringToBitmapArray("d", font)[1] and 255] shr 24)
+    println((stringToBitmapArray("d", font)[1] shr 16) and 255)
 
     // Loop
     while (!glfwWindowShouldClose(window)) {
@@ -203,5 +223,9 @@ fun stringToBitmapArray(string: String, font: GameFont): IntArray {
 
     for (idx in string.indices)
         arr[idx + 1] = font.characterCodeLut[string[idx]] ?: error("Font does not support character '${string[idx]}'")
+
+    for (idx in 1..arr.lastIndex)
+        arr[idx] = arr[idx] or (14 shl 16) or (1 shl 8)
+
     return arr
 }
