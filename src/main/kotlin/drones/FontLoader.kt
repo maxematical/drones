@@ -35,8 +35,10 @@ fun loadFont(): GameFont {
         if (offset.size != 2)
             throw RuntimeException("Invalid offset attribute for character '${chars[idx].code}")
 
-        val offsetX = offset[0].toInt()
-        val offsetY = offset[1].toInt()
+        // IMPORTANT: The added numbers here should be the padding X and Y for this bitmap.
+        // E.g. for this bitmap, there is a padding of 4 to the right and 4 downwards after each glyph.
+        val offsetX = offset[0].toInt() + 4
+        val offsetY = offset[1].toInt() + 4
 
         val characterX = rect[0].toInt()
         val characterY = rect[1].toInt()
