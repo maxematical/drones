@@ -133,13 +133,15 @@ fun main(args: Array<String>) {
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1024, floatArrayOf(font.bitmapWidth.toFloat(), font.bitmapHeight.toFloat()))
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1032, colors)
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1096, stringToBitmapArray("xxx@@a..B\\~{}%$", font))
-    //glBufferData(GL_SHADER_STORAGE_BUFFER, stringToBitmapArray("Hello World"), GL_DYNAMIC_DRAW)
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
-
     println(font.characterCoordinatesLut[stringToBitmapArray("d", font)[1] and 255] shr 24)
     println((stringToBitmapArray("d", font)[1] shr 16) and 255)
+
+    val startTime = System.currentTimeMillis()
+
+    val world = World(8, 8)
 
     // Loop
     while (!glfwWindowShouldClose(window)) {
@@ -149,6 +151,15 @@ fun main(args: Array<String>) {
         glUseProgram(shaderProgram)
         glUniform2f(glGetUniformLocation(shaderProgram, "WindowSize"), windowWidth.toFloat(), windowHeight.toFloat())
         glUniform1f(glGetUniformLocation(shaderProgram, "TileSize"), tileSize)
+
+        val message: String = (System.currentTimeMillis() - startTime).toString()
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo)
+        //glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1096, stringToBitmapArray(message, font))
+        val renderedWorld = world.toBitmapArray(font)
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1096, intArrayOf(renderedWorld.size))
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1100, renderedWorld)
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
+
         glBindTexture(GL_TEXTURE_2D, texture)
         glBindVertexArray(vao)
         glDrawArrays(GL_TRIANGLES, 0, 6)
