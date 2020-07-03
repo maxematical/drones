@@ -1,5 +1,4 @@
 #version 430 core
-in vec2 uv;
 layout (std430, binding = 0) buffer myBuffer
 {
     int characterCoordsLut[128];
@@ -22,8 +21,6 @@ vec4 drawEmptyTile(vec2 pixel, int charIndex);
 void main()
 {
     float lineHeight = 14;
-
-    FragColor = texture(theTexture, vec2(uv.x, -uv.y));
 
     vec2 pixel = gl_FragCoord.xy;
     pixel.y = WindowSize.y - pixel.y;
