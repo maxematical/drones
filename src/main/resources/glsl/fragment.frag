@@ -26,6 +26,7 @@ void main()
 
     vec2 pixel = gl_FragCoord.xy;
     pixel.y = WindowSize.y - pixel.y;
+    pixel -= WindowSize * 0.5;
     pixel.x += CameraPos.x * TileSize;
     pixel.y -= CameraPos.y * TileSize;
 
