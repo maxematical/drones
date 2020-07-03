@@ -7,6 +7,7 @@ import javax.xml.bind.JAXBContext
 import javax.xml.bind.annotation.XmlAttribute
 import javax.xml.bind.annotation.XmlElement
 import javax.xml.bind.annotation.XmlRootElement
+import kotlin.math.abs
 import kotlin.math.min
 
 fun loadFont(): GameFont {
@@ -47,8 +48,10 @@ fun loadFont(): GameFont {
                 (characterWidth shl 8) or
                 characterHeight
 
-        characterOffsetLut[idx] = ((offsetX and 255) shl 8) or
-                (offsetY and 255)
+        characterOffsetLut[idx] = ((if (offsetX < 0) 1 else 0) shl 10) or
+            ((if (offsetY < 0) 1 else 0) shl 9) or
+            ((abs(offsetX) and 255) shl 8) or
+            (abs(offsetY) and 255)
 
         characterCodeLut[chars[idx].code[0]] = idx
     }

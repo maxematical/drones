@@ -4,6 +4,7 @@ import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL11
 import org.lwjgl.opengl.GL15
+import org.lwjgl.opengl.GL20
 import org.lwjgl.opengl.GL30.*
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.stb.STBImage
@@ -13,7 +14,12 @@ import java.nio.ByteBuffer
 
 class Main
 
+var tileSize: Float = 64f
+
 fun main(args: Array<String>) {
+    val windowWidth = 1280
+    val windowHeight = 720
+
     println("Hello world")
 
     // Set up OpenGL
@@ -21,8 +27,9 @@ fun main(args: Array<String>) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4)
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3)
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE)
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE)
 
-    val window: Long = glfwCreateWindow(256, 256, "Hello World", NULL, NULL)
+    val window: Long = glfwCreateWindow(windowWidth, windowHeight, "Hello World", NULL, NULL)
     if (window == NULL) {
         println("Failed to create window");
         glfwTerminate()
@@ -89,7 +96,7 @@ fun main(args: Array<String>) {
     glBindTexture(GL_TEXTURE_2D, texture)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, font.bitmapWidth, font.bitmapHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, font.bitmapTexture)
     glGenerateMipmap(GL_TEXTURE_2D)
@@ -104,8 +111,9 @@ fun main(args: Array<String>) {
     glBufferData(GL_SHADER_STORAGE_BUFFER, 4096, GL_DYNAMIC_DRAW)
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, font.characterCoordinatesLut)
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 512, font.characterOffsetLut)
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1024, floatArrayOf(font.bitmapWidth.toFloat(), font.bitmapHeight.toFloat()))
     //glBufferSubData(GL_SHADER_STORAGE_BUFFER, 128*4, stringToBitmapArray("1", font))
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1024, stringToBitmapArray("Hello World.", font))
+    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1032, stringToBitmapArray("xxx@@a..B\\", font))
     //glBufferData(GL_SHADER_STORAGE_BUFFER, stringToBitmapArray("Hello World"), GL_DYNAMIC_DRAW)
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
@@ -119,6 +127,8 @@ fun main(args: Array<String>) {
         glClear(GL_COLOR_BUFFER_BIT)
 
         glUseProgram(shaderProgram)
+        glUniform2f(glGetUniformLocation(shaderProgram, "WindowSize"), windowWidth.toFloat(), windowHeight.toFloat())
+        glUniform1f(glGetUniformLocation(shaderProgram, "TileSize"), tileSize)
         glBindTexture(GL_TEXTURE_2D, texture)
         glBindVertexArray(vao)
         glDrawArrays(GL_TRIANGLES, 0, 6)
@@ -134,6 +144,12 @@ fun main(args: Array<String>) {
 fun keyCallback(window: Long, key: Int, scancode: Int, actions: Int, mods: Int) {
     if (key == GLFW_KEY_ESCAPE) {
         glfwSetWindowShouldClose(window, true)
+    }
+    if (key == GLFW_KEY_EQUAL && actions == GLFW_PRESS) {
+        tileSize += 8
+    }
+    if (key == GLFW_KEY_MINUS && actions == GLFW_PRESS) {
+        tileSize -= 8
     }
 }
 
