@@ -6,6 +6,7 @@ in vec2 vertexUv;
 uniform int packedCharacterUv;
 uniform vec2 bitmapDimensions;
 uniform sampler2D bitmap;
+uniform int droneColor;
 
 void main()
 {
@@ -15,4 +16,9 @@ void main()
     vec2 bitmapUv = characterUvTopLeft + vertexUv * characterUvWidthHeight;
 
     FragColor = texture(bitmap, bitmapUv);
+
+    float droneColorR = droneColor >> 16;
+    float droneColorG = (droneColor >> 8) & 255;
+    float droneColorB = droneColor & 255;
+    FragColor.rgb *= vec3(droneColorR, droneColorG, droneColorB) / 255.0;
 }

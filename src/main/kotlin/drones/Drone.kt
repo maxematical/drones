@@ -3,7 +3,11 @@ package drones
 import org.joml.Matrix4f
 import org.joml.Vector2f
 
-class Drone(val position: Vector2f, val color: Int, val velocity: Vector2f = Vector2f(), val rotation: Float = 0f) {
+class Drone(val position: Vector2f,
+            val color: Int = 0xFFFFFF,
+            val velocity: Vector2f = Vector2f(),
+            val rotation: Float = 0f,
+            val size: Float = 0.8f) {
     val modelMatrix: Matrix4f = Matrix4f()
     val modelMatrixArr: FloatArray = FloatArray(16)
 
@@ -15,6 +19,7 @@ class Drone(val position: Vector2f, val color: Int, val velocity: Vector2f = Vec
         modelMatrix.identity()
         modelMatrix.translate(position.x, position.y, 0f)
         modelMatrix.rotate(rotation * MathUtils.DEG2RAD, 0f, 0f, 1f)
+        modelMatrix.scale(size)
         modelMatrix.get(modelMatrixArr)
     }
 }

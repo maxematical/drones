@@ -162,7 +162,7 @@ fun main(args: Array<String>) {
     grid.tiles[4][3] = TileStone
     grid.tiles[4][4] = TileStone
 
-    val drone = Drone(Vector2f(0f, 0f), 9, Vector2f(1f, 0f))
+    val drone = Drone(Vector2f(0f, 0f), 0xEE9999, Vector2f(1f, 0f))
 
     var cameraX: Float = 0f
     var cameraY: Float = 0f
@@ -246,6 +246,7 @@ fun main(args: Array<String>) {
             font.characterCoordinatesLut[font.characterCodeLut['>']!!])
         glUniform2f(glGetUniformLocation(droneShaderProgram, "bitmapDimensions"),
             font.bitmapWidth.toFloat(), font.bitmapHeight.toFloat())
+        glUniform1i(glGetUniformLocation(droneShaderProgram, "droneColor"), drone.color)
 
         glBindTexture(GL_TEXTURE_2D, bitmapTexture)
         glBindVertexArray(vaoDrone)
