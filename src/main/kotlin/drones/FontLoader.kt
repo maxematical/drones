@@ -11,7 +11,7 @@ import kotlin.math.abs
 import kotlin.math.min
 
 fun loadFont(): GameFont {
-    val xmlStream = getFontXmlStream("consolas/consolas_regular_42.xml")
+    val xmlStream = getFontXmlStream("lemon/lemon_medium_14.xml")
 
     val ctx = JAXBContext.newInstance(XmlFontEntry::class.java)
     val unmarshaller = ctx.createUnmarshaller()
@@ -36,9 +36,8 @@ fun loadFont(): GameFont {
             throw RuntimeException("Invalid offset attribute for character '${chars[idx].code}")
 
         // IMPORTANT: The added numbers here should be the padding X and Y for this bitmap.
-        // E.g. for this bitmap, there is a padding of 4 to the right and 4 downwards after each glyph.
-        val offsetX = offset[0].toInt() + 4
-        val offsetY = offset[1].toInt() + 4
+        val offsetX = offset[0].toInt() + -1
+        val offsetY = offset[1].toInt() + -3
 
         val characterX = rect[0].toInt()
         val characterY = rect[1].toInt()
@@ -69,7 +68,7 @@ fun loadFont(): GameFont {
     }
 
     val (bitmapWidth, bitmapHeight, bitmap) = readImage(
-        "C:\\Users\\ofwar\\Documents\\Programming\\drones\\src\\main\\resources\\fonts\\consolas\\consolas_regular_42.png"
+        "C:\\Users\\ofwar\\Documents\\Programming\\drones\\src\\main\\resources\\fonts\\lemon\\lemon_medium_14.png"
     )
 
     return GameFont("Consolas",

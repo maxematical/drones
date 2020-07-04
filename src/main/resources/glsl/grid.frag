@@ -72,7 +72,7 @@ vec4 drawCharacter(vec2 pixel, int charIndex) {
     characterOffset.y *= -1;
 
     // Calculate an offsetted square UV, which slightly shrinks the character and centers it within the tile
-    float fontScale = 1.0;
+    float fontScale = 3.0;
     float charWidth = (characterWidthHeight.x + characterOffset.x) * fontTextureDimensions.x * fontScale;
     float charHeight = (characterWidthHeight.y + characterOffset.y) * fontTextureDimensions.y * fontScale;
     // I have no idea how these calculations make sense, but it works
