@@ -1,16 +1,12 @@
 package drones
 
-import org.joml.Matrix2f
-import org.joml.Matrix3f
 import org.joml.Matrix4f
 import org.joml.Vector2f
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
-import org.lwjgl.opengl.GL20
 import org.lwjgl.opengl.GL30.*
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.stb.STBImage
-import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.MemoryUtil.*
 import java.io.*
 import java.lang.Float.min
@@ -71,12 +67,12 @@ fun main(args: Array<String>) {
     )
 
     // Create Vertex Array Object (calls below will also bind things into this object)
-    val vaoWorld = glGenVertexArrays()
-    glBindVertexArray(vaoWorld)
+    val vaoGrid = glGenVertexArrays()
+    glBindVertexArray(vaoGrid)
 
     // Create vertex buffer object
-    val vboWorld = glGenBuffers()
-    glBindBuffer(GL_ARRAY_BUFFER, vboWorld)
+    val vboGrid = glGenBuffers()
+    glBindBuffer(GL_ARRAY_BUFFER, vboGrid)
     glBufferData(GL_ARRAY_BUFFER, quadVertices, GL_STATIC_DRAW)
 
     // Tell OpenGL how to use the vertex attributes for use by the future vertex shader
@@ -97,15 +93,15 @@ fun main(args: Array<String>) {
 
     // Set up the shader
     val defaultVertexShader = Shader.create("/glsl/default.vert", GL_VERTEX_SHADER)
-    val worldFragmentShader = Shader.create("/glsl/world.frag", GL_FRAGMENT_SHADER)
+    val gridFragmentShader = Shader.create("/glsl/grid.frag", GL_FRAGMENT_SHADER)
 
     val objectVertexShader = Shader.create("/glsl/object.vert", GL_VERTEX_SHADER)
     val droneFragmentShader = Shader.create("/glsl/drone.frag", GL_FRAGMENT_SHADER)
 
-    val worldShaderProgram = glCreateProgram()
-    glAttachShader(worldShaderProgram, defaultVertexShader.glShaderObject)
-    glAttachShader(worldShaderProgram, worldFragmentShader.glShaderObject)
-    glLinkProgram(worldShaderProgram)
+    val gridShaderProgram = glCreateProgram()
+    glAttachShader(gridShaderProgram, defaultVertexShader.glShaderObject)
+    glAttachShader(gridShaderProgram, gridFragmentShader.glShaderObject)
+    glLinkProgram(gridShaderProgram)
 
     val droneShaderProgram = glCreateProgram()
     glAttachShader(droneShaderProgram, objectVertexShader.glShaderObject)
@@ -161,13 +157,13 @@ fun main(args: Array<String>) {
 
     val startTime = System.currentTimeMillis()
 
-    val world = World(8, 8)
-    world.grid[3][3] = TileStone
-    world.grid[3][4] = TileStone
-    world.grid[4][3] = TileStone
-    world.grid[4][4] = TileStone
+    val grid = Grid(8, 8)
+    grid.tiles[3][3] = TileStone
+    grid.tiles[3][4] = TileStone
+    grid.tiles[4][3] = TileStone
+    grid.tiles[4][4] = TileStone
 
-    val drone = Drone(Vector2f(4f, -4f), 9, Vector2f(1f, 0f))
+    val drone = Drone(Vector2f(0f, 0f), 9, Vector2f(1f, 0f))
 
     var cameraX: Float = 0f
     var cameraY: Float = 0f
@@ -217,21 +213,23 @@ fun main(args: Array<String>) {
         glClearColor(0f, 1f, 0f, 1f)
         glClear(GL_COLOR_BUFFER_BIT)
 
-        // Render world
-        glUseProgram(worldShaderProgram)
-        glUniform2f(glGetUniformLocation(worldShaderProgram, "WindowSize"), windowWidth.toFloat(), windowHeight.toFloat())
-        glUniform1f(glGetUniformLocation(worldShaderProgram, "TileSize"), tileSize)
-        glUniform2f(glGetUniformLocation(worldShaderProgram, "CameraPos"), cameraX, cameraY)
+        // Render grid
+        glUseProgram(gridShaderProgram)
+        glUniform2f(glGetUniformLocation(gridShaderProgram, "WindowSize"), windowWidth.toFloat(), windowHeight.toFloat())
+        glUniform1f(glGetUniformLocation(gridShaderProgram, "TileSize"), tileSize)
+        glUniform2f(glGetUniformLocation(gridShaderProgram, "CameraPos"), cameraX, cameraY)
+        glUniform2f(glGetUniformLocation(gridShaderProgram, "GridTopLeft"),
+            grid.positionTopLeft.x(), grid.positionTopLeft.y())
 
-        val renderedWorld = world.toBitmapArray(font)
+        val renderedGrid = grid.toBitmapArray(font)
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo)
-        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1096, intArrayOf(world.width))
-        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1100, intArrayOf(renderedWorld.size))
-        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1104, renderedWorld)
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1096, intArrayOf(grid.width))
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1100, intArrayOf(renderedGrid.size))
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1104, renderedGrid)
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
         glBindTexture(GL_TEXTURE_2D, texture)
-        glBindVertexArray(vaoWorld)
+        glBindVertexArray(vaoGrid)
         glDrawArrays(GL_TRIANGLES, 0, 6)
 
         // Render drone

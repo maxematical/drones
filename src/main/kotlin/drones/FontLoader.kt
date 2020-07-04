@@ -11,7 +11,7 @@ import kotlin.math.abs
 import kotlin.math.min
 
 fun loadFont(): GameFont {
-    val xmlStream = getFontXmlStream("consolas/consolas_regular_14.xml")
+    val xmlStream = getFontXmlStream("consolas/consolas_regular_42.xml")
 
     val ctx = JAXBContext.newInstance(XmlFontEntry::class.java)
     val unmarshaller = ctx.createUnmarshaller()
@@ -65,7 +65,7 @@ fun loadFont(): GameFont {
     }
 
     val (bitmapWidth, bitmapHeight, bitmap) = readImage(
-        "C:\\Users\\ofwar\\Documents\\Programming\\drones\\src\\main\\resources\\fonts\\consolas\\consolas_regular_14.png"
+        "C:\\Users\\ofwar\\Documents\\Programming\\drones\\src\\main\\resources\\fonts\\consolas\\consolas_regular_42.png"
     )
 
     return GameFont("Consolas",

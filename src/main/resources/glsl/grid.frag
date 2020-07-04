@@ -16,6 +16,7 @@ uniform sampler2D theTexture;
 uniform vec2 WindowSize;
 uniform float TileSize;
 uniform vec2 CameraPos;
+uniform vec2 GridTopLeft;
 
 vec4 drawCharacter(vec2 pixel, int charIndex);
 vec4 drawEmptyTile(vec2 pixel, int charIndex);
@@ -27,8 +28,8 @@ void main()
     vec2 pixel = gl_FragCoord.xy;
     pixel.y = WindowSize.y - pixel.y;
     pixel -= WindowSize * 0.5;
-    pixel.x += CameraPos.x * TileSize;
-    pixel.y -= CameraPos.y * TileSize;
+    pixel.x += (CameraPos.x - GridTopLeft.x) * TileSize;
+    pixel.y -= (CameraPos.y + GridTopLeft.y) * TileSize;
 
     float tileX = floor(pixel.x / TileSize);
     float tileY = floor(pixel.y / TileSize);
@@ -71,8 +72,9 @@ vec4 drawCharacter(vec2 pixel, int charIndex) {
     characterOffset.y *= -1;
 
     // Calculate an offsetted square UV, which slightly shrinks the character and centers it within the tile
-    float charWidth = (characterWidthHeight.x + characterOffset.x) * fontTextureDimensions.x * 3;
-    float charHeight = (characterWidthHeight.y + characterOffset.y) * fontTextureDimensions.y * 3;
+    float fontScale = 1.0;
+    float charWidth = (characterWidthHeight.x + characterOffset.x) * fontTextureDimensions.x * fontScale;
+    float charHeight = (characterWidthHeight.y + characterOffset.y) * fontTextureDimensions.y * fontScale;
     // I have no idea how these calculations make sense, but it works
     vec2 squareUv2 = vec2(TileSize / charWidth, TileSize / charHeight) *
     (squareUv - vec2((TileSize - charWidth) / 2 / TileSize, (TileSize - charHeight) / 2 / TileSize));
@@ -89,17 +91,18 @@ vec4 drawCharacter(vec2 pixel, int charIndex) {
     FragColor *= int(!isInOffsetArea) * int(inRelevantArea);
 
     // Apply the appropriate foreground/background color
-    int color = int(mix(colorTheme[bgColorIndex], colorTheme[fgColorIndex], FragColor.a));
+    int bgColor = colorTheme[bgColorIndex];
+    int fgColor = colorTheme[fgColorIndex];
 
-    // The color from colorTheme is a hex color, e.g. 0xFF0000 for red -- we have to unpack this into a vec4
-    FragColor = vec4(((color >> 16) & 255) / 255.0,
-    ((color >> 8) & 255) / 255.0,
-    (color & 255) / 255.0,
-    1.0);
+    // In the future, maybe implement a better color blending algorithm
+    float colorR = mix((bgColor >> 16) & 255, (fgColor >> 16) & 255, FragColor.a) / 255.0;
+    float colorG = mix((bgColor >> 8) & 255, (fgColor >> 8) & 255, FragColor.a) / 255.0;
+    float colorB = mix(bgColor & 255, fgColor & 255, FragColor.a) / 255.0;
+    FragColor = vec4(colorR, colorG, colorB, 1.0);
 
     // Draw grid
     bool shouldDrawGrid = mod(pixel.x + 1, TileSize) <= 2.0 || mod(pixel.y + 1, TileSize) <= 2.0;
-    //FragColor = mix(FragColor, vec4(0.0, 0.0, 1.0, 1.0), int(shouldDrawGrid));
+    FragColor = mix(FragColor, vec4(0.0, 0.0, 1.0, 1.0), int(shouldDrawGrid));
 
     return FragColor;
 }
