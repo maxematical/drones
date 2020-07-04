@@ -108,8 +108,5 @@ vec4 drawCharacter(vec2 pixel, int charIndex) {
 }
 
 vec4 drawEmptyTile(vec2 pixel, int charIndex) {
-    float totalNumTiles = (WindowSize.x * WindowSize.y) / (TileSize * TileSize);
-    FragColor = vec4(0.0, 0.0, charIndex / totalNumTiles, 1.0);
-
-    return FragColor;
+    return vec4(0.0, 0.0, 0.33, 1.0);
 }
