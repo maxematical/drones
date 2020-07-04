@@ -33,6 +33,22 @@ class Shader private constructor(filename: String, glType: Int) {
         fun create(filename: String, glType: Int): Shader =
             Shader(filename, glType)
 
+        fun createProgram(shader1: Shader, shader2: Shader): Int {
+            val program = glCreateProgram()
+            glAttachShader(program, shader1.glShaderObject)
+            glAttachShader(program, shader2.glShaderObject)
+            glLinkProgram(program)
+            glDetachShader(program, shader1.glShaderObject)
+            glDetachShader(program, shader2.glShaderObject)
+
+            if (glGetProgrami(program, GL_LINK_STATUS) == GL_FALSE) {
+                val message = glGetProgramInfoLog(program)
+                throw IllegalStateException("Couldn't link program. Message:\n$message")
+            }
+
+            return program
+        }
+
         private fun loadShaderFile(filename: String): String {
             val instr = Main::class.java.getResourceAsStream(filename)
                 ?: throw FileNotFoundException("Could not find shader '$filename'")

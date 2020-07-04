@@ -4,6 +4,7 @@ import org.joml.Matrix4f
 import org.joml.Vector2f
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
+import org.lwjgl.opengl.GL20
 import org.lwjgl.opengl.GL30.*
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.stb.STBImage
@@ -57,13 +58,13 @@ fun main(args: Array<String>) {
         1f, 1f, 0f
     )
     val quad2Vertices: FloatArray = floatArrayOf(
-        -0.5f, -0.5f, 0.0f,
-        0.5f, -0.5f, 0.0f,
-        0.5f, 0.5f, 0.0f,
+        -0.5f, -0.5f, 0.0f,     0f, 1f,
+        0.5f, -0.5f, 0.0f,      1f, 1f,
+        0.5f, 0.5f, 0.0f,       1f, 0f,
 
-        -0.5f, 0.5f, 0f,
-        -0.5f, -0.5f, 0f,
-        0.5f, 0.5f, 0f
+        -0.5f, 0.5f, 0f,        0f, 0f,
+        -0.5f, -0.5f, 0f,       0f, 1f,
+        0.5f, 0.5f, 0f,         1f, 0f
     )
 
     // Create Vertex Array Object (calls below will also bind things into this object)
@@ -87,9 +88,10 @@ fun main(args: Array<String>) {
     val vboDrone = glGenBuffers()
     glBindBuffer(GL_ARRAY_BUFFER, vboDrone)
     glBufferData(GL_ARRAY_BUFFER, quad2Vertices, GL_STATIC_DRAW)
-    glVertexAttribPointer(0, 3, GL_FLOAT, false, 12, 0)
+    glVertexAttribPointer(0, 3, GL_FLOAT, false, 20, 0)
+    glVertexAttribPointer(1, 2, GL_FLOAT, false, 20, 12)
     glEnableVertexAttribArray(0)
-
+    glEnableVertexAttribArray(1)
 
     // Set up the shader
     val defaultVertexShader = Shader.create("/glsl/default.vert", GL_VERTEX_SHADER)
@@ -103,16 +105,13 @@ fun main(args: Array<String>) {
     glAttachShader(gridShaderProgram, gridFragmentShader.glShaderObject)
     glLinkProgram(gridShaderProgram)
 
-    val droneShaderProgram = glCreateProgram()
-    glAttachShader(droneShaderProgram, objectVertexShader.glShaderObject)
-    glAttachShader(droneShaderProgram, droneFragmentShader.glShaderObject)
-    glLinkProgram(droneShaderProgram)
+    val droneShaderProgram = Shader.createProgram(objectVertexShader, droneFragmentShader)
 
     // Set up bitmap (font) texture
     val font = loadFont()
 
-    val texture = glGenTextures()
-    glBindTexture(GL_TEXTURE_2D, texture)
+    val bitmapTexture = glGenTextures()
+    glBindTexture(GL_TEXTURE_2D, bitmapTexture)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
@@ -228,7 +227,7 @@ fun main(args: Array<String>) {
         glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1104, renderedGrid)
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
-        glBindTexture(GL_TEXTURE_2D, texture)
+        glBindTexture(GL_TEXTURE_2D, bitmapTexture)
         glBindVertexArray(vaoGrid)
         glDrawArrays(GL_TRIANGLES, 0, 6)
 
@@ -243,7 +242,12 @@ fun main(args: Array<String>) {
         glUseProgram(droneShaderProgram)
         glUniformMatrix4fv(glGetUniformLocation(droneShaderProgram, "cameraMatrix"), false, cameraMatrixArr)
         glUniformMatrix4fv(glGetUniformLocation(droneShaderProgram, "modelMatrix"), false, drone.modelMatrixArr)
+        glUniform1i(glGetUniformLocation(droneShaderProgram, "packedCharacterUv"),
+            font.characterCoordinatesLut[font.characterCodeLut['>']!!])
+        glUniform2f(glGetUniformLocation(droneShaderProgram, "bitmapDimensions"),
+            font.bitmapWidth.toFloat(), font.bitmapHeight.toFloat())
 
+        glBindTexture(GL_TEXTURE_2D, bitmapTexture)
         glBindVertexArray(vaoDrone)
         glDrawArrays(GL_TRIANGLES, 0, 6)
 

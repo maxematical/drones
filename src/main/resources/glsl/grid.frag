@@ -60,8 +60,8 @@ vec4 drawCharacter(vec2 pixel, int charIndex) {
 
     // Read info about this character for the current bitmap from lookup tables
     int packedCoords = characterCoordsLut[char];
-    vec2 characterTopLeft = vec2(packedCoords >> 24, (packedCoords >> 16) & 255) / fontTextureDimensions;
-    vec2 characterWidthHeight = vec2((packedCoords >> 8) & 255, packedCoords & 255) / fontTextureDimensions;
+    vec2 characterTopLeft = vec2(packedCoords >> 23, (packedCoords >> 14) & 511) / fontTextureDimensions;
+    vec2 characterWidthHeight = vec2((packedCoords >> 7) & 127, packedCoords & 127) / fontTextureDimensions;
 
     int packedOffset = characterOffsetLut[char];
     vec2 characterOffset = vec2((packedOffset >> 8) & 255, packedOffset & 255) / fontTextureDimensions;

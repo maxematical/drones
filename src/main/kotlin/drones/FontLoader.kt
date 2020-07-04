@@ -45,9 +45,13 @@ fun loadFont(): GameFont {
         val characterWidth = rect[2].toInt()
         val characterHeight = rect[3].toInt()
 
-        characterCoordinatesLut[idx] = (characterX shl 24) or
-                (characterY shl 16) or
-                (characterWidth shl 8) or
+        if (characterX >= 512 || characterY >= 512 || characterWidth >= 128 || characterHeight >= 128)
+            println("Warning: Character '${chars[idx].code}' may not display properly with this font because the " +
+                    "bitmap is too large")
+
+        characterCoordinatesLut[idx] = (characterX shl 23) or
+                (characterY shl 14) or
+                (characterWidth shl 7) or
                 characterHeight
 
         characterOffsetLut[idx] = ((if (offsetX < 0) 1 else 0) shl 17) or
@@ -92,7 +96,11 @@ class GameFont(val name: String,
                val bitmapTexture: ByteBuffer,
                val bitmapWidth: Int,
                val bitmapHeight: Int,
+               /** Look up character by Glyph ID */
                val characterLut: CharArray,
+               /** Look up Glyph ID by character */
                val characterCodeLut: Map<Char, Int>,
+               /** Look up packed UV coordinates by Glyph ID */
                val characterCoordinatesLut: IntArray, // length of array is 128
+               /** Look up packed character offset by Glyph ID */
                val characterOffsetLut: IntArray) // similar to characterCoordinatesLut
