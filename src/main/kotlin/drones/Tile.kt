@@ -18,4 +18,5 @@ object TileStone : Tile() {
     override val name: String = "Stone"
 
     override val appearance: Char = 'X'
+    override val backgroundColor = 1
 }

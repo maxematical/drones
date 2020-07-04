@@ -99,7 +99,7 @@ vec4 drawCharacter(vec2 pixel, int charIndex) {
 
     // Draw grid
     bool shouldDrawGrid = mod(pixel.x + 1, TileSize) <= 2.0 || mod(pixel.y + 1, TileSize) <= 2.0;
-    FragColor = mix(FragColor, vec4(0.0, 0.0, 1.0, 1.0), int(shouldDrawGrid));
+    //FragColor = mix(FragColor, vec4(0.0, 0.0, 1.0, 1.0), int(shouldDrawGrid));
 
     return FragColor;
 }

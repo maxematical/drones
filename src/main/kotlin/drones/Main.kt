@@ -2,6 +2,7 @@ package drones
 
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
+import org.lwjgl.opengl.GL20
 import org.lwjgl.opengl.GL30.*
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.stb.STBImage
@@ -44,8 +45,8 @@ fun main(args: Array<String>) {
     glfwSwapInterval(1)
     glfwShowWindow(window)
 
-    // Create the triangle we want to show on-screen
-    val vertices: FloatArray = floatArrayOf(
+    // Vertices for a quad
+    val quadVertices: FloatArray = floatArrayOf(
         -1f, -1f, 0.0f,
         1f, -1f, 0.0f,
         1f, 1f, 0.0f,
@@ -56,41 +57,49 @@ fun main(args: Array<String>) {
     )
 
     // Create Vertex Array Object (calls below will also bind things into this object)
-    val vao = glGenVertexArrays()
-    glBindVertexArray(vao)
+    val vaoWorld = glGenVertexArrays()
+    glBindVertexArray(vaoWorld)
 
     // Create vertex buffer object
-    val vbo = glGenBuffers()
-    glBindBuffer(GL_ARRAY_BUFFER, vbo)
-    glBufferData(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW)
+    val vboWorld = glGenBuffers()
+    glBindBuffer(GL_ARRAY_BUFFER, vboWorld)
+    glBufferData(GL_ARRAY_BUFFER, quadVertices, GL_STATIC_DRAW)
 
     // Tell OpenGL how to use the vertex attributes for use by the future vertex shader
     glVertexAttribPointer(0, 3, GL_FLOAT, false, 12, 0) // set up vertex position for use in vertex shader
     glEnableVertexAttribArray(0)
 
-    // Set up the shaders
-    val vertexShader = glCreateShader(GL_VERTEX_SHADER)
-    glShaderSource(vertexShader, loadShader("vertex.vert"))
-    glCompileShader(vertexShader)
-    checkShaderStatus(vertexShader)?.let { error -> println("Couldn't set up vertex shader: $error") }
 
-    val fragmentShader = glCreateShader(GL_FRAGMENT_SHADER)
-    glShaderSource(fragmentShader, loadShader("fragment.frag"))
-    glCompileShader(fragmentShader)
-    checkShaderStatus(fragmentShader)?.let { error -> println("Couldn't set up fragment shader: $error") }
 
-    val shaderProgram = glCreateProgram()
-    glAttachShader(shaderProgram, vertexShader)
-    glAttachShader(shaderProgram, fragmentShader)
-    glLinkProgram(shaderProgram)
+    val vaoDrone = glGenVertexArrays()
+    glBindVertexArray(vaoDrone)
 
-    glUseProgram(shaderProgram)
-    glDeleteShader(vertexShader)
-    glDeleteShader(fragmentShader)
+    val vboDrone = glGenBuffers()
+    glBindBuffer(GL_ARRAY_BUFFER, vboWorld)
+    glBufferData(GL_ARRAY_BUFFER, quadVertices, GL_STATIC_DRAW)
+    glVertexAttribPointer(0, 3, GL_FLOAT, false, 12, 0)
+    glEnableVertexAttribArray(0)
+
+
+    // Set up the shader
+    val defaultVertexShader = Shader.create("/glsl/default.vert", GL_VERTEX_SHADER)
+    val worldFragmentShader = Shader.create("/glsl/world.frag", GL_FRAGMENT_SHADER)
+
+    val objectVertexShader = Shader.create("/glsl/object.vert", GL_VERTEX_SHADER)
+    val droneFragmentShader = Shader.create("/glsl/drone.frag", GL_FRAGMENT_SHADER)
+
+    val worldShaderProgram = glCreateProgram()
+    glAttachShader(worldShaderProgram, defaultVertexShader.glShaderObject)
+    glAttachShader(worldShaderProgram, worldFragmentShader.glShaderObject)
+    glLinkProgram(worldShaderProgram)
+
+    val droneShaderProgram = glCreateProgram()
+    glAttachShader(droneShaderProgram, objectVertexShader.glShaderObject)
+    glAttachShader(droneShaderProgram, droneFragmentShader.glShaderObject)
+    glLinkProgram(droneShaderProgram)
 
     // Set up bitmap (font) texture
     val font = loadFont()
-//    println(Integer.toBinaryString(font.characterCoordinatesLut[font.characterCodeLut['H']!!])) // <-- this works
 
     val texture = glGenTextures()
     glBindTexture(GL_TEXTURE_2D, texture)
@@ -135,9 +144,6 @@ fun main(args: Array<String>) {
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1096, stringToBitmapArray("xxx@@a..B\\~{}%$", font))
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
-
-    println(font.characterCoordinatesLut[stringToBitmapArray("d", font)[1] and 255] shr 24)
-    println((stringToBitmapArray("d", font)[1] shr 16) and 255)
 
     val startTime = System.currentTimeMillis()
 
@@ -189,22 +195,26 @@ fun main(args: Array<String>) {
         glClearColor(0f, 1f, 0f, 1f)
         glClear(GL_COLOR_BUFFER_BIT)
 
-        glUseProgram(shaderProgram)
-        glUniform2f(glGetUniformLocation(shaderProgram, "WindowSize"), windowWidth.toFloat(), windowHeight.toFloat())
-        glUniform1f(glGetUniformLocation(shaderProgram, "TileSize"), tileSize)
-        glUniform2f(glGetUniformLocation(shaderProgram, "CameraPos"), cameraX, cameraY)
+        // Render world
+        glUseProgram(worldShaderProgram)
+        glUniform2f(glGetUniformLocation(worldShaderProgram, "WindowSize"), windowWidth.toFloat(), windowHeight.toFloat())
+        glUniform1f(glGetUniformLocation(worldShaderProgram, "TileSize"), tileSize)
+        glUniform2f(glGetUniformLocation(worldShaderProgram, "CameraPos"), cameraX, cameraY)
 
-        val message: String = (System.currentTimeMillis() - startTime).toString()
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo)
-        //glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1096, stringToBitmapArray(message, font))
         val renderedWorld = world.toBitmapArray(font)
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo)
         glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1096, intArrayOf(world.width))
         glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1100, intArrayOf(renderedWorld.size))
         glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1104, renderedWorld)
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
         glBindTexture(GL_TEXTURE_2D, texture)
-        glBindVertexArray(vao)
+        glBindVertexArray(vaoWorld)
+        glDrawArrays(GL_TRIANGLES, 0, 6)
+
+        // Render drone
+        glUseProgram(droneShaderProgram)
+        glBindVertexArray(vaoDrone)
         glDrawArrays(GL_TRIANGLES, 0, 6)
 
         glfwPollEvents()
@@ -225,36 +235,6 @@ fun keyCallback(window: Long, key: Int, scancode: Int, actions: Int, mods: Int) 
     if (key == GLFW_KEY_MINUS && actions == GLFW_PRESS) {
         tileSize -= 8
     }
-}
-
-fun loadShader(filename: String): String {
-    val instr = Main::class.java.getResourceAsStream("/glsl/$filename")
-        ?: throw FileNotFoundException("Could not find shader 'glsl/$filename'")
-
-    val reader = BufferedReader(InputStreamReader(instr))
-
-    val sb = StringBuilder()
-    var line: String?
-    while (true) {
-        line = reader.readLine()
-        if (line == null)
-            break
-
-        sb.append(line)
-        sb.append('\n')
-    }
-
-    return sb.toString()
-}
-
-fun checkShaderStatus(shader: Int): String? {
-    val success = IntArray(1)
-    glGetShaderiv(shader, GL_COMPILE_STATUS, success)
-    if (success[0] == GL_FALSE) {
-        return glGetShaderInfoLog(shader, 512)
-    }
-
-    return null
 }
 
 fun readImage(filename: String): Triple<Int, Int, ByteBuffer> {
