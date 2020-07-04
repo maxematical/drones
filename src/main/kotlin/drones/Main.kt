@@ -1,11 +1,16 @@
 package drones
 
+import org.joml.Matrix2f
+import org.joml.Matrix3f
+import org.joml.Matrix4f
+import org.joml.Vector2f
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL20
 import org.lwjgl.opengl.GL30.*
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.stb.STBImage
+import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.MemoryUtil.*
 import java.io.*
 import java.lang.Float.min
@@ -55,6 +60,15 @@ fun main(args: Array<String>) {
         -1f, -1f, 0f,
         1f, 1f, 0f
     )
+    val quad2Vertices: FloatArray = floatArrayOf(
+        -0.5f, -0.5f, 0.0f,
+        0.5f, -0.5f, 0.0f,
+        0.5f, 0.5f, 0.0f,
+
+        -0.5f, 0.5f, 0f,
+        -0.5f, -0.5f, 0f,
+        0.5f, 0.5f, 0f
+    )
 
     // Create Vertex Array Object (calls below will also bind things into this object)
     val vaoWorld = glGenVertexArrays()
@@ -75,8 +89,8 @@ fun main(args: Array<String>) {
     glBindVertexArray(vaoDrone)
 
     val vboDrone = glGenBuffers()
-    glBindBuffer(GL_ARRAY_BUFFER, vboWorld)
-    glBufferData(GL_ARRAY_BUFFER, quadVertices, GL_STATIC_DRAW)
+    glBindBuffer(GL_ARRAY_BUFFER, vboDrone)
+    glBufferData(GL_ARRAY_BUFFER, quad2Vertices, GL_STATIC_DRAW)
     glVertexAttribPointer(0, 3, GL_FLOAT, false, 12, 0)
     glEnableVertexAttribArray(0)
 
@@ -153,6 +167,8 @@ fun main(args: Array<String>) {
     world.grid[4][3] = TileStone
     world.grid[4][4] = TileStone
 
+    val drone = Drone(Vector2f(4f, -4f), 9, Vector2f(1f, 0f))
+
     var cameraX: Float = 0f
     var cameraY: Float = 0f
     var cameraVelX: Float = 0f
@@ -162,6 +178,8 @@ fun main(args: Array<String>) {
     val cameraAccel = cameraMaxVel * 5f
 
     var lastTime = System.currentTimeMillis()
+
+    val cameraMatrixArr = FloatArray(16)
 
     // Loop
     while (!glfwWindowShouldClose(window)) {
@@ -191,6 +209,10 @@ fun main(args: Array<String>) {
         cameraX += cameraVelX * deltaTime
         cameraY += cameraVelY * deltaTime
 
+        // Update drone
+        drone.position.add(drone.velocity.x * deltaTime, drone.velocity.y * deltaTime)
+        drone.recomputeModelMatrix()
+
         // Render
         glClearColor(0f, 1f, 0f, 1f)
         glClear(GL_COLOR_BUFFER_BIT)
@@ -213,7 +235,17 @@ fun main(args: Array<String>) {
         glDrawArrays(GL_TRIANGLES, 0, 6)
 
         // Render drone
+        val cameraMatrix = Matrix4f().ortho(cameraX - windowWidth / tileSize / 2f,
+            cameraX + windowWidth / tileSize / 2f,
+            cameraY - windowHeight / tileSize / 2f,
+            cameraY + windowHeight / tileSize / 2f,
+            -1f, 1f)
+        cameraMatrix.get(cameraMatrixArr)
+
         glUseProgram(droneShaderProgram)
+        glUniformMatrix4fv(glGetUniformLocation(droneShaderProgram, "cameraMatrix"), false, cameraMatrixArr)
+        glUniformMatrix4fv(glGetUniformLocation(droneShaderProgram, "modelMatrix"), false, drone.modelMatrixArr)
+
         glBindVertexArray(vaoDrone)
         glDrawArrays(GL_TRIANGLES, 0, 6)
 
