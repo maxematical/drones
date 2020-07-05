@@ -6,7 +6,7 @@ import org.joml.Vector2f
 class Drone(val position: Vector2f,
             val color: Int = 0xFFFFFF,
             val velocity: Vector2f = Vector2f(),
-            val rotation: Float = 0f,
+            var rotation: Float = 0f,
             val size: Float = 0.8f) {
     val desiredVelocity: Vector2f = Vector2f(velocity)
 
