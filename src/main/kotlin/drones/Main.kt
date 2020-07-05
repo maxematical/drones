@@ -1,15 +1,17 @@
 package drones
 
+import drones.scripting.ModuleMovement
+import drones.scripting.runScript
 import org.joml.Matrix4f
 import org.joml.Vector2f
+import org.joml.Vector2fc
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
-import org.lwjgl.opengl.GL20
 import org.lwjgl.opengl.GL30.*
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.stb.STBImage
-import org.lwjgl.system.MemoryUtil.*
-import java.io.*
+import org.lwjgl.system.MemoryUtil.NULL
+import java.io.FileNotFoundException
 import java.lang.Float.min
 import java.nio.ByteBuffer
 import kotlin.math.sign
@@ -23,7 +25,7 @@ fun main(args: Array<String>) {
     val windowWidth = 1280
     val windowHeight = 720
 
-    println("Hello world")
+    println("Starting game")
 
     // Set up OpenGL
     glfwInit()
@@ -162,7 +164,7 @@ fun main(args: Array<String>) {
     grid.tiles[4][3] = TileStone
     grid.tiles[4][4] = TileStone
 
-    val drone = Drone(Vector2f(0f, 0f), 0xEE9999, Vector2f(1f, 0f))
+    val drone = Drone(Vector2f(0f, 0f), 0xEEEEEE, Vector2f(1f, 0f))
 
     var cameraX: Float = 0f
     var cameraY: Float = 0f
@@ -175,6 +177,10 @@ fun main(args: Array<String>) {
     var lastTime = System.currentTimeMillis()
 
     val cameraMatrixArr = FloatArray(16)
+
+    runScript("/scripts/drone_test.lua") { globals ->
+        ModuleMovement(drone).installLib(globals)
+    }
 
     // Loop
     while (!glfwWindowShouldClose(window)) {
@@ -205,6 +211,8 @@ fun main(args: Array<String>) {
         cameraY += cameraVelY * deltaTime
 
         // Update drone
+        updateVelocity(drone.velocity, drone.desiredVelocity, 1f, 1f, deltaTime)
+
         drone.position.add(drone.velocity.x * deltaTime, drone.velocity.y * deltaTime)
         drone.recomputeModelMatrix()
 
@@ -297,4 +305,21 @@ fun stringToBitmapArray(string: String, font: GameFont): IntArray {
         arr[idx] = arr[idx] or (14 shl 16) or (1 shl 8)
 
     return arr
+}
+
+fun updateVelocity(current: Vector2f, desired: Vector2fc, maxSpeed: Float, maxAccel: Float, deltaTime: Float) {
+    val desired2 = Vector2f(desired)
+    if (desired2.lengthSquared() > maxSpeed * maxSpeed) {
+        desired2.normalize()
+        desired2.mul(maxSpeed)
+    }
+
+    val delta = Vector2f(desired2).sub(current)
+    if (delta.lengthSquared() > maxAccel * maxAccel) {
+        delta.normalize()
+        delta.mul(maxAccel)
+    }
+
+    delta.mul(deltaTime)
+    current.add(delta)
 }
