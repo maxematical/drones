@@ -19,7 +19,8 @@ import kotlin.math.sqrt
 
 class Main
 
-var tileSize: Float = 64f
+val initialTileSize: Float = 64f
+var tileSize: Float = initialTileSize
 
 fun main(args: Array<String>) {
     val windowWidth = 1280
@@ -178,9 +179,10 @@ fun main(args: Array<String>) {
 
     val cameraMatrixArr = FloatArray(16)
 
-    runScript("/scripts/drone_test.lua") { globals ->
+    val globals = runScript("/scripts/drone_test_update.lua") { globals ->
         ModuleMovement(drone).installLib(globals)
     }
+    globals.load("resume_co = coroutine.wrap(loadfile('/scripts/drone_test_update.lua'))").call()
 
     // Loop
     while (!glfwWindowShouldClose(window)) {
@@ -207,8 +209,8 @@ fun main(args: Array<String>) {
         cameraVelX += sign(desiredVelX - cameraVelX) * min(cameraAccel * deltaTime, Math.abs(desiredVelX - cameraVelX))
         cameraVelY += sign(desiredVelY - cameraVelY) * min(cameraAccel * deltaTime, Math.abs(desiredVelY - cameraVelY))
 
-        cameraX += cameraVelX * deltaTime
-        cameraY += cameraVelY * deltaTime
+        cameraX += cameraVelX * (initialTileSize / tileSize) * deltaTime
+        cameraY += cameraVelY * (initialTileSize / tileSize) * deltaTime
 
         // Update drone
         updateVelocity(drone.velocity, drone.desiredVelocity, 1f, 1f, deltaTime)
@@ -217,6 +219,11 @@ fun main(args: Array<String>) {
             .toFloat()
 
         drone.recomputeModelMatrix()
+
+        // Update script
+        println("Starting lua update...")
+        globals.get("resume_co").call()
+        println("Finished lua update.")
 
         // Render
         glClearColor(0f, 1f, 0f, 1f)

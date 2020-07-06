@@ -14,10 +14,10 @@ class DroneControl {
 
 fun main() {
     runScript("/scripts/test.lua")
-    runScript("/scripts/test2.lua")
+    //runScript("/scripts/test2.lua")
 }
 
-fun runScript(filename: String, addLibs: (Globals) -> Unit = {}) {
+fun runScript(filename: String, addLibs: (Globals) -> Unit = {}): Globals {
     val globals = Globals()
     globals.load(JseBaseLib())
     globals.load(PackageLib())
@@ -32,7 +32,10 @@ fun runScript(filename: String, addLibs: (Globals) -> Unit = {}) {
 
     addLibs(globals)
 
-    globals.loadfile(filename).call()
+//    globals.loadfile(filename).call()
+//    Thread.sleep(1000)
+//    globals.load("coroutine.resume(co)").call()
+    return globals
 }
 
 class ScriptManager {
