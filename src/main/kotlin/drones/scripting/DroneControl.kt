@@ -60,7 +60,7 @@ class ScriptManager(filename: String, instructionLimit: Int = 20, addLibs: (Glob
 
         globals.load("_thread = coroutine.create(loadfile('$filename'))").call()
         thread = globals.get("_thread") as LuaThread
-        globals.set("_thread", LuaValue.NIL)
+        //globals.set("_thread", LuaValue.NIL)
 
         // Limit the instruction count per script execution
         // We have to do this using the debug lib, but we don't want scripts accessing it, so we'll remove the debug
@@ -81,7 +81,10 @@ class ScriptManager(filename: String, instructionLimit: Int = 20, addLibs: (Glob
     }
 
     fun resume() {
-        thread.resume(LuaValue.varargsOf(emptyArray()))
+        val result: Varargs = thread.resume(LuaValue.varargsOf(emptyArray()))
+        if (!result.checkboolean(1)) {
+            throw RuntimeException("Error: lua thread terminated with error. ${result.checkjstring(2)}")
+        }
     }
 }
 

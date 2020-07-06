@@ -181,7 +181,7 @@ fun main(args: Array<String>) {
 
     val cameraMatrixArr = FloatArray(16)
 
-    val scriptMgr: ScriptManager = ScriptManager("/scripts/drone_test_update.lua", 20) { globals ->
+    val scriptMgr = ScriptManager("/scripts/drone_test_update.lua", Int.MAX_VALUE) { globals ->
         ModuleMovement(drone).installLib(globals)
     }
 
