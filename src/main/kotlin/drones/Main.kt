@@ -222,6 +222,7 @@ fun main(args: Array<String>) {
         drone.position.add(drone.velocity.x * deltaTime, drone.velocity.y * deltaTime)
         drone.rotation = (Math.atan2(drone.velocity.y.toDouble(), drone.velocity.x.toDouble()) * MathUtils.RAD2DEG)
             .toFloat()
+        drone.localTime += deltaTime
 
         drone.recomputeModelMatrix()
 

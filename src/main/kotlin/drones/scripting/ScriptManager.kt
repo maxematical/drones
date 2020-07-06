@@ -195,17 +195,20 @@ object ModuleVector : DroneModule {
 class ModuleCore(drone: Drone) : DroneModule {
     private val getPosition = Fgetpos(drone)
     private val setDesiredVelocity = Fset_thrust(drone)
+    private val getTime = Fgettime(drone)
 
     override fun buildModule(): LuaValue {
         val module = LuaValue.tableOf()
         module.set("getpos", getPosition)
         module.set("set_thrust", setDesiredVelocity)
+        module.set("gettime", getTime)
         return module
     }
 
     override fun install(globals: Globals) {
         globals.set("core", buildModule())
         globals.set("checktype", Fchecktype)
+        globals.loadfile("libsleep.lua").call()
     }
 
     object Fchecktype : VarArgFunction() {
@@ -224,7 +227,7 @@ class ModuleCore(drone: Drone) : DroneModule {
             }
 
             if (arg1.typename() != expectedType && (!optional || arg1 != LuaValue.NIL)) {
-                throw RuntimeException(errorMessage)
+                throw RuntimeException("$errorMessage. Got: ${arg1.typename()}")
             }
             return LuaValue.NIL
         }
@@ -236,6 +239,12 @@ class ModuleCore(drone: Drone) : DroneModule {
         operator fun invoke(obj: LuaValue, expectedType: String, optional: Boolean, errorMessage: String) {
             invoke(LuaValue.varargsOf(arrayOf(obj, LuaValue.valueOf(expectedType), LuaValue.valueOf(optional),
                 LuaValue.valueOf(errorMessage))))
+        }
+    }
+
+    class Fgettime(val drone: Drone) : ZeroArgFunction() {
+        override fun call(): LuaValue {
+            return LuaValue.valueOf(drone.localTime.toDouble())
         }
     }
 

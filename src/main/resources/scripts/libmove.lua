@@ -9,17 +9,17 @@ end
 function move.to(target)
     checktype(target, "table", "move.to: First argument should be a Vector, e.g. move.to(core.getpos())")
 
-    local dist
+    local delta
     repeat
         local pos = core.getpos()
-        dist = vector.length(pos - target)
+        delta = pos - target
 
-        local thrustx = sign(target.x - pos.x) * math.min(1, dist / 3)
-        local thrusty = sign(target.y - pos.y) * math.min(1, dist / 3)
+        local thrustx = sign(target.x - pos.x) * math.min(1, math.abs(delta.x) / 3)
+        local thrusty = sign(target.y - pos.y) * math.min(1, math.abs(delta.y) / 3)
         core.set_thrust(thrustx, thrusty)
 
         coroutine.yield()
-    until (dist < 0.2)
+    until (vector.length(delta) < 0.2)
 
     core.set_thrust(0, 0)
 end

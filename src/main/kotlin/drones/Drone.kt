@@ -10,6 +10,8 @@ class Drone(val grid: Grid,
             val size: Float = 0.8f) {
     val desiredVelocity: Vector2f = Vector2f(velocity)
 
+    var localTime: Float = 0f
+
     val modelMatrix: Matrix4f = Matrix4f()
     val modelMatrixArr: FloatArray = FloatArray(16)
 
