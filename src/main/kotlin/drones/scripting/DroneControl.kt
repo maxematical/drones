@@ -7,6 +7,7 @@ import org.luaj.vm2.lib.*
 import org.luaj.vm2.lib.jse.JseBaseLib
 import org.luaj.vm2.lib.jse.JseIoLib
 import org.luaj.vm2.lib.jse.JseMathLib
+import java.lang.RuntimeException
 
 class DroneControl {
 
@@ -38,8 +39,50 @@ fun runScript(filename: String, addLibs: (Globals) -> Unit = {}): Globals {
     return globals
 }
 
-class ScriptManager {
+class ScriptManager(filename: String, instructionLimit: Int = 20, addLibs: (Globals) -> Unit) {
+    val globals: Globals
+    val thread: LuaThread
 
+    init {
+        globals = Globals()
+        globals.load(JseBaseLib())
+        globals.load(PackageLib())
+        globals.load(Bit32Lib())
+        globals.load(TableLib())
+        globals.load(StringLib())
+        globals.load(JseMathLib())
+        globals.load(CoroutineLib())
+        globals.load(JseIoLib())
+        LoadState.install(globals)
+        LuaC.install(globals)
+
+        addLibs(globals)
+
+        globals.load("_thread = coroutine.create(loadfile('$filename'))").call()
+        thread = globals.get("_thread") as LuaThread
+        globals.set("_thread", LuaValue.NIL)
+
+        // Limit the instruction count per script execution
+        // We have to do this using the debug lib, but we don't want scripts accessing it, so we'll remove the debug
+        // table directly afterwards
+        globals.load(DebugLib())
+        val sethook = globals.get("debug").get("sethook")
+        globals.set("debug", LuaValue.NIL)
+
+        val onInstructionLimit = object : ZeroArgFunction() {
+            override fun call(): LuaValue {
+                throw RuntimeException("Instruction limit exceeded")
+            }
+        }
+
+        // TODO: For some reason, the runtime exception doesn't get logged (though it does shut down that thread)
+        //sethook.invoke(arrayOf<LuaValue>(thread, onInstructionLimit,
+        //    LuaValue.EMPTYSTRING, LuaValue.valueOf(instructionLimit)))
+    }
+
+    fun resume() {
+        thread.resume(LuaValue.varargsOf(emptyArray()))
+    }
 }
 
 object GetFive : OneArgFunction() {

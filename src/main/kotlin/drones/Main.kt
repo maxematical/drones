@@ -1,10 +1,12 @@
 package drones
 
 import drones.scripting.ModuleMovement
+import drones.scripting.ScriptManager
 import drones.scripting.runScript
 import org.joml.Matrix4f
 import org.joml.Vector2f
 import org.joml.Vector2fc
+import org.luaj.vm2.LuaValue
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL30.*
@@ -179,10 +181,9 @@ fun main(args: Array<String>) {
 
     val cameraMatrixArr = FloatArray(16)
 
-    val globals = runScript("/scripts/drone_test_update.lua") { globals ->
+    val scriptMgr: ScriptManager = ScriptManager("/scripts/drone_test_update.lua", 20) { globals ->
         ModuleMovement(drone).installLib(globals)
     }
-    globals.load("resume_co = coroutine.wrap(loadfile('/scripts/drone_test_update.lua'))").call()
 
     // Loop
     while (!glfwWindowShouldClose(window)) {
@@ -221,9 +222,10 @@ fun main(args: Array<String>) {
         drone.recomputeModelMatrix()
 
         // Update script
-        println("Starting lua update...")
-        globals.get("resume_co").call()
-        println("Finished lua update.")
+//        println("Starting lua update...")
+        //scriptMgr.resumeFunc.call()
+        scriptMgr.resume()
+//        println("Finished lua update.")
 
         // Render
         glClearColor(0f, 1f, 0f, 1f)
@@ -275,6 +277,13 @@ fun main(args: Array<String>) {
 
     // End
     glfwTerminate()
+
+    // TODO: Figure out a way to terminate the LuaThread
+    // https://stackoverflow.com/q/24585279
+    // This would most likely either involve making custom implementation of coroutines that doesn't use threads --
+    // preferably we could avoid threads anyways and without a way to shutdown LuaThreads, it's impossible to e.g.
+    // remove a drone without having an extra thread floating around
+    System.exit(0)
 }
 
 fun keyCallback(window: Long, key: Int, scancode: Int, actions: Int, mods: Int) {
