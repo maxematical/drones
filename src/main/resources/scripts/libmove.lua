@@ -7,6 +7,8 @@ local function sign(x)
 end
 
 function move.to(target)
+    checktype(target, "table", "move.to: First argument should be a Vector, e.g. move.to(core.getpos())")
+
     local dist
     repeat
         local pos = core.getpos()

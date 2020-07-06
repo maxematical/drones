@@ -1,7 +1,8 @@
+print('hello')
 local coords = scanner.scan_ores()
-print('Coordinates:', coords)
-move.to(coords)
-print('Moved to coordinates')
+print('Ore Coordinates:', coords)
 
---move.to(-3, 0)
---move.to(0, 1)
+move.to(coords)
+print('Moved to ore')
+
+move.to(4, -4)

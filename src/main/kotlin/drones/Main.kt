@@ -1,6 +1,6 @@
 package drones
 
-import drones.scripting.ModuleMovement
+import drones.scripting.ModuleCore
 import drones.scripting.ModuleScanner
 import drones.scripting.ModuleVector
 import drones.scripting.ScriptManager
@@ -167,7 +167,7 @@ fun main(args: Array<String>) {
     grid.tiles[4][3] = TileStone
     grid.tiles[4][4] = TileStone
 
-    val drone = Drone(grid, Vector2f(0f, 0f), 0xEEEEEE, Vector2f(1f, 0f))
+    val drone = Drone(grid, Vector2f(0f, 0f), 0xEEEEEE)
 
     var cameraX: Float = 0f
     var cameraY: Float = 0f
@@ -183,7 +183,7 @@ fun main(args: Array<String>) {
 
     val scriptMgr = ScriptManager("drone_test.lua", Int.MAX_VALUE) { globals ->
         ModuleVector.install(globals)
-        ModuleMovement(drone).install(globals)
+        ModuleCore(drone).install(globals)
         ModuleScanner(drone).install(globals)
         globals.set("move", globals.loadfile("libmove.lua").call())
         globals.loadfile("libscanner.lua").call()

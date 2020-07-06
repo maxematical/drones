@@ -192,7 +192,7 @@ object ModuleVector : DroneModule {
     }
 }
 
-class ModuleMovement(drone: Drone) : DroneModule {
+class ModuleCore(drone: Drone) : DroneModule {
     private val getPosition = Fgetpos(drone)
     private val setDesiredVelocity = Fset_thrust(drone)
 
@@ -205,11 +205,43 @@ class ModuleMovement(drone: Drone) : DroneModule {
 
     override fun install(globals: Globals) {
         globals.set("core", buildModule())
+        globals.set("checktype", Fchecktype)
     }
 
-    class Fgetpos(val drone: Drone) : VarArgFunction() {
+    object Fchecktype : VarArgFunction() {
         override fun invoke(varargs: Varargs): Varargs {
-            return LuaValue.varargsOf(arrayOf(ModuleVector.Fcreate(drone.position.x, drone.position.y)))
+            val arg1 = varargs.arg1()
+            val expectedType = varargs.checkjstring(2)
+            val errorMessage: String
+            val optional: Boolean
+
+            if (varargs.narg() == 3) {
+                errorMessage = varargs.checkjstring(3)
+                optional = false
+            } else {
+                errorMessage = varargs.checkjstring(4)
+                optional = varargs.checkboolean(3)
+            }
+
+            if (arg1.typename() != expectedType && (!optional || arg1 != LuaValue.NIL)) {
+                throw RuntimeException(errorMessage)
+            }
+            return LuaValue.NIL
+        }
+
+        operator fun invoke(obj: LuaValue, expectedType: String, errorMessage: String) {
+            invoke(LuaValue.varargsOf(arrayOf(obj, LuaValue.valueOf(expectedType), LuaValue.valueOf(errorMessage))))
+        }
+
+        operator fun invoke(obj: LuaValue, expectedType: String, optional: Boolean, errorMessage: String) {
+            invoke(LuaValue.varargsOf(arrayOf(obj, LuaValue.valueOf(expectedType), LuaValue.valueOf(optional),
+                LuaValue.valueOf(errorMessage))))
+        }
+    }
+
+    class Fgetpos(val drone: Drone) : ZeroArgFunction() {
+        override fun call(): LuaValue {
+            return ModuleVector.Fcreate(drone.position.x, drone.position.y)
         }
     }
 
@@ -237,6 +269,8 @@ class ModuleScanner(drone: Drone) : DroneModule {
 
     class Fscan(val drone: Drone) : OneArgFunction() {
         override fun call(arg: LuaValue): LuaValue {
+            ModuleCore.Fchecktype(arg, "numeric", true,
+                "scanner.scan: First argument should be a number, e.g. scanner.scan(2)")
             val scanRadius = Math.min(3, arg.optint(3))
 
             val tileMin = Vector2i(drone.tilePosition).sub(scanRadius, scanRadius)
