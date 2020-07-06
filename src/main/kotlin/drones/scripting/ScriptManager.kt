@@ -80,12 +80,19 @@ object ModuleVector : DroneModule {
     val metatable: LuaValue = LuaValue.tableOf()
 
     init {
+        metatable.set("__add", Fadd)
+        metatable.set("__sub", Fsub)
+        metatable.set("__mul", Fmul)
         metatable.set("__tostring", Ftostring)
     }
 
     override fun buildModule(): LuaValue {
         val module = LuaValue.tableOf()
         module.set("create", Fcreate)
+        module.set("add", Fadd)
+        module.set("sub", Fsub)
+        module.set("mul", Fmul)
+        module.set("length", Flength)
         module.set("tostring", Ftostring)
         return module
     }
@@ -107,6 +114,45 @@ object ModuleVector : DroneModule {
             call(LuaValue.valueOf(x.toDouble()), LuaValue.valueOf(y.toDouble()))
     }
 
+    object Fadd : TwoArgFunction() {
+        override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
+            val vector1 = arg1.checktable()
+            val vector2 = arg2.checktable()
+            vector1.set("x", vector1.get("x").todouble() + vector2.get("x").todouble())
+            vector1.set("y", vector1.get("y").todouble() + vector2.get("y").todouble())
+            return vector1
+        }
+    }
+
+    object Fsub : TwoArgFunction() {
+        override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
+            val vector1 = arg1.checktable()
+            val vector2 = arg2.checktable()
+            vector1.set("x", vector1.get("x").todouble() - vector2.get("x").todouble())
+            vector1.set("y", vector1.get("y").todouble() - vector2.get("y").todouble())
+            return vector1
+        }
+    }
+
+    object Fmul : TwoArgFunction() {
+        override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
+            val vector = arg1.checktable()
+            val scalar = arg2.checkdouble()
+            vector.set("x", vector.get("x").todouble() * scalar)
+            vector.set("y", vector.get("y").todouble() * scalar)
+            return vector
+        }
+    }
+
+    object Flength : OneArgFunction() {
+        override fun call(arg: LuaValue): LuaValue {
+            val vector = arg.checktable()
+            val x = vector.get("x").todouble()
+            val y = vector.get("y").todouble()
+            return LuaValue.valueOf(Math.sqrt(x * x + y * y))
+        }
+    }
+
     object Ftostring : OneArgFunction() {
         override fun call(arg: LuaValue): LuaValue {
             val vector = arg.checktable()
@@ -118,8 +164,8 @@ object ModuleVector : DroneModule {
 }
 
 class ModuleMovement(drone: Drone) : DroneModule {
-    private val getPosition = GetPosition(drone)
-    private val setDesiredVelocity = SetDesiredVelocity(drone)
+    private val getPosition = Fgetpos(drone)
+    private val setDesiredVelocity = Fset_thrust(drone)
 
     override fun buildModule(): LuaValue {
         val module = LuaValue.tableOf()
@@ -132,14 +178,13 @@ class ModuleMovement(drone: Drone) : DroneModule {
         globals.set("core", buildModule())
     }
 
-    class GetPosition(val drone: Drone) : VarArgFunction() {
+    class Fgetpos(val drone: Drone) : VarArgFunction() {
         override fun invoke(varargs: Varargs): Varargs {
-            return LuaValue.varargsOf(LuaValue.valueOf(drone.position.x.toDouble()),
-                LuaValue.valueOf(drone.position.y.toDouble()))
+            return LuaValue.varargsOf(arrayOf(ModuleVector.Fcreate(drone.position.x, drone.position.y)))
         }
     }
 
-    class SetDesiredVelocity(val drone: Drone): TwoArgFunction() {
+    class Fset_thrust(val drone: Drone): TwoArgFunction() {
         override fun call(velX: LuaValue, velY: LuaValue): LuaValue {
             drone.desiredVelocity.x = velX.tofloat()
             drone.desiredVelocity.y = velY.tofloat()
@@ -149,7 +194,7 @@ class ModuleMovement(drone: Drone) : DroneModule {
 }
 
 class ModuleScanner(drone: Drone) : DroneModule {
-    private val scan = Scan(drone)
+    private val scan = Fscan(drone)
 
     override fun buildModule(): LuaValue {
         val module = LuaTable()
@@ -161,7 +206,7 @@ class ModuleScanner(drone: Drone) : DroneModule {
         globals.set("scanner", buildModule())
     }
 
-    class Scan(val drone: Drone) : OneArgFunction() {
+    class Fscan(val drone: Drone) : OneArgFunction() {
         override fun call(arg: LuaValue): LuaValue {
             val scanRadius = Math.min(3, arg.optint(3))
 

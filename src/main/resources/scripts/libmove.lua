@@ -7,18 +7,17 @@ local function sign(x)
 end
 
 function move.to(target)
-    local x, y
+    local dist
     repeat
-        x, y = core.getpos()
-        local distx = math.abs(x - target.x)
-        local disty = math.abs(y - target.y)
+        local pos = core.getpos()
+        dist = vector.length(pos - target)
 
-        local thrustx = sign(target.x - x) * math.min(1, distx)
-        local thrusty = sign(target.y - y) * math.min(1, disty)
+        local thrustx = sign(target.x - pos.x) * math.min(1, dist)
+        local thrusty = sign(target.y - pos.y) * math.min(1, dist)
         core.set_thrust(thrustx, thrusty)
 
         coroutine.yield()
-    until (distx * distx + disty * disty < 1)
+    until (dist < 1)
 
     core.set_thrust(0, 0)
 end
