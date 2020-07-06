@@ -12,12 +12,12 @@ function move.to(target)
         local pos = core.getpos()
         dist = vector.length(pos - target)
 
-        local thrustx = sign(target.x - pos.x) * math.min(1, dist)
-        local thrusty = sign(target.y - pos.y) * math.min(1, dist)
+        local thrustx = sign(target.x - pos.x) * math.min(1, dist / 3)
+        local thrusty = sign(target.y - pos.y) * math.min(1, dist / 3)
         core.set_thrust(thrustx, thrusty)
 
         coroutine.yield()
-    until (dist < 1)
+    until (dist < 0.2)
 
     core.set_thrust(0, 0)
 end

@@ -80,9 +80,9 @@ object ModuleVector : DroneModule {
     val metatable: LuaValue = LuaValue.tableOf()
 
     init {
-        metatable.set("__add", Fadd)
-        metatable.set("__sub", Fsub)
-        metatable.set("__mul", Fmul)
+        metatable.set("__add", Fplus)
+        metatable.set("__sub", Fminus)
+        metatable.set("__mul", Ftimes)
         metatable.set("__tostring", Ftostring)
     }
 
@@ -103,15 +103,18 @@ object ModuleVector : DroneModule {
 
     object Fcreate : TwoArgFunction() {
         override fun call(x: LuaValue, y: LuaValue): LuaValue {
-            val vector = LuaValue.tableOf(2, 2)
+            val vector = LuaValue.tableOf()
             vector.set("x", x.checknumber())
             vector.set("y", y.checknumber())
             vector.setmetatable(metatable)
             return vector
         }
 
+        operator fun invoke(x: Double, y: Double): LuaValue =
+            call(LuaValue.valueOf(x), LuaValue.valueOf(y))
+
         operator fun invoke(x: Float, y: Float): LuaValue =
-            call(LuaValue.valueOf(x.toDouble()), LuaValue.valueOf(y.toDouble()))
+            invoke(x.toDouble(), y.toDouble())
     }
 
     object Fadd : TwoArgFunction() {
@@ -124,13 +127,31 @@ object ModuleVector : DroneModule {
         }
     }
 
+    object Fplus : TwoArgFunction() {
+        override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
+            val vector1 = arg1.checktable()
+            val vector2 = arg2.checktable()
+            return Fcreate(vector1.get("x").todouble() + vector2.get("x").todouble(),
+                vector1.get("y").todouble() + vector2.get("y").todouble())
+        }
+    }
+
     object Fsub : TwoArgFunction() {
         override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
             val vector1 = arg1.checktable()
             val vector2 = arg2.checktable()
             vector1.set("x", vector1.get("x").todouble() - vector2.get("x").todouble())
             vector1.set("y", vector1.get("y").todouble() - vector2.get("y").todouble())
-            return vector1
+            return LuaValue.NIL
+        }
+    }
+
+    object Fminus : TwoArgFunction() {
+        override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
+            val vector1 = arg1.checktable()
+            val vector2 = arg2.checktable()
+            return Fcreate(vector1.get("x").todouble() - vector2.get("x").todouble(),
+                vector1.get("y").todouble() - vector2.get("y").todouble())
         }
     }
 
@@ -141,6 +162,14 @@ object ModuleVector : DroneModule {
             vector.set("x", vector.get("x").todouble() * scalar)
             vector.set("y", vector.get("y").todouble() * scalar)
             return vector
+        }
+    }
+
+    object Ftimes : TwoArgFunction() {
+        override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
+            val vector = arg1.checktable()
+            val scalar = arg2.checkdouble()
+            return Fcreate(vector.get("x").todouble() * scalar, vector.get("y").todouble() * scalar)
         }
     }
 

@@ -21,4 +21,9 @@ void main()
     float droneColorG = (droneColor >> 8) & 255;
     float droneColorB = droneColor & 255;
     FragColor.rgb *= vec3(droneColorR, droneColorG, droneColorB) / 255.0;
+
+    // Draw dot at center of drone
+    float dotRadius = 0.15;
+    bool isCenter = length(vertexUv * 2.0 - 1.0) < dotRadius;
+    FragColor = mix(FragColor, vec4(1.0, 0.0, 0.0, 1.0), int(isCenter));
 }
