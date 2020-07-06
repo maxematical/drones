@@ -1,9 +1,9 @@
 package drones
 
-import org.joml.Matrix4f
-import org.joml.Vector2f
+import org.joml.*
 
-class Drone(val position: Vector2f,
+class Drone(val grid: Grid,
+            val position: Vector2f,
             val color: Int = 0xFFFFFF,
             val velocity: Vector2f = Vector2f(),
             var rotation: Float = 0f,
@@ -12,6 +12,9 @@ class Drone(val position: Vector2f,
 
     val modelMatrix: Matrix4f = Matrix4f()
     val modelMatrixArr: FloatArray = FloatArray(16)
+
+    val tilePosition: Vector2ic
+        get() = Vector2i(position, RoundingMode.FLOOR)
 
     init {
         recomputeModelMatrix()

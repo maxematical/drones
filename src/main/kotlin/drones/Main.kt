@@ -1,12 +1,12 @@
 package drones
 
 import drones.scripting.ModuleMovement
+import drones.scripting.ModuleScanner
+import drones.scripting.ModuleVector
 import drones.scripting.ScriptManager
-import drones.scripting.runScript
 import org.joml.Matrix4f
 import org.joml.Vector2f
 import org.joml.Vector2fc
-import org.luaj.vm2.LuaValue
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL30.*
@@ -167,7 +167,7 @@ fun main(args: Array<String>) {
     grid.tiles[4][3] = TileStone
     grid.tiles[4][4] = TileStone
 
-    val drone = Drone(Vector2f(0f, 0f), 0xEEEEEE, Vector2f(1f, 0f))
+    val drone = Drone(grid, Vector2f(0f, 0f), 0xEEEEEE, Vector2f(1f, 0f))
 
     var cameraX: Float = 0f
     var cameraY: Float = 0f
@@ -181,8 +181,12 @@ fun main(args: Array<String>) {
 
     val cameraMatrixArr = FloatArray(16)
 
-    val scriptMgr = ScriptManager("/scripts/drone_test_update.lua", Int.MAX_VALUE) { globals ->
-        ModuleMovement(drone).installLib(globals)
+    val scriptMgr = ScriptManager("drone_test.lua", Int.MAX_VALUE) { globals ->
+        ModuleVector.install(globals)
+        ModuleMovement(drone).install(globals)
+        ModuleScanner(drone).install(globals)
+        globals.set("move", globals.loadfile("libmove.lua").call())
+        globals.loadfile("libscanner.lua").call()
     }
 
     // Loop
@@ -222,10 +226,8 @@ fun main(args: Array<String>) {
         drone.recomputeModelMatrix()
 
         // Update script
-//        println("Starting lua update...")
-        //scriptMgr.resumeFunc.call()
-        scriptMgr.resume()
-//        println("Finished lua update.")
+        if (!scriptMgr.isFinished())
+            scriptMgr.resume()
 
         // Render
         glClearColor(0f, 1f, 0f, 1f)
@@ -237,7 +239,7 @@ fun main(args: Array<String>) {
         glUniform1f(glGetUniformLocation(gridShaderProgram, "TileSize"), tileSize)
         glUniform2f(glGetUniformLocation(gridShaderProgram, "CameraPos"), cameraX, cameraY)
         glUniform2f(glGetUniformLocation(gridShaderProgram, "GridTopLeft"),
-            grid.positionTopLeft.x(), grid.positionTopLeft.y())
+            grid.positionTopLeft.x(), -grid.positionTopLeft.y())
 
         val renderedGrid = grid.toBitmapArray(font)
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo)

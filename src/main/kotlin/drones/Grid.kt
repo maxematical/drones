@@ -4,8 +4,14 @@ import org.joml.Vector2f
 import org.joml.Vector2fc
 import kotlin.math.floor
 
-class Grid(val width: Int, val height: Int, val positionTopLeft: Vector2fc = Vector2f(-width / 2f, -height / 2f)) {
+class Grid(val width: Int, val height: Int, val positionTopLeft: Vector2fc = Vector2f(-width / 2f, height / 2f)) {
     val tiles: Array<Array<Tile>> = Array(height) { Array<Tile>(width) { TileAir } }
+
+    fun gridToWorldX(gridX: Int): Float =
+        positionTopLeft.x() + gridX
+
+    fun gridToWorldY(gridY: Int): Float =
+        positionTopLeft.y() - gridY
 
     fun getNearestTile(x: Float, y: Float): Tile {
         val gridX: Int = floor(x - positionTopLeft.x()).toInt()
