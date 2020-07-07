@@ -20,6 +20,7 @@ class ScriptManager(filename: String, instructionLimit: Int = 20, addLibs: Scrip
     val debug: LuaValue
 
     var activeScanning: ModuleScanner.Fon? = null
+    var nextCallback: (() -> Unit)? = null
 
     init {
         globals = Globals()
@@ -51,7 +52,20 @@ class ScriptManager(filename: String, instructionLimit: Int = 20, addLibs: Scrip
         // Limit the instruction count per script execution
         // We have to do this using the debug lib, but we don't want scripts accessing it, so we'll remove the debug
         // table directly afterwards
-        globals.load(DebugLib())
+        globals.load(object : DebugLib() {
+            private var isRunningCallback = false
+
+            override fun onInstruction(pc: Int, v: Varargs?, top: Int) {
+                super.onInstruction(pc, v, top)
+
+                if (nextCallback != null && !isRunningCallback) {
+                    isRunningCallback = true
+                    nextCallback!!.invoke()
+                    nextCallback = null
+                    isRunningCallback = false
+                }
+            }
+        })
         debug = globals.get("debug")
         val sethook = globals.get("debug").get("sethook")
         val getinfo = globals.get("debug").get("getinfo") as VarArgFunction
@@ -81,7 +95,7 @@ class ScriptManager(filename: String, instructionLimit: Int = 20, addLibs: Scrip
             throw RuntimeException("Error: lua thread terminated with error. ${result.checkjstring(2)}")
         }
 
-        activeScanning?.updateScanner()
+        nextCallback = activeScanning?.updateScanner()
 
         if (isFinished()) {
             onComplete?.invoke()
@@ -325,6 +339,7 @@ class ModuleScanner(private val drone: Drone, private val scriptMgr: ScriptManag
         val module = LuaTable()
         module.set("scan", scan)
         module.set("on", Fon(drone, globals!!, scriptMgr))
+        module.set("off", Foff(scriptMgr))
         return module
     }
 
@@ -365,16 +380,27 @@ class ModuleScanner(private val drone: Drone, private val scriptMgr: ScriptManag
             return LuaValue.NIL
         }
 
-        fun updateScanner() {
+        fun updateScanner(): (() -> Unit)? {
             val scan: Pair<Int, Int>? = doScan(drone, 3) { tile, gridX, gridY ->
                 if (tile == TileStone) Pair(gridX, gridY) else null
             }
 
             if (scan != null) {
-                print("SCAN FOUND STUFF!!! $scan")
+                println("Kotlin Scanner: Found stuff, sending to lua")
 
-                globals.load("debug.sethook(on_scan_detected, '', 1)").call()
+                val (gridX, gridY) = scan
+                val worldX = drone.grid.gridToWorldX(gridX)
+                val worldY = drone.grid.gridToWorldY(gridY)
+                return { globals.get("on_scan_detected").call(ModuleVector.Fcreate(worldX, worldY)) }
             }
+            return null
+        }
+    }
+
+    class Foff(val scriptMgr: ScriptManager) : ZeroArgFunction() { // TODO ; find a better name for this
+        override fun call(): LuaValue {
+            scriptMgr.activeScanning = null
+            return LuaValue.NIL
         }
     }
 

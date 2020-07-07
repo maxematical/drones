@@ -167,7 +167,7 @@ fun main(args: Array<String>) {
     grid.tiles[4][3] = TileStone
     grid.tiles[4][4] = TileStone
 
-    val drone = Drone(grid, Vector2f(0f, 0f), 0xEEEEEE)
+    val drone = Drone(grid, Vector2f(-7f, 3f), 0xEEEEEE)
 
     var cameraX: Float = 0f
     var cameraY: Float = 0f

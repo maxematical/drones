@@ -24,11 +24,14 @@ function move.to(target)
     core.set_thrust(0, 0)
 end
 
-function move.units(units_x, units_y)
+function move.units(units_x, units_y, debug)
     checktype(units_x, "number", [[move.units: First argument should be a number, the number of horizontal units to
         move, e.g. move.units(-1, 2)]])
     checktype(units_y, "number", [[move.units: Second argument should be a number, the number of vertical units to
         move, e.g. move.units(-1, 2)]])
+
+    local t = 0
+    local lasttime = core.gettime()
 
     local initial_x = core.getpos().x
     local initial_y = core.getpos().y
@@ -36,15 +39,22 @@ function move.units(units_x, units_y)
     local final_x = initial_x + units_x
     local final_y = initial_y + units_y
 
-    local distance_left_x = math.abs(units_x)
-    local distance_left_y = math.abs(units_y)
-    while distance_left_x > 0.5 or distance_left_y > 0.5 do
-        distance_left_x = math.abs(final_x - core.getpos().x)
-        distance_left_y = math.abs(final_y - core.getpos().y)
+    local go_x = units_x
+    local go_y = units_y
+    while math.abs(go_x) > 0.5 or math.abs(go_y) > 0.5 do
+        go_x = final_x - core.getpos().x
+        go_y = final_y - core.getpos().y
 
-        local thrust_x = sign(units_x) * math.min(1, distance_left_x)
-        local thrust_y = sign(units_y) * math.min(1, distance_left_y)
+        local thrust_x = sign(go_x) * math.min(1, math.abs(go_x))
+        local thrust_y = sign(go_y) * math.min(1, math.abs(go_y))
         core.set_thrust(thrust_x, thrust_y)
+
+        if debug ~= nil then
+            local dt = core.gettime() - lasttime
+            if (t <= 0) then print('move.units', units_x, units_y, debug); print('move.units', go_x, go_y); t = 1 end
+            t = t - dt
+            lasttime = core.gettime()
+        end
 
         coroutine.yield()
     end
