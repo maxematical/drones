@@ -161,7 +161,7 @@ fun main(args: Array<String>) {
 
     val startTime = System.currentTimeMillis()
 
-    val grid = Grid(8, 8)
+    val grid = Grid(24, 24)
     grid.tiles[3][3] = TileStone
     grid.tiles[3][4] = TileStone
     grid.tiles[4][3] = TileStone
@@ -181,12 +181,15 @@ fun main(args: Array<String>) {
 
     val cameraMatrixArr = FloatArray(16)
 
-    val scriptMgr = ScriptManager("drone_test.lua", Int.MAX_VALUE) { globals ->
+    val scriptMgr = ScriptManager("drone_ore_search.lua", Int.MAX_VALUE) { globals ->
         ModuleVector.install(globals)
         ModuleCore(drone).install(globals)
         ModuleScanner(drone).install(globals)
         globals.set("move", globals.loadfile("libmove.lua").call())
         globals.loadfile("libscanner.lua").call()
+    }
+    scriptMgr.onComplete = {
+        drone.desiredVelocity.set(0f, 0f)
     }
 
     // Loop

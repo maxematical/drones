@@ -1,3 +1,3 @@
 function scanner.scan_ores()
-    return scanner.scan()
+    return scanner.scan(1000)
 end

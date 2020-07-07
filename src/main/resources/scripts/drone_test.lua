@@ -2,8 +2,10 @@ print('Hello')
 local coords = scanner.scan_ores()
 print('Ore Coordinates:', coords)
 
-move.to(coords)
-print('Moved to ore')
+if coords ~= nil then
+    move.to(coords)
+    print('Moved to ore')
+end
 
 sleep(2.5)
 

@@ -15,9 +15,6 @@ class Drone(val grid: Grid,
     val modelMatrix: Matrix4f = Matrix4f()
     val modelMatrixArr: FloatArray = FloatArray(16)
 
-    val tilePosition: Vector2ic
-        get() = Vector2i(position, RoundingMode.FLOOR)
-
     init {
         recomputeModelMatrix()
     }

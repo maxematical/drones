@@ -14,6 +14,7 @@ import java.lang.RuntimeException
 class ScriptManager(filename: String, instructionLimit: Int = 20, addLibs: (Globals) -> Unit) {
     val globals: Globals
     val thread: LuaThread
+    var onComplete: (() -> Unit)? = null
 
     init {
         globals = Globals()
@@ -64,6 +65,9 @@ class ScriptManager(filename: String, instructionLimit: Int = 20, addLibs: (Glob
         val result: Varargs = thread.resume(LuaValue.varargsOf(emptyArray()))
         if (!result.checkboolean(1)) {
             throw RuntimeException("Error: lua thread terminated with error. ${result.checkjstring(2)}")
+        }
+        if (isFinished()) {
+            onComplete?.invoke()
         }
     }
 
@@ -208,6 +212,7 @@ class ModuleCore(drone: Drone) : DroneModule {
     override fun install(globals: Globals) {
         globals.set("core", buildModule())
         globals.set("checktype", Fchecktype)
+        globals.set("clamparg", Fclamparg)
         globals.loadfile("libsleep.lua").call()
     }
 
@@ -240,6 +245,38 @@ class ModuleCore(drone: Drone) : DroneModule {
             invoke(LuaValue.varargsOf(arrayOf(obj, LuaValue.valueOf(expectedType), LuaValue.valueOf(optional),
                 LuaValue.valueOf(errorMessage))))
         }
+    }
+
+    object Fclamparg : VarArgFunction() {
+        override fun invoke(args: Varargs): Varargs {
+            val value = args.checkdouble(1)
+            val min = args.checkdouble(2)
+            val max = args.checkdouble(3)
+            val message = args.checkjstring(4)
+
+            var clamped = value
+            if (value < min) clamped = min
+            if (value > max) clamped = max
+
+            if (clamped != value) {
+                println(message.replace("%a", min.toString())
+                    .replace("%b", max.toString())
+                    .replace("%x", value.toString()))
+            }
+            return LuaValue.valueOf(clamped)
+        }
+
+        operator fun invoke(value: Int, min: Number, max: Number, message: String): Int =
+            invoke(arrayOf<LuaValue>(LuaValue.valueOf(value.toDouble()),
+                LuaValue.valueOf(min.toDouble()),
+                LuaValue.valueOf(max.toDouble()),
+                LuaValue.valueOf(message))).arg1().toint()
+
+        operator fun invoke(value: Double, min: Number, max: Number, message: String): Double =
+            invoke(arrayOf<LuaValue>(LuaValue.valueOf(value.toDouble()),
+                LuaValue.valueOf(min.toDouble()),
+                LuaValue.valueOf(max.toDouble()),
+                LuaValue.valueOf(message))).arg1().todouble()
     }
 
     class Fgettime(val drone: Drone) : ZeroArgFunction() {
@@ -278,14 +315,17 @@ class ModuleScanner(drone: Drone) : DroneModule {
 
     class Fscan(val drone: Drone) : OneArgFunction() {
         override fun call(arg: LuaValue): LuaValue {
-            ModuleCore.Fchecktype(arg, "numeric", true,
+            ModuleCore.Fchecktype(arg, "number", true,
                 "scanner.scan: First argument should be a number, e.g. scanner.scan(2)")
-            val scanRadius = Math.min(3, arg.optint(3))
-
-            val tileMin = Vector2i(drone.tilePosition).sub(scanRadius, scanRadius)
-            val tileMax = Vector2i(drone.tilePosition).add(scanRadius, scanRadius)
+            val scanRadius = ModuleCore.Fclamparg(arg.optint(3), 0, 3,
+                "scanner.scan: First argument should be in the range %a to %b, got %x")
 
             val grid = drone.grid
+
+            val tilePosition = grid.worldToGrid(drone.position)
+            val tileMin = Vector2i(tilePosition).sub(scanRadius, scanRadius)
+            val tileMax = Vector2i(tilePosition).add(scanRadius, scanRadius)
+
             for (gridY in Math.max(0, tileMin.y)..Math.min(grid.height - 1, tileMax.y)) {
                 for (gridX in Math.max(0, tileMin.x)..Math.min(grid.width - 1, tileMax.x)) {
                     val tile = grid.tiles[gridY][gridX]

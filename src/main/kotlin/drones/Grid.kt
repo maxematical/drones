@@ -2,10 +2,21 @@ package drones
 
 import org.joml.Vector2f
 import org.joml.Vector2fc
+import org.joml.Vector2i
+import org.joml.Vector2ic
 import kotlin.math.floor
 
 class Grid(val width: Int, val height: Int, val positionTopLeft: Vector2fc = Vector2f(-width / 2f, height / 2f)) {
     val tiles: Array<Array<Tile>> = Array(height) { Array<Tile>(width) { TileAir } }
+
+    fun worldToGridX(worldX: Float): Int =
+        floor(worldX - positionTopLeft.x()).toInt()
+
+    fun worldToGridY(worldY: Float): Int =
+        -floor(worldY - positionTopLeft.y()).toInt()
+
+    fun worldToGrid(position: Vector2fc): Vector2ic =
+        Vector2i(worldToGridX(position.x()), worldToGridY(position.y()))
 
     fun gridToWorldX(gridX: Int): Float =
         positionTopLeft.x() + gridX
