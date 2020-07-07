@@ -1,6 +1,7 @@
 package drones.scripting
 
 import drones.Drone
+import drones.Tile
 import drones.TileStone
 import org.joml.Vector2i
 import org.luaj.vm2.*
@@ -11,10 +12,14 @@ import org.luaj.vm2.lib.jse.JseIoLib
 import org.luaj.vm2.lib.jse.JseMathLib
 import java.lang.RuntimeException
 
-class ScriptManager(filename: String, instructionLimit: Int = 20, addLibs: (Globals) -> Unit) {
+class ScriptManager(filename: String, instructionLimit: Int = 20, addLibs: ScriptManager.(Globals) -> Unit) {
     val globals: Globals
     val thread: LuaThread
     var onComplete: (() -> Unit)? = null
+
+    val debug: LuaValue
+
+    var activeScanning: ModuleScanner.Fon? = null
 
     init {
         globals = Globals()
@@ -47,8 +52,12 @@ class ScriptManager(filename: String, instructionLimit: Int = 20, addLibs: (Glob
         // We have to do this using the debug lib, but we don't want scripts accessing it, so we'll remove the debug
         // table directly afterwards
         globals.load(DebugLib())
+        debug = globals.get("debug")
         val sethook = globals.get("debug").get("sethook")
-        globals.set("debug", LuaValue.NIL)
+        val getinfo = globals.get("debug").get("getinfo") as VarArgFunction
+        val info = globals.load("debug.getinfo(move.to)").call()
+//        println("Current line: " + getinfo.call(LuaValue.valueOf(1), LuaValue.valueOf("l")).get("currentline"))
+        //globals.set("debug", LuaValue.NIL)
 
         val onInstructionLimit = object : ZeroArgFunction() {
             override fun call(): LuaValue {
@@ -59,13 +68,21 @@ class ScriptManager(filename: String, instructionLimit: Int = 20, addLibs: (Glob
         // TODO: For some reason, the runtime exception doesn't get logged (though it does shut down that thread)
         //sethook.invoke(arrayOf<LuaValue>(thread, onInstructionLimit,
         //    LuaValue.EMPTYSTRING, LuaValue.valueOf(instructionLimit)))
+
+        // Note: To get the "lua stack trace":
+        // 1) cast thread.callstack to DebugLib.Callstack
+        // 2) call currentline() on each CallFrame
+        // Might require DebugLib to be installed
     }
 
-    fun resume() {
+    fun update() {
         val result: Varargs = thread.resume(LuaValue.varargsOf(emptyArray()))
         if (!result.checkboolean(1)) {
             throw RuntimeException("Error: lua thread terminated with error. ${result.checkjstring(2)}")
         }
+
+        activeScanning?.updateScanner()
+
         if (isFinished()) {
             onComplete?.invoke()
         }
@@ -300,16 +317,19 @@ class ModuleCore(drone: Drone) : DroneModule {
     }
 }
 
-class ModuleScanner(drone: Drone) : DroneModule {
+class ModuleScanner(private val drone: Drone, private val scriptMgr: ScriptManager) : DroneModule {
     private val scan = Fscan(drone)
+    private var globals: Globals? = null // TODO very messy code
 
     override fun buildModule(): LuaValue {
         val module = LuaTable()
         module.set("scan", scan)
+        module.set("on", Fon(drone, globals!!, scriptMgr))
         return module
     }
 
     override fun install(globals: Globals) {
+        this.globals = globals
         globals.set("scanner", buildModule())
     }
 
@@ -320,6 +340,47 @@ class ModuleScanner(drone: Drone) : DroneModule {
             val scanRadius = ModuleCore.Fclamparg(arg.optint(3), 0, 3,
                 "scanner.scan: First argument should be in the range %a to %b, got %x")
 
+            val scan: LuaValue? = doScan<LuaValue>(drone, scanRadius) { tile, gridX, gridY ->
+                if (tile == TileStone) {
+                    val x = drone.grid.gridToWorldX(gridX)
+                    val y = drone.grid.gridToWorldY(gridY)
+                    ModuleVector.Fcreate(x, y)
+                } else null
+            }
+            return scan ?: LuaValue.NIL
+        }
+    }
+
+    class Fon(val drone: Drone, val globals: Globals, val scriptMgr: ScriptManager) : OneArgFunction() {
+        private var callbackFunction: LuaValue? = null
+
+        override fun call(arg: LuaValue): LuaValue {
+            val onScanFunc = globals.get("on_scan_detected")
+            if (onScanFunc != LuaValue.NIL) {
+                scriptMgr.activeScanning = this
+                this.callbackFunction = onScanFunc
+            } else {
+                println("Error: can't enable active scanning because there isn't a scanning function defined")
+            }
+            return LuaValue.NIL
+        }
+
+        fun updateScanner() {
+            val scan: Pair<Int, Int>? = doScan(drone, 3) { tile, gridX, gridY ->
+                if (tile == TileStone) Pair(gridX, gridY) else null
+            }
+
+            if (scan != null) {
+                print("SCAN FOUND STUFF!!! $scan")
+
+                globals.load("debug.sethook(on_scan_detected, '', 1)").call()
+            }
+        }
+    }
+
+    companion object {
+        private fun <T> doScan(drone: Drone, scanRadius: Int,
+                               processTile: (tile: Tile, gridX: Int, gridY: Int) -> T?): T? {
             val grid = drone.grid
 
             val tilePosition = grid.worldToGrid(drone.position)
@@ -329,14 +390,14 @@ class ModuleScanner(drone: Drone) : DroneModule {
             for (gridY in Math.max(0, tileMin.y)..Math.min(grid.height - 1, tileMax.y)) {
                 for (gridX in Math.max(0, tileMin.x)..Math.min(grid.width - 1, tileMax.x)) {
                     val tile = grid.tiles[gridY][gridX]
-                    if (tile == TileStone) {
-                        val x = grid.gridToWorldX(gridX)
-                        val y = grid.gridToWorldY(gridY)
-                        return ModuleVector.Fcreate(x, y)
-                    }
+                    val result = processTile(tile, gridX, gridY)
+
+                    if (result != null)
+                        return result
                 }
             }
-            return LuaValue.NIL
+
+            return null
         }
     }
 }

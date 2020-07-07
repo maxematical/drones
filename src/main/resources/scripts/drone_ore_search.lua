@@ -1,35 +1,44 @@
-local coords
-local sleep_length = 6.0
+function on_scan_detected(coords)
+    print('Found coordinates:', coords)
+    move.to(coords)
+end
 
 print('Searching for ores...')
-core.set_thrust(0, 1)
+scanner.on()
+move.units(0, 6)
+move.units(-6, 0)
+move.units(0, -6)
+move.units(6, 0)
 
-sleep(sleep_length)
-coords = scanner.scan()
-if coords then goto mine end
-
-core.set_thrust(-1, 0)
-sleep(sleep_length)
-coords = scanner.scan()
-if coords then goto mine end
-
-core.set_thrust(0, -1)
-sleep(sleep_length)
-coords = scanner.scan()
-if coords then goto mine end
-
-core.set_thrust(1, 0)
-sleep(sleep_length)
-coords = scanner.scan()
-if coords then goto mine end
-
-print('Could not find any ores.')
-
-goto the_end
-
-::mine::
-print('Found coordinates:', coords)
-move.to(coords)
-print('Done')
-
-::the_end::
+-- local coords
+-- local sleep_length = 6.0
+--
+--sleep(sleep_length)
+--coords = scanner.scan()
+--if coords then goto mine end
+--
+--core.set_thrust(-1, 0)
+--sleep(sleep_length)
+--coords = scanner.scan()
+--if coords then goto mine end
+--
+--core.set_thrust(0, -1)
+--sleep(sleep_length)
+--coords = scanner.scan()
+--if coords then goto mine end
+--
+--core.set_thrust(1, 0)
+--sleep(sleep_length)
+--coords = scanner.scan()
+--if coords then goto mine end
+--
+--print('Could not find any ores.')
+--
+--goto the_end
+--
+--::mine::
+--print('Found coordinates:', coords)
+--move.to(coords)
+--print('Done')
+--
+--::the_end::

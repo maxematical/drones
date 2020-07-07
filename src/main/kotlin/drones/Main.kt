@@ -184,7 +184,7 @@ fun main(args: Array<String>) {
     val scriptMgr = ScriptManager("drone_ore_search.lua", Int.MAX_VALUE) { globals ->
         ModuleVector.install(globals)
         ModuleCore(drone).install(globals)
-        ModuleScanner(drone).install(globals)
+        ModuleScanner(drone, this).install(globals)
         globals.set("move", globals.loadfile("libmove.lua").call())
         globals.loadfile("libscanner.lua").call()
     }
@@ -231,7 +231,7 @@ fun main(args: Array<String>) {
 
         // Update script
         if (!scriptMgr.isFinished())
-            scriptMgr.resume()
+            scriptMgr.update()
 
         // Render
         glClearColor(0f, 1f, 0f, 1f)
