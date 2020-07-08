@@ -308,13 +308,14 @@ fun main(args: Array<String>) {
         glUniform2f(glGetUniformLocation(fpsShaderProgram, "WindowSize"), windowWidth.toFloat(), windowHeight.toFloat())
         glUniform2f(glGetUniformLocation(fpsShaderProgram, "UiAnchorPoint"), 1f, 1f)
         // UiPositionPx: y=0 means bottom
-        glUniform2f(glGetUniformLocation(fpsShaderProgram, "UiPositionPx"), windowWidth.toFloat(), windowHeight.toFloat())
+        glUniform2f(glGetUniformLocation(fpsShaderProgram, "UiPositionPx"),
+            windowWidth.toFloat() - 14f, windowHeight.toFloat() - 10f)
         glUniform2f(glGetUniformLocation(fpsShaderProgram, "UiDimensionsPx"), 120f, 38f)
         glUniform1f(glGetUniformLocation(fpsShaderProgram, "FontScale"), 2f)
         glUniform1f(glGetUniformLocation(fpsShaderProgram, "FontSpacing"), 12f)
 
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo)
-        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1096, stringToBitmapArray(lastFps.toString(), font))
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1096, stringToBitmapArray(lastFps.toString(), font, 0, 10))
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
         glBindVertexArray(vaoFps)
