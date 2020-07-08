@@ -4,14 +4,13 @@ import drones.scripting.*
 import org.joml.Matrix4f
 import org.joml.Vector2f
 import org.joml.Vector2fc
+import org.joml.Vector4f
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
-import org.lwjgl.opengl.GL11
-import org.lwjgl.opengl.GL15
-import org.lwjgl.opengl.GL20
 import org.lwjgl.opengl.GL30.*
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.stb.STBImage
+import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.MemoryUtil.NULL
 import java.io.FileNotFoundException
 import java.lang.Float.min
@@ -26,6 +25,9 @@ val initialTileSize: Float = 64f
 var tileSize: Float = initialTileSize
 
 var paused: Boolean = false
+
+// Set by mouseCallback when LMB is pressed, in the main loop if this is true, will handle a mouse click
+var mouseClicked: Boolean = false
 
 fun main(args: Array<String>) {
     val windowWidth = 1280
@@ -49,6 +51,7 @@ fun main(args: Array<String>) {
     }
 
     glfwSetKeyCallback(window, ::keyCallback)
+    glfwSetMouseButtonCallback(window, ::mouseCallback)
 
     // Create the window
     glfwMakeContextCurrent(window)
@@ -193,6 +196,8 @@ fun main(args: Array<String>) {
 
     var lastTime = System.currentTimeMillis()
 
+    val cameraMatrix = Matrix4f()
+    val cameraMatrixInv = Matrix4f() // may not always be updated, make sure you update it before using
     val cameraMatrixArr = FloatArray(16)
 
     val scriptMgr = ScriptManager("drone_ore_search.lua", Int.MAX_VALUE) { globals ->
@@ -214,6 +219,12 @@ fun main(args: Array<String>) {
     var lastFps: Int = 0
     var fpsCountStart = System.currentTimeMillis()
     var fpsFramesCount = 0
+
+    // Used for retrieving mouse position
+    val mouseXArr = DoubleArray(1)
+    val mouseYArr = DoubleArray(1)
+
+    val droneMatrixInv = Matrix4f()
 
     // Loop
     while (!glfwWindowShouldClose(window)) {
@@ -258,6 +269,33 @@ fun main(args: Array<String>) {
                 scriptMgr.update()
         }
 
+        // Handle mouse click
+        if (mouseClicked) {
+            // (0,0) means the top left corner of the window. Mouse position is measured in pixels.
+            glfwGetCursorPos(window, mouseXArr, mouseYArr)
+
+            // Transform mouse coordinates to [-1,1] range
+            val mouseX = -1f + 2f * (mouseXArr[0].toFloat() / windowWidth)
+            val mouseY = 1f - 2f * (mouseYArr[0].toFloat() / windowHeight)
+
+
+            // Check if we're clicking on the drone
+            cameraMatrix.invert(cameraMatrixInv)
+            drone.modelMatrix.invert(droneMatrixInv)
+
+            val mousePos = Vector4f(mouseX, mouseY, 0f, 1f)
+            cameraMatrixInv.transform(mousePos)
+            droneMatrixInv.transform(mousePos)
+
+            // We now have the mouse coordinates relative to the drone's quad
+            val clickedOnDrone = Math.abs(mousePos.x) <= 0.5 && Math.abs(mousePos.y) <= 0.5
+            if (clickedOnDrone) {
+                println("Drone click")
+            }
+
+            mouseClicked = false
+        }
+
         // Update framerate counter
         fpsFramesCount++
         val fpsTime = System.currentTimeMillis() - fpsCountStart
@@ -291,7 +329,7 @@ fun main(args: Array<String>) {
         glDrawArrays(GL_TRIANGLES, 0, 6)
 
         // Render drone
-        val cameraMatrix = Matrix4f().ortho(cameraX - windowWidth / tileSize / 2f,
+        cameraMatrix.setOrtho(cameraX - windowWidth / tileSize / 2f,
             cameraX + windowWidth / tileSize / 2f,
             cameraY - windowHeight / tileSize / 2f,
             cameraY + windowHeight / tileSize / 2f,
@@ -356,18 +394,24 @@ fun main(args: Array<String>) {
     System.exit(0)
 }
 
-fun keyCallback(window: Long, key: Int, scancode: Int, actions: Int, mods: Int) {
+fun keyCallback(window: Long, key: Int, scancode: Int, action: Int, mods: Int) {
     if (key == GLFW_KEY_ESCAPE) {
         glfwSetWindowShouldClose(window, true)
     }
-    if (key == GLFW_KEY_EQUAL && actions == GLFW_PRESS) {
+    if (key == GLFW_KEY_EQUAL && action == GLFW_PRESS) {
         tileSize += 8
     }
-    if (key == GLFW_KEY_MINUS && actions == GLFW_PRESS) {
+    if (key == GLFW_KEY_MINUS && action == GLFW_PRESS) {
         tileSize -= 8
     }
-    if (key == GLFW_KEY_SPACE && actions == GLFW_PRESS) {
+    if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
         paused = !paused
+    }
+}
+
+fun mouseCallback(window: Long, button: Int, action: Int, mods: Int) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
+        mouseClicked = true
     }
 }
 
