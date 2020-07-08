@@ -122,9 +122,12 @@ fun main(args: Array<String>) {
     val uiVertexShader = Shader.create("/glsl/ui.vert", GL_VERTEX_SHADER)
     val fpsFragmentShader = Shader.create("/glsl/fpscount.frag", GL_FRAGMENT_SHADER)
 
+    val laserFsh = Shader.create("/glsl/laserbeam.frag", GL_FRAGMENT_SHADER)
+
     val gridShaderProgram = Shader.createProgram(defaultVertexShader, gridFragmentShader)
     val droneShaderProgram = Shader.createProgram(objectVertexShader, droneFragmentShader)
     val fpsShaderProgram = Shader.createProgram(uiVertexShader, fpsFragmentShader)
+    val laserShaderProgram = Shader.createProgram(objectVertexShader, laserFsh)
 
     // Set up bitmap (font) texture
     val font = loadFont()
@@ -203,6 +206,9 @@ fun main(args: Array<String>) {
     scriptMgr.onComplete = {
         drone.desiredVelocity.set(0f, 0f)
     }
+
+    val laser = LaserBeam(Vector2f(0f, 0f), 45f, 0.4f, 5f)
+    laser.renderer = LaserBeamRenderer(laser)
 
     // Init Fps counter
     var lastFps: Int = 0
@@ -303,6 +309,9 @@ fun main(args: Array<String>) {
         glBindTexture(GL_TEXTURE_2D, bitmapTexture)
         glBindVertexArray(vaoDrone)
         glDrawArrays(GL_TRIANGLES, 0, 6)
+
+        // Render laser beam
+        laser.renderer?.render(laserShaderProgram, cameraMatrixArr)
 
         // Render fps counter
         glUseProgram(fpsShaderProgram)
