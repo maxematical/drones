@@ -24,14 +24,18 @@ void main()
     FragColor.rgb *= vec3(droneColorR, droneColorG, droneColorB) / 255.0;
 
     // Draw dot (LED) at center of drone
-    float dotRadius = 0.15;
-    float dotAA = 0.04;
+    float dotRadius = 0.17;
+    float dotAA = 0.05;
+    float dotGlow = 5;
     float distanceFromQuadCenter = length(vertexUv * 2.0 - 1.0);
     float circleness = ((dotRadius - distanceFromQuadCenter) / dotAA * 0.5) + 0.5;
     circleness = clamp(circleness, 0, 1);
+
+    float glow = 0.5 * clamp(1.0 - distanceFromQuadCenter * dotGlow, 0, 1);
 
     vec3 dotRgb = vec3((ledColor >> 16) & 255,
         (ledColor >> 8) & 255,
         ledColor & 255) / vec3(255.0);
     FragColor = mix(FragColor, vec4(dotRgb, 1.0), circleness);
+    FragColor = mix(FragColor, vec4(1.0), glow);
 }
