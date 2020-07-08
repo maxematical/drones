@@ -72,4 +72,26 @@ More ideas 7/7
   - heat can be more interesting if it can physically dissipate around an area and then make it become more hot. That
     is, some areas can be more hot or cold than others, which influenced by the heat production/absorption of things in
     that area. Thus closely compacted drones could suffer as they can't dissipate heat as easily
-  -
+
+More ideas 7/8
+- Within each task, or "challenge" we give the player, there should be accommodation for different skill levels, where
+  higher skilled players can complete the task better/more efficiently than other players.
+
+  - We see this in other games as things like a "score", where even if you finish the level you can keep improving by
+    getting a higher score. Or in Deep Rock Galactic, where one of the objectives is to look towards and shoot at an
+    enemy, but higher skilled players can aim more precisely at the weakpoints on enemies and thus kill them faster than
+    other players who can JUST aim imprecisely and shoot
+
+  - The player shouldn't have to be super good at scripting and/or the game to get success, better scripts should give
+    them an advantage but we don't want e.g. you have to write an A* algorithm just to move around
+
+  - Idea: Let the player manually control the navigation of drones like an RTS. This way, players that aren't great
+    at scripting still can have their drones actually go somewhere (reducing "barrier to success") but also so that
+    gameplay is a bit faster , otherwise exploring is tedious and it's hard to write AI that detects rooms and tries to
+    explore them (if we even have rooms)
+
+- Idea: have a fog of war, can be computed pretty quickly on gpu (no cpu cost) by giving it array of circles where we
+  want to reveal fog of war (e.g. 1 circle around each drone), then can use postprocess and/or stencil buffer to hide
+  pixels not in at least one circle. Alternative is in kotlin to have a counter on each tile for how many drones are
+  near it, and update the counters around each drone as it moves around. Then send data to gpu, but this might be more
+  processing intensive and has obvious pixelation/tiling effect
