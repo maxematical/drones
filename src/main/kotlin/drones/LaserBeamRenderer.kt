@@ -9,7 +9,7 @@ import org.lwjgl.opengl.GL20.*
 import org.lwjgl.opengl.GL30
 import org.lwjgl.opengl.GL43.*
 
-class LaserBeamRenderer(private val laserBeam: LaserBeam) {
+class LaserBeamRenderer(private val laserBeam: LaserBeam, private val shaderProgram: Int) : Renderer {
     private val vao: Int
 
     private val modelMatrix: Matrix4f = Matrix4f()
@@ -17,7 +17,17 @@ class LaserBeamRenderer(private val laserBeam: LaserBeam) {
 
     private val initTime: Long = System.currentTimeMillis()
 
+    private val locationCameraMatrix: Int
+    private val locationModelMatrix: Int
+    private val locationLaserDimensions: Int
+    private val locationTime: Int
+
     init {
+        locationCameraMatrix = glGetUniformLocation(shaderProgram, "cameraMatrix")
+        locationModelMatrix = glGetUniformLocation(shaderProgram, "modelMatrix")
+        locationLaserDimensions = glGetUniformLocation(shaderProgram, "LaserDimensions")
+        locationTime = glGetUniformLocation(shaderProgram, "Time")
+
         val vertices: FloatArray = floatArrayOf(
             -0.5f, -0.5f, 0.0f,     0f, 1f,
             0.5f, -0.5f, 0.0f,      1f, 1f,
@@ -40,14 +50,14 @@ class LaserBeamRenderer(private val laserBeam: LaserBeam) {
         glEnableVertexAttribArray(1)
     }
 
-    fun render(shaderProgram: Int, cameraMatrixArr: FloatArray) {
+    override fun render(cameraMatrixArr: FloatArray) {
         updateModelMatrix()
 
         glUseProgram(shaderProgram)
-        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "cameraMatrix"), false, cameraMatrixArr)
-        glUniformMatrix4fv(glGetUniformLocation(shaderProgram, "modelMatrix"), false, modelMatrixArr)
-        glUniform2f(glGetUniformLocation(shaderProgram, "LaserDimensions"), laserBeam.length, laserBeam.width)
-        glUniform1f(glGetUniformLocation(shaderProgram, "Time"), (System.currentTimeMillis() - initTime) * 0.001f)
+        glUniformMatrix4fv(locationCameraMatrix, false, cameraMatrixArr)
+        glUniformMatrix4fv(locationModelMatrix, false, modelMatrixArr)
+        glUniform2f(locationLaserDimensions, laserBeam.length, laserBeam.width)
+        glUniform1f(locationTime, (System.currentTimeMillis() - initTime) * 0.001f)
 
         glBindVertexArray(vao)
         glDrawArrays(GL_TRIANGLES, 0, 6)

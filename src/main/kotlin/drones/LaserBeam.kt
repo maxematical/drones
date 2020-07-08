@@ -8,6 +8,6 @@ class LaserBeam(val position: Vector2fc,
                 var width: Float,
                 var length: Float) {
 
-    var renderer: LaserBeamRenderer? = null
+    var renderer: Renderer? = null
 
 }

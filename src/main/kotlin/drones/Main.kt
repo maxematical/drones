@@ -69,15 +69,6 @@ fun main(args: Array<String>) {
         -1f, -1f, 0f,
         1f, 1f, 0f
     )
-    val quad2Vertices: FloatArray = floatArrayOf(
-        -0.5f, -0.5f, 0.0f,     0f, 1f,
-        0.5f, -0.5f, 0.0f,      1f, 1f,
-        0.5f, 0.5f, 0.0f,       1f, 0f,
-
-        -0.5f, 0.5f, 0f,        0f, 0f,
-        -0.5f, -0.5f, 0f,       0f, 1f,
-        0.5f, 0.5f, 0f,         1f, 0f
-    )
 
     // Create Vertex Array Object (calls below will also bind things into this object)
     val vaoGrid = glGenVertexArrays()
@@ -91,20 +82,6 @@ fun main(args: Array<String>) {
     // Tell OpenGL how to use the vertex attributes for use by the future vertex shader
     glVertexAttribPointer(0, 3, GL_FLOAT, false, 12, 0) // set up vertex position for use in vertex shader
     glEnableVertexAttribArray(0)
-
-
-
-    val vaoDrone = glGenVertexArrays()
-    glBindVertexArray(vaoDrone)
-
-    val vboDrone = glGenBuffers()
-    glBindBuffer(GL_ARRAY_BUFFER, vboDrone)
-    glBufferData(GL_ARRAY_BUFFER, quad2Vertices, GL_STATIC_DRAW)
-    glVertexAttribPointer(0, 3, GL_FLOAT, false, 20, 0)
-    glVertexAttribPointer(1, 2, GL_FLOAT, false, 20, 12)
-    glEnableVertexAttribArray(0)
-    glEnableVertexAttribArray(1)
-
 
     val vaoFps = glGenVertexArrays()
     glBindVertexArray(vaoFps)
@@ -185,6 +162,7 @@ fun main(args: Array<String>) {
     grid.tiles[4][4] = TileStone
 
     val drone = Drone(grid, Vector2f(-7f, 3f), 0xEEEEEE)
+    drone.renderer = DroneRenderer(drone, droneShaderProgram, font,  bitmapTexture)
 
     var cameraX: Float = 0f
     var cameraY: Float = 0f
@@ -211,9 +189,6 @@ fun main(args: Array<String>) {
     scriptMgr.onComplete = {
         drone.desiredVelocity.set(0f, 0f)
     }
-
-    //val laser = LaserBeam(Vector2f(0f, 0f), 45f, 0.4f, 5f)
-    //laser.renderer = LaserBeamRenderer(laser)
 
     // Init Fps counter
     var lastFps: Int = 0
@@ -309,6 +284,13 @@ fun main(args: Array<String>) {
         glClearColor(0f, 1f, 0f, 1f)
         glClear(GL_COLOR_BUFFER_BIT)
 
+        cameraMatrix.setOrtho(cameraX - windowWidth / tileSize / 2f,
+            cameraX + windowWidth / tileSize / 2f,
+            cameraY - windowHeight / tileSize / 2f,
+            cameraY + windowHeight / tileSize / 2f,
+            -1f, 1f)
+        cameraMatrix.get(cameraMatrixArr)
+
         // Render grid
         glUseProgram(gridShaderProgram)
         glUniform2f(glGetUniformLocation(gridShaderProgram, "WindowSize"), windowWidth.toFloat(), windowHeight.toFloat())
@@ -329,34 +311,14 @@ fun main(args: Array<String>) {
         glDrawArrays(GL_TRIANGLES, 0, 6)
 
         // Render drone
-        cameraMatrix.setOrtho(cameraX - windowWidth / tileSize / 2f,
-            cameraX + windowWidth / tileSize / 2f,
-            cameraY - windowHeight / tileSize / 2f,
-            cameraY + windowHeight / tileSize / 2f,
-            -1f, 1f)
-        cameraMatrix.get(cameraMatrixArr)
-
-        glUseProgram(droneShaderProgram)
-        glUniformMatrix4fv(glGetUniformLocation(droneShaderProgram, "cameraMatrix"), false, cameraMatrixArr)
-        glUniformMatrix4fv(glGetUniformLocation(droneShaderProgram, "modelMatrix"), false, drone.modelMatrixArr)
-        glUniform1i(glGetUniformLocation(droneShaderProgram, "packedCharacterUv"),
-            font.characterCoordinatesLut[font.characterCodeLut['>']!!])
-        glUniform2f(glGetUniformLocation(droneShaderProgram, "bitmapDimensions"),
-            font.bitmapWidth.toFloat(), font.bitmapHeight.toFloat())
-        glUniform1i(glGetUniformLocation(droneShaderProgram, "droneColor"), drone.color)
-        glUniform1i(glGetUniformLocation(droneShaderProgram, "ledColor"), drone.ledColor)
-
-        glBindTexture(GL_TEXTURE_2D, bitmapTexture)
-        glBindVertexArray(vaoDrone)
-        glDrawArrays(GL_TRIANGLES, 0, 6)
+        drone.renderer?.render(cameraMatrixArr)
 
         // Render laser beam
-        //laser.renderer?.render(laserShaderProgram, cameraMatrixArr)
         drone.laserBeam?.let { laser ->
             if (laser.renderer == null) {
-                laser.renderer = LaserBeamRenderer(laser)
+                laser.renderer = LaserBeamRenderer(laser, laserShaderProgram)
             }
-            laser.renderer?.render(laserShaderProgram, cameraMatrixArr)
+            laser.renderer?.render(cameraMatrixArr)
         }
 
         // Render fps counter

@@ -13,6 +13,7 @@ class Drone(val grid: Grid,
 
     var localTime: Float = 0f
 
+    var renderer: Renderer? = null
     var laserBeam: LaserBeam? = null
 
     val modelMatrix: Matrix4f = Matrix4f()
