@@ -30,7 +30,14 @@ void main()
     // Figure out the index of which character we're looking at
     vec2 uiTopLeft = UiPositionPx - UiDimensionsPx * (UiAnchorPoint * 0.5 + 0.5);
     vec2 relativePixel = fragCoord - uiTopLeft;
-    int charIndex = int(floor(relativePixel.x / scaledSpacing));
+    float widthChars = font_nChars * scaledSpacing; // the width of all boxes, in pixels
+    float extraSpace = UiDimensionsPx.x - widthChars;   // the extra space at the left of the quad, where there aren't
+                                                        // any characters
+    int charIndex = int(floor(( relativePixel.x - extraSpace ) / scaledSpacing));
+
+    // Avoid out-of-range array accesses by recording if the charIndex was out-of-bounds, then resetting it to 0
+    bool wasCharIndexInvalid = charIndex < 0 || charIndex >= font_nChars;
+    charIndex *= int(!wasCharIndexInvalid);
 
     // Determine the properties of the character in this box
     int charInfo = font_charData[charIndex];
@@ -40,6 +47,7 @@ void main()
     int packedCoords = font_characterCoordsLut[char];
     int packedOffset = font_characterOffsetLut[char];
 
+    // Determine the character's coordinates on the bitmap
     vec2 bitmapUvTopLeft = vec2((packedCoords >> 23) & 511, (packedCoords >> 14) & 511) / font_bitmapDimensions;
     vec2 bitmapUvWidthHeight = vec2((packedCoords >> 7) & 127, packedCoords & 127) / font_bitmapDimensions;
 
@@ -49,13 +57,14 @@ void main()
 
     vec2 charSizePx = bitmapUvWidthHeight * font_bitmapDimensions * FontScale;
 
-    // Split the quad into equal-width boxes, where each box holds one character. Then calculate the corners of the
-    // current box.
+    // Calculate the corners of the current box
     vec2 boxWidthHeight = vec2(scaledSpacing, UiDimensionsPx.y);
-    vec2 boxTopLeft = uiTopLeft + vec2(charIndex * scaledSpacing, 0);
+    vec2 boxTopLeft = uiTopLeft + vec2(charIndex * scaledSpacing + extraSpace, 0);
     vec2 boxBottomRight = boxTopLeft + boxWidthHeight;
 
-    // Apply padding in the box based on the character's dimensions.
+    //FragColor = vec4((fragCoord - boxTopLeft) / (boxBottomRight - boxTopLeft), 0.0, 1.0);return;
+
+    // Apply padding in the box based on the character's dimensions
     vec2 glyphTopLeft = boxTopLeft + (boxWidthHeight - charSizePx) / 2;
     vec2 glyphBottomRight = glyphTopLeft + charSizePx;
     vec2 boxPaddedPosition = (fragCoord - glyphTopLeft) / (glyphBottomRight - glyphTopLeft);
@@ -83,10 +92,5 @@ void main()
     float bgB = float( charBgColor        & 255) / 255.0;
 
     FragColor.rgb = mix(vec3(bgR, bgG, bgB), vec3(fgR, fgG, fgB), FragColor.a);
-    FragColor.a = 1.0;
-
-    //FragColor = vec4(r, g, b, 1.0);
-
-    //FragColor = vec4(1.0 - abs(gl_FragCoord.x - uiTopLeft.x) / 100.0, 0, 0, 1);
-    //FragColor = vec4(boxUv, 0.0, 1.0);
+    FragColor.a = int(!wasCharIndexInvalid);
 }

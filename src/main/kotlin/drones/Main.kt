@@ -40,6 +40,7 @@ fun main(args: Array<String>) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3)
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE)
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE)
+    glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE) // Whether to enable vsync. If false, call Flush instead of SwapBuffers
 
     val window: Long = glfwCreateWindow(windowWidth, windowHeight, "Hello World", NULL, NULL)
     if (window == NULL) {
@@ -308,7 +309,7 @@ fun main(args: Array<String>) {
         glUniform2f(glGetUniformLocation(fpsShaderProgram, "UiAnchorPoint"), 1f, 1f)
         // UiPositionPx: y=0 means bottom
         glUniform2f(glGetUniformLocation(fpsShaderProgram, "UiPositionPx"), windowWidth.toFloat(), windowHeight.toFloat())
-        glUniform2f(glGetUniformLocation(fpsShaderProgram, "UiDimensionsPx"), 12f * 4, 38f)
+        glUniform2f(glGetUniformLocation(fpsShaderProgram, "UiDimensionsPx"), 120f, 38f)
         glUniform1f(glGetUniformLocation(fpsShaderProgram, "FontScale"), 2f)
         glUniform1f(glGetUniformLocation(fpsShaderProgram, "FontSpacing"), 12f)
 
@@ -322,6 +323,7 @@ fun main(args: Array<String>) {
 
         glfwPollEvents()
         glfwSwapBuffers(window)
+//        glFlush()
     }
 
     // End
