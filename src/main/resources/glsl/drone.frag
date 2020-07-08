@@ -25,10 +25,13 @@ void main()
 
     // Draw dot (LED) at center of drone
     float dotRadius = 0.15;
-    bool isCenter = length(vertexUv * 2.0 - 1.0) < dotRadius;
+    float dotAA = 0.04;
+    float distanceFromQuadCenter = length(vertexUv * 2.0 - 1.0);
+    float circleness = ((dotRadius - distanceFromQuadCenter) / dotAA * 0.5) + 0.5;
+    circleness = clamp(circleness, 0, 1);
 
     vec3 dotRgb = vec3((ledColor >> 16) & 255,
         (ledColor >> 8) & 255,
         ledColor & 255) / vec3(255.0);
-    FragColor = mix(FragColor, vec4(dotRgb, 1.0), int(isCenter));
+    FragColor = mix(FragColor, vec4(dotRgb, 1.0), circleness);
 }
