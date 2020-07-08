@@ -25,6 +25,8 @@ class Main
 val initialTileSize: Float = 64f
 var tileSize: Float = initialTileSize
 
+var paused: Boolean = false
+
 fun main(args: Array<String>) {
     val windowWidth = 1280
     val windowHeight = 720
@@ -241,18 +243,20 @@ fun main(args: Array<String>) {
         cameraX += cameraVelX * (initialTileSize / tileSize) * deltaTime
         cameraY += cameraVelY * (initialTileSize / tileSize) * deltaTime
 
-        // Update drone
-        updateVelocity(drone.velocity, drone.desiredVelocity, 1f, 1f, deltaTime)
-        drone.position.add(drone.velocity.x * deltaTime, drone.velocity.y * deltaTime)
-        drone.rotation = (Math.atan2(drone.velocity.y.toDouble(), drone.velocity.x.toDouble()) * MathUtils.RAD2DEG)
-            .toFloat()
-        drone.localTime += deltaTime
+        if (!paused) {
+            // Update drone
+            updateVelocity(drone.velocity, drone.desiredVelocity, 1f, 1f, deltaTime)
+            drone.position.add(drone.velocity.x * deltaTime, drone.velocity.y * deltaTime)
+            drone.rotation = (Math.atan2(drone.velocity.y.toDouble(), drone.velocity.x.toDouble()) * MathUtils.RAD2DEG)
+                .toFloat()
+            drone.localTime += deltaTime
 
-        drone.recomputeModelMatrix()
+            drone.recomputeModelMatrix()
 
-        // Update script
-        if (!scriptMgr.isFinished())
-            scriptMgr.update()
+            // Update script
+            if (!scriptMgr.isFinished())
+                scriptMgr.update()
+        }
 
         // Update framerate counter
         fpsFramesCount++
@@ -361,6 +365,9 @@ fun keyCallback(window: Long, key: Int, scancode: Int, actions: Int, mods: Int) 
     }
     if (key == GLFW_KEY_MINUS && actions == GLFW_PRESS) {
         tileSize -= 8
+    }
+    if (key == GLFW_KEY_SPACE && actions == GLFW_PRESS) {
+        paused = !paused
     }
 }
 
