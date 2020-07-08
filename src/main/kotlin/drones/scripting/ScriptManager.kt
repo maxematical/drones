@@ -1,8 +1,11 @@
 package drones.scripting
 
 import drones.Drone
+import drones.LaserBeam
 import drones.Tile
 import drones.TileStone
+import drones.scripting.ModuleCore.Fchecktype
+import drones.scripting.ModuleCore.Fclamparg
 import org.joml.Vector2i
 import org.luaj.vm2.*
 import org.luaj.vm2.compiler.LuaC
@@ -376,9 +379,9 @@ class ModuleScanner(private val drone: Drone, private val scriptMgr: ScriptManag
 
     class Fscan(val drone: Drone) : OneArgFunction() {
         override fun call(arg: LuaValue): LuaValue {
-            ModuleCore.Fchecktype(arg, "number", true,
+            Fchecktype(arg, "number", true,
                 "scanner.scan: First argument should be a number, e.g. scanner.scan(2)")
-            val scanRadius = ModuleCore.Fclamparg(arg.optint(3), 0, 3,
+            val scanRadius = Fclamparg(arg.optint(3), 0, 3,
                 "scanner.scan: First argument should be in the range %a to %b, got %x")
 
             val scan: LuaValue? = doScan<LuaValue>(drone, scanRadius) { tile, gridX, gridY ->
@@ -450,6 +453,72 @@ class ModuleScanner(private val drone: Drone, private val scriptMgr: ScriptManag
             }
 
             return null
+        }
+    }
+}
+
+class ModuleMiningLaser(private val drone: Drone) : DroneModule {
+    override fun buildModule(): LuaValue {
+        val table = LuaValue.tableOf()
+        table.set("laser_on", Flaser_on(drone))
+        table.set("laser_target", Flaser_target(drone))
+        table.set("laser_off", Flaser_off(drone))
+        return table
+    }
+
+    override fun install(globals: Globals) {
+        globals.set("mining_laser", buildModule())
+        globals.loadfile("libmininglaser.lua").call()
+    }
+
+    private class Flaser_on(private val drone: Drone) : TwoArgFunction() {
+        override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
+            Fchecktype(arg1, "number",
+                "mining_laser.laser_on: First argument should be a number, the angle in degrees at which to point " +
+                        "the laser")
+            Fchecktype(arg2, "number", true,
+                "mining_laser.laser_on: Second argument should be a number, the optional length of the laser")
+
+            val angle = arg1.checkdouble()
+            val length = Fclamparg(arg2.optdouble(5.0), 1, 5, "mining_laser.laser_on: Length must be between " +
+                    "%a and %b, got %x")
+
+            if (drone.laserBeam != null) {
+                throw LuaError("mining_laser.laser_on: Can't turn the laser beam on, it was already on")
+            }
+            drone.laserBeam = LaserBeam(drone.position, angle.toFloat(), 0.4f, length.toFloat())
+            return LuaValue.NIL
+        }
+    }
+
+    private class Flaser_target(private val drone: Drone) : TwoArgFunction() {
+        override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
+            Fchecktype(arg1, "number",
+                "mining_laser.laser_target: First argument should be a number, the angle in degrees at which to point " +
+                        "the laser")
+            Fchecktype(arg2, "number", true,
+                "mining_laser.laser_target: Second argument should be a number, the optional length of the laser")
+
+            val angle = arg1.checkdouble()
+            val length = Fclamparg(arg2.optdouble(5.0), 1, 5, "mining_laser.laser_target: Length must be between " +
+                    "%a and %b, got %x")
+
+            if (drone.laserBeam == null) {
+                throw LuaError("mining_laser.laser_target: Laser beam must be on before targeting")
+            }
+            drone.laserBeam?.rotation = angle.toFloat()
+            drone.laserBeam?.length = length.toFloat()
+            return LuaValue.NIL
+        }
+    }
+
+    private class Flaser_off(private val drone: Drone) : ZeroArgFunction() {
+        override fun call(): LuaValue {
+            if (drone.laserBeam == null) {
+                throw LuaError("mining_laser.laser_off: Can't turn the laser beam off, it was already off")
+            }
+            drone.laserBeam = null
+            return LuaValue.NIL
         }
     }
 }

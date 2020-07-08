@@ -1,9 +1,6 @@
 package drones
 
-import drones.scripting.ModuleCore
-import drones.scripting.ModuleScanner
-import drones.scripting.ModuleVector
-import drones.scripting.ScriptManager
+import drones.scripting.*
 import org.joml.Matrix4f
 import org.joml.Vector2f
 import org.joml.Vector2fc
@@ -200,6 +197,7 @@ fun main(args: Array<String>) {
         ModuleVector.install(globals)
         ModuleCore(drone).install(globals)
         ModuleScanner(drone, this).install(globals)
+        ModuleMiningLaser(drone).install(globals)
         globals.set("move", globals.loadfile("libmove.lua").call())
         globals.loadfile("libscanner.lua").call()
     }
@@ -207,8 +205,8 @@ fun main(args: Array<String>) {
         drone.desiredVelocity.set(0f, 0f)
     }
 
-    val laser = LaserBeam(Vector2f(0f, 0f), 45f, 0.4f, 5f)
-    laser.renderer = LaserBeamRenderer(laser)
+    //val laser = LaserBeam(Vector2f(0f, 0f), 45f, 0.4f, 5f)
+    //laser.renderer = LaserBeamRenderer(laser)
 
     // Init Fps counter
     var lastFps: Int = 0
@@ -311,7 +309,13 @@ fun main(args: Array<String>) {
         glDrawArrays(GL_TRIANGLES, 0, 6)
 
         // Render laser beam
-        laser.renderer?.render(laserShaderProgram, cameraMatrixArr)
+        //laser.renderer?.render(laserShaderProgram, cameraMatrixArr)
+        drone.laserBeam?.let { laser ->
+            if (laser.renderer == null) {
+                laser.renderer = LaserBeamRenderer(laser)
+            }
+            laser.renderer?.render(laserShaderProgram, cameraMatrixArr)
+        }
 
         // Render fps counter
         glUseProgram(fpsShaderProgram)

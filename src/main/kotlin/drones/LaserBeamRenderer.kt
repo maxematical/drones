@@ -55,7 +55,7 @@ class LaserBeamRenderer(private val laserBeam: LaserBeam) {
 
     private fun updateModelMatrix() {
         modelMatrix.identity()
-            .translate(laserBeam.position.x, laserBeam.position.y, 0f)
+            .translate(laserBeam.position.x(), laserBeam.position.y(), 0f)
             .rotate(laserBeam.rotation * MathUtils.DEG2RAD, 0f, 0f, 1f)
             .translate(laserBeam.length * 0.5f, 0f, 0f)
             .scale(laserBeam.length, laserBeam.width, 1f)

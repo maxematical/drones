@@ -3,7 +3,9 @@ function on_scan_detected(coords)
     print('Found coordinates:', coords)
     scanner.off()
     print('Moving to coordinates...')
-    move.to(coords)
+    move.to(coords, 3)
+
+    mining_laser.mine_tile(coords)
     print('Done, maybe? going back to normal')
 
     core.setled(255, 0, 0)

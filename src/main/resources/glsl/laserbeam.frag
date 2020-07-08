@@ -16,7 +16,11 @@ void main()
     float light2 = 1.0 - abs(2 * vertexUv.y - 1.0);
 
     // Add subtle, random-looking flicker to the beam
-    float flicker = 0.5 + 0.5 * cos(Time * 1000);
+    float flicker = 0.5 + 0.5 * cos(Time * 300);
+
+    // Add extra flicker at beginning of laser
+    float t2 = Time - sqrt(1.0/6);
+    flicker += 5 * clamp(1.0 - 6 * t2 * t2, 0.0, 1.0);
 
     // Taper at the end of the laser
     float distFromSides = abs(vertexUv.y - 0.5);
