@@ -11,10 +11,10 @@ end
 
 print('Searching for ores...')
 scanner.on()
-move.units(0, 6, 1)
-move.units(-6, 0, 2)
-move.units(0, -6, 3)
-move.units(6, 0, 4)
+move.units(0, 6)
+move.units(-6, 0)
+move.units(0, -6)
+move.units(6, 0)
 
 -- local coords
 -- local sleep_length = 6.0
