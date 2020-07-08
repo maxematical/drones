@@ -56,3 +56,20 @@ Other ideas
 - implement pathing algorithms for the player so they don't have to get caught up on this
 
 - mechanics/systems in the game: Power, Movement, Weapons/combat, Signals/comms
+
+
+More ideas 7/7
+- From a game design perspective: We want to give the player explicit goals, but there are many ways of achieving these
+  goals
+  - past the tutorial missions, don't just say 'program drones to gather X' or something like that, it's too
+    straightforward
+- Think about environment: how can we make it more interesting/challenging? How can we give players multiple approaches
+  to deal with those challenges?
+  - exploring abandoned wrecks-- gives a lot more environmental possibilities, doesn't necessarily have to be realistic,
+    e.g. it can have an atmosphere
+  - heat mechanic and ambient heat level -- straightforward challenge requiring player to manage drone heat level along
+    with power
+  - heat can be more interesting if it can physically dissipate around an area and then make it become more hot. That
+    is, some areas can be more hot or cold than others, which influenced by the heat production/absorption of things in
+    that area. Thus closely compacted drones could suffer as they can't dissipate heat as easily
+  -

@@ -9,6 +9,9 @@ import org.joml.Vector2f
 import org.joml.Vector2fc
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
+import org.lwjgl.opengl.GL11
+import org.lwjgl.opengl.GL15
+import org.lwjgl.opengl.GL20
 import org.lwjgl.opengl.GL30.*
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.stb.STBImage
@@ -16,6 +19,7 @@ import org.lwjgl.system.MemoryUtil.NULL
 import java.io.FileNotFoundException
 import java.lang.Float.min
 import java.nio.ByteBuffer
+import kotlin.math.floor
 import kotlin.math.sign
 import kotlin.math.sqrt
 
@@ -98,6 +102,15 @@ fun main(args: Array<String>) {
     glEnableVertexAttribArray(0)
     glEnableVertexAttribArray(1)
 
+
+    val vaoFps = glGenVertexArrays()
+    glBindVertexArray(vaoFps)
+    val vboFps = glGenBuffers()
+    glBindBuffer(GL_ARRAY_BUFFER, vboFps)
+    glBufferData(GL_ARRAY_BUFFER, quadVertices, GL_STATIC_DRAW)
+    glVertexAttribPointer(0, 3, GL_FLOAT, false, 12, 0)
+    glEnableVertexAttribArray(0)
+
     // Set up the shader
     val defaultVertexShader = Shader.create("/glsl/default.vert", GL_VERTEX_SHADER)
     val gridFragmentShader = Shader.create("/glsl/grid.frag", GL_FRAGMENT_SHADER)
@@ -105,12 +118,12 @@ fun main(args: Array<String>) {
     val objectVertexShader = Shader.create("/glsl/object.vert", GL_VERTEX_SHADER)
     val droneFragmentShader = Shader.create("/glsl/drone.frag", GL_FRAGMENT_SHADER)
 
-    val gridShaderProgram = glCreateProgram()
-    glAttachShader(gridShaderProgram, defaultVertexShader.glShaderObject)
-    glAttachShader(gridShaderProgram, gridFragmentShader.glShaderObject)
-    glLinkProgram(gridShaderProgram)
+    val uiVertexShader = Shader.create("/glsl/ui.vert", GL_VERTEX_SHADER)
+    val fpsFragmentShader = Shader.create("/glsl/fpscount.frag", GL_FRAGMENT_SHADER)
 
+    val gridShaderProgram = Shader.createProgram(defaultVertexShader, gridFragmentShader)
     val droneShaderProgram = Shader.createProgram(objectVertexShader, droneFragmentShader)
+    val fpsShaderProgram = Shader.createProgram(uiVertexShader, fpsFragmentShader)
 
     // Set up bitmap (font) texture
     val font = loadFont()
@@ -159,8 +172,6 @@ fun main(args: Array<String>) {
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
-    val startTime = System.currentTimeMillis()
-
     val grid = Grid(24, 24)
     grid.tiles[3][3] = TileStone
     grid.tiles[3][4] = TileStone
@@ -191,6 +202,11 @@ fun main(args: Array<String>) {
     scriptMgr.onComplete = {
         drone.desiredVelocity.set(0f, 0f)
     }
+
+    // Init Fps counter
+    var lastFps: Int = 0
+    var fpsCountStart = System.currentTimeMillis()
+    var fpsFramesCount = 0
 
     // Loop
     while (!glfwWindowShouldClose(window)) {
@@ -232,6 +248,15 @@ fun main(args: Array<String>) {
         // Update script
         if (!scriptMgr.isFinished())
             scriptMgr.update()
+
+        // Update framerate counter
+        fpsFramesCount++
+        val fpsTime = System.currentTimeMillis() - fpsCountStart
+        if (fpsTime >= 500) {
+            lastFps = floor(fpsFramesCount * 1000f / fpsTime).toInt()
+            fpsFramesCount = 0
+            fpsCountStart = System.currentTimeMillis()
+        }
 
         // Render
         glClearColor(0f, 1f, 0f, 1f)
@@ -277,6 +302,24 @@ fun main(args: Array<String>) {
         glBindVertexArray(vaoDrone)
         glDrawArrays(GL_TRIANGLES, 0, 6)
 
+        // Render fps counter
+        glUseProgram(fpsShaderProgram)
+        glUniform2f(glGetUniformLocation(fpsShaderProgram, "WindowSize"), windowWidth.toFloat(), windowHeight.toFloat())
+        glUniform2f(glGetUniformLocation(fpsShaderProgram, "UiAnchorPoint"), 1f, 1f)
+        // UiPositionPx: y=0 means bottom
+        glUniform2f(glGetUniformLocation(fpsShaderProgram, "UiPositionPx"), windowWidth.toFloat(), windowHeight.toFloat())
+        glUniform2f(glGetUniformLocation(fpsShaderProgram, "UiDimensionsPx"), 12f * 4, 38f)
+        glUniform1f(glGetUniformLocation(fpsShaderProgram, "FontScale"), 2f)
+        glUniform1f(glGetUniformLocation(fpsShaderProgram, "FontSpacing"), 12f)
+
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo)
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1096, stringToBitmapArray(lastFps.toString(), font))
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
+
+        glBindVertexArray(vaoFps)
+        glBindTexture(GL_TEXTURE_2D, bitmapTexture)
+        glDrawArrays(GL_TRIANGLES, 0, 6)
+
         glfwPollEvents()
         glfwSwapBuffers(window)
     }
@@ -317,7 +360,7 @@ fun readImage(filename: String): Triple<Int, Int, ByteBuffer> {
 /**
  * Prepares a string for use by the shader
  */
-fun stringToBitmapArray(string: String, font: GameFont): IntArray {
+fun stringToBitmapArray(string: String, font: GameFont, backgroundColor: Int = 1, foregroundColor: Int = 14): IntArray {
     // http://forum.lwjgl.org/index.php?topic=6546.0
     val arr = IntArray(string.length + 1)
     arr[0] = string.length
@@ -326,7 +369,7 @@ fun stringToBitmapArray(string: String, font: GameFont): IntArray {
         arr[idx + 1] = font.characterCodeLut[string[idx]] ?: error("Font does not support character '${string[idx]}'")
 
     for (idx in 1..arr.lastIndex)
-        arr[idx] = arr[idx] or (14 shl 16) or (1 shl 8)
+        arr[idx] = arr[idx] or (foregroundColor shl 16) or (backgroundColor shl 8)
 
     return arr
 }
@@ -347,3 +390,4 @@ fun updateVelocity(current: Vector2f, desired: Vector2fc, maxSpeed: Float, maxAc
     delta.mul(deltaTime)
     current.add(delta)
 }
+

@@ -6,8 +6,13 @@ local function sign(x)
     else return -1 end
 end
 
-function move.to(target)
+function move.to(target, target_distance)
     checktype(target, "table", "move.to: First argument should be a Vector, e.g. move.to(core.getpos())")
+    checktype(target_distance, "number", true,
+        [[move.to: Second argument should be a number or nil, the optional distance to stop from the target,
+        e.g. move.to(target_vec, 2)]])
+
+    target_distance = target_distance or 0.2
 
     local delta
     repeat
@@ -19,7 +24,7 @@ function move.to(target)
         core.set_thrust(thrustx, thrusty)
 
         coroutine.yield()
-    until (vector.length(delta) < 0.2)
+    until (vector.length(delta) < target_distance)
 
     core.set_thrust(0, 0)
 end
