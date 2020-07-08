@@ -3,14 +3,16 @@ function mining_laser.mine_tile(target)
             [[mining_laser.mine_tile: First argument should be a table, the vector of where to mine. E.g.
             "mining_laser.mine_tile(vector.create(2, 2))]])
 
-    local delta = (target + vector.create(0.5, 0.5)) - core.getpos()
+    local target_tile = target + vector.create(0.5, -0.5)
+
+    local delta = target_tile - core.getpos()
     local angle = math.atan2(delta.y, delta.x) * 180 / math.pi
 
     mining_laser.laser_on(angle, vector.length(delta))
 
     local starttime = core.gettime()
     while core.gettime() - starttime < 2.5 do
-        delta = (target + vector.create(0.5, 0.5)) - core.getpos()
+        delta = target_tile - core.getpos()
         angle = math.atan2(delta.y, delta.x) * 180 / math.pi
         mining_laser.laser_target(angle, vector.length(delta))
         coroutine.yield()

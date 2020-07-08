@@ -442,17 +442,19 @@ class ModuleScanner(private val drone: Drone, private val scriptMgr: ScriptManag
             val tileMin = Vector2i(tilePosition).sub(scanRadius, scanRadius)
             val tileMax = Vector2i(tilePosition).add(scanRadius, scanRadius)
 
+            val found = mutableListOf<T>()
+
             for (gridY in Math.max(0, tileMin.y)..Math.min(grid.height - 1, tileMax.y)) {
                 for (gridX in Math.max(0, tileMin.x)..Math.min(grid.width - 1, tileMax.x)) {
                     val tile = grid.tiles[gridY][gridX]
                     val result = processTile(tile, gridX, gridY)
 
                     if (result != null)
-                        return result
+                        found.add(result)
                 }
             }
 
-            return null
+            return if (found.isNotEmpty()) found.random() else null
         }
     }
 }
