@@ -7,6 +7,7 @@ uniform int packedCharacterUv;
 uniform vec2 bitmapDimensions;
 uniform sampler2D bitmap;
 uniform int droneColor;
+uniform int ledColor;
 
 void main()
 {
@@ -22,8 +23,12 @@ void main()
     float droneColorB = droneColor & 255;
     FragColor.rgb *= vec3(droneColorR, droneColorG, droneColorB) / 255.0;
 
-    // Draw dot at center of drone
+    // Draw dot (LED) at center of drone
     float dotRadius = 0.15;
     bool isCenter = length(vertexUv * 2.0 - 1.0) < dotRadius;
-    FragColor = mix(FragColor, vec4(1.0, 0.0, 0.0, 1.0), int(isCenter));
+
+    vec3 dotRgb = vec3((ledColor >> 16) & 255,
+        (ledColor >> 8) & 255,
+        ledColor & 255) / vec3(255.0);
+    FragColor = mix(FragColor, vec4(dotRgb, 1.0), int(isCenter));
 }

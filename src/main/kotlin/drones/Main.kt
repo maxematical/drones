@@ -298,6 +298,7 @@ fun main(args: Array<String>) {
         glUniform2f(glGetUniformLocation(droneShaderProgram, "bitmapDimensions"),
             font.bitmapWidth.toFloat(), font.bitmapHeight.toFloat())
         glUniform1i(glGetUniformLocation(droneShaderProgram, "droneColor"), drone.color)
+        glUniform1i(glGetUniformLocation(droneShaderProgram, "ledColor"), drone.ledColor)
 
         glBindTexture(GL_TEXTURE_2D, bitmapTexture)
         glBindVertexArray(vaoDrone)

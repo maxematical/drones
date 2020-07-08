@@ -1,9 +1,12 @@
 function on_scan_detected(coords)
+    core.setled(102, 255, 255)
     print('Found coordinates:', coords)
     scanner.off()
     print('Moving to coordinates...')
     move.to(coords)
     print('Done, maybe? going back to normal')
+
+    core.setled(255, 0, 0)
 end
 
 print('Searching for ores...')

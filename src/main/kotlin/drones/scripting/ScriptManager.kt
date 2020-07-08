@@ -231,12 +231,14 @@ class ModuleCore(drone: Drone) : DroneModule {
     private val getPosition = Fgetpos(drone)
     private val setDesiredVelocity = Fset_thrust(drone)
     private val getTime = Fgettime(drone)
+    private val setLed = Fsetled(drone)
 
     override fun buildModule(): LuaValue {
         val module = LuaValue.tableOf()
         module.set("getpos", getPosition)
         module.set("set_thrust", setDesiredVelocity)
         module.set("gettime", getTime)
+        module.set("setled", setLed)
         return module
     }
 
@@ -326,6 +328,30 @@ class ModuleCore(drone: Drone) : DroneModule {
         override fun call(velX: LuaValue, velY: LuaValue): LuaValue {
             drone.desiredVelocity.x = velX.tofloat()
             drone.desiredVelocity.y = velY.tofloat()
+            return LuaValue.NIL
+        }
+    }
+
+    class Fsetled(val drone: Drone): ThreeArgFunction() {
+        override fun call(arg1: LuaValue, arg2: LuaValue, arg3: LuaValue): LuaValue {
+            Fchecktype(arg1, "number",
+                "core.setled: First argument should be a number, the red value of the LED color, e.g. 255")
+            Fchecktype(arg2, "number",
+                "core.setled: Second argument should be a number, the green value of the LED color, e.g. 0")
+            Fchecktype(arg3, "number",
+                "core.setled: Third argument should be a number, the blue value of the LED color, e.g. 0")
+
+            val r = Fclamparg(arg1.checkdouble(), 0, 255,
+                "core.setled: First argument should be within %a to %b, not %x").toInt()
+            val g = Fclamparg(arg2.checkdouble(), 0, 255,
+                "core.setled: Second argument should be within %a to %b, not %x").toInt()
+            val b = Fclamparg(arg3.checkdouble(), 0, 255,
+                "core.setled: Third argument should be within %a to %b, not %x").toInt()
+
+            drone.ledColor = ((r and 255) shl 16) or
+                    ((g and 255) shl 8) or
+                    (b and 255)
+
             return LuaValue.NIL
         }
     }

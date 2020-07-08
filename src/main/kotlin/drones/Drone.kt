@@ -7,7 +7,8 @@ class Drone(val grid: Grid,
             val color: Int = 0xFFFFFF,
             val velocity: Vector2f = Vector2f(),
             var rotation: Float = 0f,
-            val size: Float = 0.8f) {
+            val size: Float = 0.8f,
+            var ledColor: Int = 0xFF0000) {
     val desiredVelocity: Vector2f = Vector2f(velocity)
 
     var localTime: Float = 0f
