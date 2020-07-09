@@ -1,6 +1,12 @@
 package drones
 
 import drones.scripting.*
+import org.dyn4j.dynamics.Body
+import org.dyn4j.dynamics.World
+import org.dyn4j.geometry.Circle
+import org.dyn4j.geometry.Mass
+import org.dyn4j.geometry.Rectangle
+import org.dyn4j.geometry.Vector2
 import org.joml.Matrix4f
 import org.joml.Vector2f
 import org.joml.Vector2fc
@@ -155,18 +161,20 @@ fun main(args: Array<String>) {
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
+    // Setup game
+    // Setup camera
     val camera = Camera()
 
+    // Setup grid
     val grid = Grid(24, 24)
     grid.tiles[3][3] = TileStone
     grid.tiles[3][4] = TileStone
     grid.tiles[4][3] = TileStone
     grid.tiles[4][4] = TileStone
 
+    // Setup drone
     val drone = Drone(grid, Vector2f(-7f, 3f), 0xEEEEEE)
     drone.renderer = DroneRenderer(drone, droneShaderProgram, font,  bitmapTexture)
-
-    var lastTime = System.currentTimeMillis()
 
     val scriptMgr = ScriptManager(drone, "drone_ore_search.lua", Int.MAX_VALUE) { globals ->
         ModuleVector.install(globals)
@@ -180,18 +188,38 @@ fun main(args: Array<String>) {
         drone.desiredVelocity.set(0f, 0f)
     }
 
+    // Setup physics
+    val world = World()
+    world.gravity.set(0.0, 0.0)
+
+    val gridBody = Body(4)
+    for (y in 0 until grid.height) {
+        for (x in 0 until grid.width) {
+            if (grid.tiles[y][x] != TileAir) {
+                val convex = Rectangle(1.0, 1.0)
+                convex.translate(grid.gridToWorldX(x).toDouble() + 0.5, grid.gridToWorldY(y).toDouble() - 0.5)
+                gridBody.addFixture(convex)
+            }
+        }
+    }
+    world.addBody(gridBody)
+
+    val droneBody = Body(1)
+    droneBody.addFixture(Circle(drone.size.toDouble() * 0.5))
+    droneBody.mass = Mass(Vector2(0.5, 0.5), 1.0, 1.0)
+    droneBody.transform.setTranslation(drone.position.x.toDouble(), drone.position.y.toDouble())
+    world.addBody(droneBody)
+
     // Init Fps counter
     var lastFps: Int = 0
     var fpsCountStart = System.currentTimeMillis()
     var fpsFramesCount = 0
 
-    // Used for retrieving mouse position
+    // Misc.
     val mouseXArr = DoubleArray(1)
     val mouseYArr = DoubleArray(1)
-
-    val droneMatrixInv = Matrix4f()
-
     val selectedDrones = mutableListOf<Drone>()
+    var lastTime = System.currentTimeMillis()
 
     // Loop
     while (!glfwWindowShouldClose(window)) {
@@ -202,11 +230,17 @@ fun main(args: Array<String>) {
         camera.update(window, deltaTime)
         camera.updateMatrices(windowWidth, windowHeight)
 
+        // Update game world
         if (!paused) {
             // Update drone
-            updateVelocity(drone.velocity, drone.desiredVelocity, 1f, 1f, deltaTime)
-            drone.position.add(drone.velocity.x * deltaTime, drone.velocity.y * deltaTime)
-            drone.rotation = (Math.atan2(drone.velocity.y.toDouble(), drone.velocity.x.toDouble()) * MathUtils.RAD2DEG)
+            val accel: Vector2f = Vector2f(drone.desiredVelocity).sub(droneBody.linearVelocity.toJoml())
+            if (accel.lengthSquared() > 0)
+                accel.normalize().mul(20f * deltaTime)
+
+            droneBody.applyForce(accel.toDyn4j())
+            drone.position.set(droneBody.transform.translation.x, droneBody.transform.translation.y)
+
+            drone.rotation = (Math.atan2(droneBody.linearVelocity.y, droneBody.linearVelocity.x) * MathUtils.RAD2DEG)
                 .toFloat()
             drone.localTime += deltaTime
 
@@ -214,6 +248,9 @@ fun main(args: Array<String>) {
 
             // Update script
             scriptMgr.update()
+
+            // Update physics
+            world.update(deltaTime.toDouble())
         }
 
         // Handle mouse click
@@ -231,9 +268,9 @@ fun main(args: Array<String>) {
 
             if (mouseLeftClicked) {
                 // Check if we're clicking on the drone
-                drone.modelMatrix.invert(droneMatrixInv)
+                drone.modelMatrix.invert(drone.modelMatrixInv)
 
-                droneMatrixInv.transform(transformedMousePos)
+                drone.modelMatrixInv.transform(transformedMousePos)
 
                 // We now have the mouse coordinates relative to the drone's quad
                 val clickedOnDrone = Math.abs(transformedMousePos.x) <= 0.5 && Math.abs(transformedMousePos.y) <= 0.5
@@ -387,21 +424,3 @@ fun stringToBitmapArray(string: String, font: GameFont, backgroundColor: Int = 1
 
     return arr
 }
-
-fun updateVelocity(current: Vector2f, desired: Vector2fc, maxSpeed: Float, maxAccel: Float, deltaTime: Float) {
-    val desired2 = Vector2f(desired)
-    if (desired2.lengthSquared() > maxSpeed * maxSpeed) {
-        desired2.normalize()
-        desired2.mul(maxSpeed)
-    }
-
-    val delta = Vector2f(desired2).sub(current)
-    if (delta.lengthSquared() > maxAccel * maxAccel) {
-        delta.normalize()
-        delta.mul(maxAccel)
-    }
-
-    delta.mul(deltaTime)
-    current.add(delta)
-}
-

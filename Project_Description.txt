@@ -100,3 +100,11 @@ More ideas 7/9
 - interesting idea: interaction between drones, more complicated plans can be made if drones can interact and work
   together more efficiently
 
+- mining operations - encourage drones to work together by making them hold an object like DRG that makes them go slower
+  Mining is more efficient if some drones can carry stuff and some will just mine
+
+- fairly straightforward way of rewarding higher skill for the same task, is to make simply programming a drone to do
+  a task simple, but programming it to do so efficiently more difficult (and multiple aspects of efficiency can be
+  achieved using different algorithms). E.g. it is easy to script drones to point their mining laser at the ore and
+  mine it. But what if you can get more ore by ensuring the mining laser only is hitting small chunks of stone and not
+  the ore itself? Better scripts will avoid hitting/destroying ore unnecessarily
