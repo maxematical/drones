@@ -17,7 +17,7 @@ import java.lang.RuntimeException
 class ScriptManager(drone: Drone, filename: String, instructionLimit: Int = 20,
                     addLibs: ScriptManager.(Globals) -> Unit) {
     val globals: Globals
-    val thread: LuaThread
+    var thread: LuaThread
     var onComplete: (() -> Unit)? = null
 
     val debug: LuaValue
@@ -25,7 +25,7 @@ class ScriptManager(drone: Drone, filename: String, instructionLimit: Int = 20,
     val navigator: DroneNavigator
 
     var activeScanning: ModuleScanner.Fon? = null
-    var nextCallback: (() -> Unit)? = null
+    var nextCallback: LuaValue? = null
 
     init {
         navigator = DroneNavigator(drone)
@@ -98,9 +98,14 @@ class ScriptManager(drone: Drone, filename: String, instructionLimit: Int = 20,
 
     fun update() {
         // Update Lua script
-        val result: Varargs = thread.resume(LuaValue.varargsOf(emptyArray()))
-        if (!result.checkboolean(1)) {
-            throw RuntimeException("Error: lua thread terminated with error. ${result.checkjstring(2)}")
+        if (!isLuaFinished()) {
+            val result: Varargs = thread.resume(LuaValue.varargsOf(emptyArray()))
+            if (!result.checkboolean(1)) {
+                throw RuntimeException("Error: lua thread terminated with error. ${result.checkjstring(2)}")
+            }
+        }
+        if (isLuaFinished() && nextCallback != null) {
+            thread = globals.get("coroutine").get("create").call(nextCallback) as LuaThread
         }
 
         // Update enabled modules
@@ -109,12 +114,13 @@ class ScriptManager(drone: Drone, filename: String, instructionLimit: Int = 20,
         // Update navigation
         navigator.updateNavigation()
 
-        if (isFinished()) {
+        if (isLuaFinished() && onComplete != null) {
             onComplete?.invoke()
+            onComplete = null
         }
     }
 
-    fun isFinished(): Boolean =
+    fun isLuaFinished(): Boolean =
         thread.status == "dead"
 }
 
@@ -489,7 +495,7 @@ class ModuleScanner(private val drone: Drone, private val scriptMgr: ScriptManag
             return LuaValue.NIL
         }
 
-        fun updateScanner(): (() -> Unit)? {
+        fun updateScanner(): LuaValue? {
             val scan: Pair<Int, Int>? = doScan(drone, 3) { tile, gridX, gridY ->
                 if (tile == TileStone) Pair(gridX, gridY) else null
             }
@@ -500,7 +506,7 @@ class ModuleScanner(private val drone: Drone, private val scriptMgr: ScriptManag
                 val (gridX, gridY) = scan
                 val worldX = drone.grid.gridToWorldX(gridX)
                 val worldY = drone.grid.gridToWorldY(gridY)
-                return { globals.get("on_scan_detected").call(ModuleVector.Fcreate(worldX, worldY)) }
+                return globals.load("on_scan_detected(vector.create($worldX, $worldY))")
             }
             return null
         }

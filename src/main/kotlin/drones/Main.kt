@@ -10,7 +10,6 @@ import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL30.*
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.stb.STBImage
-import org.lwjgl.system.MemoryStack
 import org.lwjgl.system.MemoryUtil.NULL
 import java.io.FileNotFoundException
 import java.lang.Float.min
@@ -26,8 +25,9 @@ var tileSize: Float = initialTileSize
 
 var paused: Boolean = false
 
-// Set by mouseCallback when LMB is pressed, in the main loop if this is true, will handle a mouse click
-var mouseClicked: Boolean = false
+// Set by mouseCallback when mouse buttons pressed, in the main loop if this is true, will handle a mouse click
+var mouseLeftClicked: Boolean = false
+var mouseRightClicked: Boolean = false
 
 fun main(args: Array<String>) {
     val windowWidth = 1280
@@ -242,12 +242,11 @@ fun main(args: Array<String>) {
             drone.recomputeModelMatrix()
 
             // Update script
-            if (!scriptMgr.isFinished())
-                scriptMgr.update()
+            scriptMgr.update()
         }
 
         // Handle mouse click
-        if (mouseClicked) {
+        if (mouseLeftClicked || mouseRightClicked) {
             // (0,0) means the top left corner of the window. Mouse position is measured in pixels.
             glfwGetCursorPos(window, mouseXArr, mouseYArr)
 
@@ -255,28 +254,40 @@ fun main(args: Array<String>) {
             val mouseX = -1f + 2f * (mouseXArr[0].toFloat() / windowWidth)
             val mouseY = 1f - 2f * (mouseYArr[0].toFloat() / windowHeight)
 
+            // Begin transforming the mouse position to desired spaces
+            val transformedMousePos = Vector4f(mouseX, mouseY, 0f, 1f)
 
-            // Check if we're clicking on the drone
             cameraMatrix.invert(cameraMatrixInv)
-            drone.modelMatrix.invert(droneMatrixInv)
+            cameraMatrixInv.transform(transformedMousePos) // now is in world space
 
-            val mousePos = Vector4f(mouseX, mouseY, 0f, 1f)
-            cameraMatrixInv.transform(mousePos)
-            droneMatrixInv.transform(mousePos)
+            if (mouseLeftClicked) {
+                // Check if we're clicking on the drone
+                drone.modelMatrix.invert(droneMatrixInv)
 
-            // We now have the mouse coordinates relative to the drone's quad
-            val clickedOnDrone = Math.abs(mousePos.x) <= 0.5 && Math.abs(mousePos.y) <= 0.5
-            if (clickedOnDrone) {
-                if (drone in selectedDrones) {
-                    println("Drone deselect")
-                    selectedDrones.remove(drone)
-                } else {
-                    println("Drone select")
-                    selectedDrones.add(drone)
+                droneMatrixInv.transform(transformedMousePos)
+
+                // We now have the mouse coordinates relative to the drone's quad
+                val clickedOnDrone = Math.abs(transformedMousePos.x) <= 0.5 && Math.abs(transformedMousePos.y) <= 0.5
+                if (clickedOnDrone) {
+                    if (drone in selectedDrones) {
+                        println("Drone deselect")
+                        selectedDrones.remove(drone)
+                    } else {
+                        println("Drone select")
+                        selectedDrones.add(drone)
+                    }
+                }
+            }
+            if (mouseRightClicked) {
+                for (selectedDrone in selectedDrones) {
+                    selectedDrone.destination.set(transformedMousePos.x, transformedMousePos.y)
+                    selectedDrone.destinationTargetDistance = 0.5f
+                    selectedDrone.hasDestination = true
                 }
             }
 
-            mouseClicked = false
+            mouseLeftClicked = false
+            mouseRightClicked = false
         }
 
         // Update framerate counter
@@ -381,7 +392,10 @@ fun keyCallback(window: Long, key: Int, scancode: Int, action: Int, mods: Int) {
 
 fun mouseCallback(window: Long, button: Int, action: Int, mods: Int) {
     if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-        mouseClicked = true
+        mouseLeftClicked = true
+    }
+    if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
+        mouseRightClicked = true
     }
 }
 
