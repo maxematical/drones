@@ -19,6 +19,8 @@ dependencies {
 
     implementation "org.luaj:luaj-jse:3.0.1"
 
+    implementation "org.dyn4j:dyn4j:3.4.0"
+
     // https://www.lwjgl.org/customize
     implementation platform("org.lwjgl:lwjgl-bom:$lwjglVersion")
 

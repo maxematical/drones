@@ -155,6 +155,8 @@ fun main(args: Array<String>) {
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
+    val camera = Camera()
+
     val grid = Grid(24, 24)
     grid.tiles[3][3] = TileStone
     grid.tiles[3][4] = TileStone
@@ -164,19 +166,7 @@ fun main(args: Array<String>) {
     val drone = Drone(grid, Vector2f(-7f, 3f), 0xEEEEEE)
     drone.renderer = DroneRenderer(drone, droneShaderProgram, font,  bitmapTexture)
 
-    var cameraX: Float = 0f
-    var cameraY: Float = 0f
-    var cameraVelX: Float = 0f
-    var cameraVelY: Float = 0f
-    val cameraMaxVel = 5f
-    val cameraMaxSqVel = cameraMaxVel * cameraMaxVel
-    val cameraAccel = cameraMaxVel * 5f
-
     var lastTime = System.currentTimeMillis()
-
-    val cameraMatrix = Matrix4f()
-    val cameraMatrixInv = Matrix4f() // may not always be updated, make sure you update it before using
-    val cameraMatrixArr = FloatArray(16)
 
     val scriptMgr = ScriptManager(drone, "drone_ore_search.lua", Int.MAX_VALUE) { globals ->
         ModuleVector.install(globals)
@@ -208,28 +198,9 @@ fun main(args: Array<String>) {
         val deltaTime = (System.currentTimeMillis() - lastTime) * 0.001f
         lastTime = System.currentTimeMillis()
 
-        // Update camera movement
-        var inputX = 0
-        var inputY = 0
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) inputX--
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) inputX++
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) inputY--
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) inputY++
-
-        var desiredVelX = inputX * cameraMaxVel
-        var desiredVelY = inputY * cameraMaxVel
-        val desiredSqSpeed = desiredVelX * desiredVelX + desiredVelY * desiredVelY
-        if (desiredSqSpeed > cameraMaxSqVel) {
-            val desiredSpeed = sqrt(desiredSqSpeed)
-            desiredVelX *= cameraMaxVel / desiredSpeed
-            desiredVelY *= cameraMaxVel / desiredSpeed
-        }
-
-        cameraVelX += sign(desiredVelX - cameraVelX) * min(cameraAccel * deltaTime, Math.abs(desiredVelX - cameraVelX))
-        cameraVelY += sign(desiredVelY - cameraVelY) * min(cameraAccel * deltaTime, Math.abs(desiredVelY - cameraVelY))
-
-        cameraX += cameraVelX * (initialTileSize / tileSize) * deltaTime
-        cameraY += cameraVelY * (initialTileSize / tileSize) * deltaTime
+        // Update camera
+        camera.update(window, deltaTime)
+        camera.updateMatrices(windowWidth, windowHeight)
 
         if (!paused) {
             // Update drone
@@ -256,9 +227,7 @@ fun main(args: Array<String>) {
 
             // Begin transforming the mouse position to desired spaces
             val transformedMousePos = Vector4f(mouseX, mouseY, 0f, 1f)
-
-            cameraMatrix.invert(cameraMatrixInv)
-            cameraMatrixInv.transform(transformedMousePos) // now is in world space
+            camera.matrixInvc.transform(transformedMousePos) // now is in world space
 
             if (mouseLeftClicked) {
                 // Check if we're clicking on the drone
@@ -303,18 +272,11 @@ fun main(args: Array<String>) {
         glClearColor(0f, 1f, 0f, 1f)
         glClear(GL_COLOR_BUFFER_BIT)
 
-        cameraMatrix.setOrtho(cameraX - windowWidth / tileSize / 2f,
-            cameraX + windowWidth / tileSize / 2f,
-            cameraY - windowHeight / tileSize / 2f,
-            cameraY + windowHeight / tileSize / 2f,
-            -1f, 1f)
-        cameraMatrix.get(cameraMatrixArr)
-
         // Render grid
         glUseProgram(gridShaderProgram)
         glUniform2f(glGetUniformLocation(gridShaderProgram, "WindowSize"), windowWidth.toFloat(), windowHeight.toFloat())
         glUniform1f(glGetUniformLocation(gridShaderProgram, "TileSize"), tileSize)
-        glUniform2f(glGetUniformLocation(gridShaderProgram, "CameraPos"), cameraX, cameraY)
+        glUniform2f(glGetUniformLocation(gridShaderProgram, "CameraPos"), camera.positionc.x(), camera.positionc.y())
         glUniform2f(glGetUniformLocation(gridShaderProgram, "GridTopLeft"),
             grid.positionTopLeft.x(), -grid.positionTopLeft.y())
 
@@ -330,14 +292,14 @@ fun main(args: Array<String>) {
         glDrawArrays(GL_TRIANGLES, 0, 6)
 
         // Render drone
-        drone.renderer?.render(cameraMatrixArr)
+        drone.renderer?.render(camera.matrixArr)
 
         // Render laser beam
         drone.laserBeam?.let { laser ->
             if (laser.renderer == null) {
                 laser.renderer = LaserBeamRenderer(laser, laserShaderProgram)
             }
-            laser.renderer?.render(cameraMatrixArr)
+            laser.renderer?.render(camera.matrixArr)
         }
 
         // Render fps counter

@@ -57,7 +57,6 @@ Other ideas
 
 - mechanics/systems in the game: Power, Movement, Weapons/combat, Signals/comms
 
-
 More ideas 7/7
 - From a game design perspective: We want to give the player explicit goals, but there are many ways of achieving these
   goals
@@ -95,3 +94,9 @@ More ideas 7/8
   pixels not in at least one circle. Alternative is in kotlin to have a counter on each tile for how many drones are
   near it, and update the counters around each drone as it moves around. Then send data to gpu, but this might be more
   processing intensive and has obvious pixelation/tiling effect
+
+More ideas 7/9
+
+- interesting idea: interaction between drones, more complicated plans can be made if drones can interact and work
+  together more efficiently
+
