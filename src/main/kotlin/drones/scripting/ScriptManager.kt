@@ -434,7 +434,7 @@ class ModuleCore(drone: Drone) : DroneModule {
                 "stop.")
 
             val vector = arg1.checktable()
-            val distance = Fclamparg(arg2.optdouble(0.2), 0, 5, "core.set_destination: Expected second argument to " +
+            val distance = Fclamparg(arg2.optdouble(0.4), 0.2, 5, "core.set_destination: Expected second argument to " +
                     "be within the range %a to %b, got %x.")
 
             drone.hasDestination = true
@@ -595,7 +595,7 @@ class ModuleMiningLaser(private val drone: Drone) : DroneModule {
                 throw LuaError("mining_laser.laser_target: Laser beam must be on before targeting")
             }
             drone.laserBeam?.rotation = angle.toFloat()
-            drone.laserBeam?.length = length.toFloat()
+            drone.laserBeam?.unobstructedLength = length.toFloat()
             return LuaValue.NIL
         }
     }

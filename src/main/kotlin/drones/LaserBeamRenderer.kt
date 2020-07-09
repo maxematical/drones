@@ -1,12 +1,6 @@
 package drones
 
 import org.joml.Matrix4f
-import org.lwjgl.opengl.GL11
-import org.lwjgl.opengl.GL11.*
-import org.lwjgl.opengl.GL15.*
-import org.lwjgl.opengl.GL20
-import org.lwjgl.opengl.GL20.*
-import org.lwjgl.opengl.GL30
 import org.lwjgl.opengl.GL43.*
 
 class LaserBeamRenderer(private val laserBeam: LaserBeam, private val shaderProgram: Int) : Renderer {
@@ -56,7 +50,7 @@ class LaserBeamRenderer(private val laserBeam: LaserBeam, private val shaderProg
         glUseProgram(shaderProgram)
         glUniformMatrix4fv(locationCameraMatrix, false, cameraMatrixArr)
         glUniformMatrix4fv(locationModelMatrix, false, modelMatrixArr)
-        glUniform2f(locationLaserDimensions, laserBeam.length, laserBeam.width)
+        glUniform2f(locationLaserDimensions, laserBeam.actualLength, laserBeam.width)
         glUniform1f(locationTime, (System.currentTimeMillis() - initTime) * 0.001f)
 
         glBindVertexArray(vao)
@@ -67,8 +61,8 @@ class LaserBeamRenderer(private val laserBeam: LaserBeam, private val shaderProg
         modelMatrix.identity()
             .translate(laserBeam.position.x(), laserBeam.position.y(), 0f)
             .rotate(laserBeam.rotation * MathUtils.DEG2RAD, 0f, 0f, 1f)
-            .translate(laserBeam.length * 0.5f, 0f, 0f)
-            .scale(laserBeam.length, laserBeam.width, 1f)
+            .translate(laserBeam.actualLength * 0.5f, 0f, 0f)
+            .scale(laserBeam.unobstructedLength, laserBeam.width, 1f)
         modelMatrix.get(modelMatrixArr)
     }
 }

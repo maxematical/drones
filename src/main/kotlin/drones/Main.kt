@@ -2,14 +2,16 @@ package drones
 
 import drones.scripting.*
 import org.dyn4j.dynamics.Body
+import org.dyn4j.dynamics.BodyFixture
+import org.dyn4j.dynamics.RaycastResult
 import org.dyn4j.dynamics.World
 import org.dyn4j.geometry.Circle
 import org.dyn4j.geometry.Mass
 import org.dyn4j.geometry.Rectangle
 import org.dyn4j.geometry.Vector2
-import org.joml.Matrix4f
 import org.joml.Vector2f
-import org.joml.Vector2fc
+import org.joml.Vector2i
+import org.joml.Vector2ic
 import org.joml.Vector4f
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
@@ -18,11 +20,8 @@ import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.stb.STBImage
 import org.lwjgl.system.MemoryUtil.NULL
 import java.io.FileNotFoundException
-import java.lang.Float.min
 import java.nio.ByteBuffer
 import kotlin.math.floor
-import kotlin.math.sign
-import kotlin.math.sqrt
 
 class Main
 
@@ -196,9 +195,11 @@ fun main(args: Array<String>) {
     for (y in 0 until grid.height) {
         for (x in 0 until grid.width) {
             if (grid.tiles[y][x] != TileAir) {
-                val convex = Rectangle(1.0, 1.0)
-                convex.translate(grid.gridToWorldX(x).toDouble() + 0.5, grid.gridToWorldY(y).toDouble() - 0.5)
-                gridBody.addFixture(convex)
+                val rectangle = Rectangle(1.0, 1.0)
+                rectangle.translate(grid.gridToWorldX(x).toDouble() + 0.5, grid.gridToWorldY(y).toDouble() - 0.5)
+                val fixture = BodyFixture(rectangle)
+                fixture.userData = Vector2i(x, y)
+                gridBody.addFixture(fixture)
             }
         }
     }
@@ -264,6 +265,36 @@ fun main(args: Array<String>) {
 
             // Update script
             scriptMgr.update()
+
+            // Update laser beam
+            drone.laserBeam?.let { laser ->
+                laser.lifetime += deltaTime
+
+                val rotationRad = (laser.rotation * MathUtils.DEG2RAD).toDouble()
+                val laserStart = laser.position.toDyn4j()
+                val laserEnd = laserStart.copy().add(Math.cos(rotationRad) * laser.unobstructedLength,
+                    Math.sin(rotationRad) * laser.unobstructedLength)
+
+                val raycastResult = mutableListOf<RaycastResult>()
+                if (world.raycast(laserStart, laserEnd, { true }, true, false, false, raycastResult)) {
+                    laser.actualLength = raycastResult[0].raycast.distance.toFloat()
+                } else {
+                    laser.actualLength = laser.unobstructedLength
+                }
+
+                if (laser.lifetime >= 2.0f) {
+                    laser.lifetime = 0f
+
+                    if (raycastResult.isNotEmpty()) {
+                        val hit = raycastResult[0]
+                        if (hit.body == gridBody) {
+                            val hitGridCoordinates = hit.fixture.userData as Vector2ic
+                            grid.tiles[hitGridCoordinates.y()][hitGridCoordinates.x()] = TileAir
+                            hit.body.removeFixture(hit.fixture)
+                        }
+                    }
+                }
+            }
 
             // Update physics
             world.update(deltaTime.toDouble())

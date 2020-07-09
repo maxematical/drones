@@ -2,6 +2,7 @@ package drones
 
 import org.dyn4j.geometry.Vector2
 import org.joml.Vector2f
+import org.joml.Vector2fc
 
 object MathUtils {
     const val PI: Float = 3.14159265358979323846f
@@ -22,8 +23,8 @@ object MathUtils {
     }
 }
 
-fun Vector2f.toDyn4j(result: Vector2 = Vector2()): Vector2 {
-    result.set(this.x.toDouble(), this.y.toDouble())
+fun Vector2fc.toDyn4j(result: Vector2 = Vector2()): Vector2 {
+    result.set(this.x().toDouble(), this.y().toDouble())
     return result
 }
 
