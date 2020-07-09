@@ -18,6 +18,7 @@ object MathUtils {
     fun clampRotation(degrees: Float): Float {
         var result = degrees
         result %= 360
+        if (result < -180) result += 360
         if (result >= 180) result -= 360
         return result
     }
@@ -31,4 +32,8 @@ fun Vector2fc.toDyn4j(result: Vector2 = Vector2()): Vector2 {
 fun Vector2.toJoml(result: Vector2f = Vector2f()): Vector2f {
     result.set(this.x, this.y)
     return result
+}
+
+fun Float.f2(): String {
+    return (Math.round(this * 100f) / 100f).toString()
 }
