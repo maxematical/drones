@@ -13,6 +13,10 @@ class Drone(val grid: Grid,
 
     var localTime: Float = 0f
 
+    var hasDestination: Boolean = false
+    val destination: Vector2f = Vector2f()
+    var destinationTargetDistance: Float = 0f
+
     var renderer: Renderer? = null
     var laserBeam: LaserBeam? = null
 

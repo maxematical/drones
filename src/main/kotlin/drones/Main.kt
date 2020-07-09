@@ -178,7 +178,7 @@ fun main(args: Array<String>) {
     val cameraMatrixInv = Matrix4f() // may not always be updated, make sure you update it before using
     val cameraMatrixArr = FloatArray(16)
 
-    val scriptMgr = ScriptManager("drone_ore_search.lua", Int.MAX_VALUE) { globals ->
+    val scriptMgr = ScriptManager(drone, "drone_ore_search.lua", Int.MAX_VALUE) { globals ->
         ModuleVector.install(globals)
         ModuleCore(drone).install(globals)
         ModuleScanner(drone, this).install(globals)
@@ -200,6 +200,8 @@ fun main(args: Array<String>) {
     val mouseYArr = DoubleArray(1)
 
     val droneMatrixInv = Matrix4f()
+
+    val selectedDrones = mutableListOf<Drone>()
 
     // Loop
     while (!glfwWindowShouldClose(window)) {
@@ -265,7 +267,13 @@ fun main(args: Array<String>) {
             // We now have the mouse coordinates relative to the drone's quad
             val clickedOnDrone = Math.abs(mousePos.x) <= 0.5 && Math.abs(mousePos.y) <= 0.5
             if (clickedOnDrone) {
-                println("Drone click")
+                if (drone in selectedDrones) {
+                    println("Drone deselect")
+                    selectedDrones.remove(drone)
+                } else {
+                    println("Drone select")
+                    selectedDrones.add(drone)
+                }
             }
 
             mouseClicked = false

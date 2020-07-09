@@ -1,11 +1,9 @@
 package drones.scripting
 
-import drones.Drone
-import drones.LaserBeam
-import drones.Tile
-import drones.TileStone
+import drones.*
 import drones.scripting.ModuleCore.Fchecktype
 import drones.scripting.ModuleCore.Fclamparg
+import org.joml.Vector2f
 import org.joml.Vector2i
 import org.luaj.vm2.*
 import org.luaj.vm2.compiler.LuaC
@@ -13,19 +11,25 @@ import org.luaj.vm2.lib.*
 import org.luaj.vm2.lib.jse.JseBaseLib
 import org.luaj.vm2.lib.jse.JseIoLib
 import org.luaj.vm2.lib.jse.JseMathLib
+import java.lang.Float.min
 import java.lang.RuntimeException
 
-class ScriptManager(filename: String, instructionLimit: Int = 20, addLibs: ScriptManager.(Globals) -> Unit) {
+class ScriptManager(drone: Drone, filename: String, instructionLimit: Int = 20,
+                    addLibs: ScriptManager.(Globals) -> Unit) {
     val globals: Globals
     val thread: LuaThread
     var onComplete: (() -> Unit)? = null
 
     val debug: LuaValue
 
+    val navigator: DroneNavigator
+
     var activeScanning: ModuleScanner.Fon? = null
     var nextCallback: (() -> Unit)? = null
 
     init {
+        navigator = DroneNavigator(drone)
+
         globals = Globals()
 
         val baseLib = JseBaseLib()
@@ -93,12 +97,17 @@ class ScriptManager(filename: String, instructionLimit: Int = 20, addLibs: Scrip
     }
 
     fun update() {
+        // Update Lua script
         val result: Varargs = thread.resume(LuaValue.varargsOf(emptyArray()))
         if (!result.checkboolean(1)) {
             throw RuntimeException("Error: lua thread terminated with error. ${result.checkjstring(2)}")
         }
 
+        // Update enabled modules
         nextCallback = activeScanning?.updateScanner()
+
+        // Update navigation
+        navigator.updateNavigation()
 
         if (isFinished()) {
             onComplete?.invoke()
@@ -107,6 +116,26 @@ class ScriptManager(filename: String, instructionLimit: Int = 20, addLibs: Scrip
 
     fun isFinished(): Boolean =
         thread.status == "dead"
+}
+
+class DroneNavigator(val drone: Drone) {
+    private val delta = Vector2f()
+
+    fun updateNavigation() {
+        if (drone.hasDestination) {
+            delta.set(drone.destination).sub(drone.position)
+
+            val thrustX = MathUtils.sign(drone.destination.x - drone.position.x) * min(1f, Math.abs(delta.x) / 3f)
+            val thrustY = MathUtils.sign(drone.destination.y - drone.position.y) * min(1f, Math.abs(delta.y) / 3f)
+
+            drone.desiredVelocity.set(thrustX, thrustY)
+
+            if (delta.lengthSquared() <= (drone.destinationTargetDistance * drone.destinationTargetDistance)) {
+                drone.hasDestination = false
+                drone.desiredVelocity.set(0f, 0f)
+            }
+        }
+    }
 }
 
 interface DroneModule {
@@ -122,6 +151,7 @@ object ModuleVector : DroneModule {
         metatable.set("__sub", Fminus)
         metatable.set("__mul", Ftimes)
         metatable.set("__tostring", Ftostring)
+        metatable.set("__eq", Feq)
     }
 
     override fun buildModule(): LuaValue {
@@ -228,6 +258,20 @@ object ModuleVector : DroneModule {
             return LuaValue.valueOf("($x, $y)")
         }
     }
+
+    object Feq : TwoArgFunction() {
+        override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
+            val vector1 = arg1.checktable()
+            val vector2 = arg2.checktable()
+
+            val v1x = vector1.get("x").checkdouble()
+            val v1y = vector1.get("y").checkdouble()
+            val v2x = vector2.get("x").checkdouble()
+            val v2y = vector2.get("y").checkdouble()
+
+            return LuaValue.valueOf(v1x == v2x && v1y == v2y)
+        }
+    }
 }
 
 class ModuleCore(drone: Drone) : DroneModule {
@@ -235,6 +279,8 @@ class ModuleCore(drone: Drone) : DroneModule {
     private val setDesiredVelocity = Fset_thrust(drone)
     private val getTime = Fgettime(drone)
     private val setLed = Fsetled(drone)
+    private val getDestination = Fget_destination(drone)
+    private val setDestination = Fset_destination(drone)
 
     override fun buildModule(): LuaValue {
         val module = LuaValue.tableOf()
@@ -242,6 +288,8 @@ class ModuleCore(drone: Drone) : DroneModule {
         module.set("set_thrust", setDesiredVelocity)
         module.set("gettime", getTime)
         module.set("setled", setLed)
+        module.set("get_destination", getDestination)
+        module.set("set_destination", setDestination)
         return module
     }
 
@@ -335,7 +383,7 @@ class ModuleCore(drone: Drone) : DroneModule {
         }
     }
 
-    class Fsetled(val drone: Drone): ThreeArgFunction() {
+    class Fsetled(val drone: Drone) : ThreeArgFunction() {
         override fun call(arg1: LuaValue, arg2: LuaValue, arg3: LuaValue): LuaValue {
             Fchecktype(arg1, "number",
                 "core.setled: First argument should be a number, the red value of the LED color, e.g. 255")
@@ -354,6 +402,38 @@ class ModuleCore(drone: Drone) : DroneModule {
             drone.ledColor = ((r and 255) shl 16) or
                     ((g and 255) shl 8) or
                     (b and 255)
+
+            return LuaValue.NIL
+        }
+    }
+
+    class Fget_destination(val drone: Drone) : VarArgFunction() {
+        override fun invoke(varargs: Varargs): Varargs {
+            if (drone.hasDestination) {
+                val destinationVector = ModuleVector.Fcreate(drone.destination.x, drone.destination.y)
+                val targetDistance = LuaValue.valueOf(drone.destinationTargetDistance.toDouble())
+                return LuaValue.varargsOf(destinationVector, targetDistance)
+            } else {
+                return LuaValue.varargsOf(LuaValue.NIL, LuaValue.NIL)
+            }
+        }
+    }
+
+    class Fset_destination(val drone: Drone) : TwoArgFunction() {
+        override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
+            Fchecktype(arg1, "table",
+                "core.set_destination: Expected first argument to be a table, the vector destination to use.")
+            Fchecktype(arg2, "number", true,
+                "core.set_destination: Expected second argument to be a number, the optional distance at which to " +
+                "stop.")
+
+            val vector = arg1.checktable()
+            val distance = Fclamparg(arg2.optdouble(0.2), 0, 5, "core.set_destination: Expected second argument to " +
+                    "be within the range %a to %b, got %x.")
+
+            drone.hasDestination = true
+            drone.destination.set(vector.get("x").checkdouble(), vector.get("y").checkdouble())
+            drone.destinationTargetDistance = distance.toFloat()
 
             return LuaValue.NIL
         }
