@@ -240,8 +240,24 @@ fun main(args: Array<String>) {
             droneBody.applyForce(accel.toDyn4j())
             drone.position.set(droneBody.transform.translation.x, droneBody.transform.translation.y)
 
-            drone.rotation = (Math.atan2(droneBody.linearVelocity.y, droneBody.linearVelocity.x) * MathUtils.RAD2DEG)
-                .toFloat()
+            if (droneBody.linearVelocity.magnitudeSquared > 1) {
+                droneBody.linearVelocity.normalize()
+            }
+
+            val desiredRotation: Float
+            if (drone.desiredVelocity.lengthSquared() > 0.0625f) {
+                desiredRotation = MathUtils.RAD2DEG *
+                        Math.atan2(drone.desiredVelocity.y.toDouble(), drone.desiredVelocity.x.toDouble()).toFloat()
+            } else {
+                desiredRotation = drone.rotation
+            }
+            val deltaRotation = MathUtils.clampRotation(desiredRotation - drone.rotation)
+
+            val desiredRotationSpeed = 150f * Math.min(1f, Math.abs(deltaRotation) / 60f)
+            val changeRotation = Math.signum(deltaRotation) *
+                    Math.min(Math.abs(deltaRotation), deltaTime * desiredRotationSpeed)
+            drone.rotation += changeRotation
+
             drone.localTime += deltaTime
 
             drone.recomputeModelMatrix()

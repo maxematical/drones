@@ -13,6 +13,13 @@ object MathUtils {
         else if (a < 0) -1
         else 1
     }
+
+    fun clampRotation(degrees: Float): Float {
+        var result = degrees
+        result %= 360
+        if (result >= 180) result -= 360
+        return result
+    }
 }
 
 fun Vector2f.toDyn4j(result: Vector2 = Vector2()): Vector2 {
