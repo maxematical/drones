@@ -43,7 +43,7 @@ class DroneRenderer(private val drone: Drone, private val shaderProgram: Int,
         glEnableVertexAttribArray(1)
     }
 
-    override fun render(cameraMatrixArr: FloatArray) {
+    override fun render(cameraMatrixArr: FloatArray, time: Float) {
         glUseProgram(shaderProgram)
         glUniformMatrix4fv(locationCameraMatrix, false, cameraMatrixArr)
         glUniformMatrix4fv(locationModelMatrix, false, drone.modelMatrixArr)

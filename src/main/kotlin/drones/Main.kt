@@ -172,10 +172,10 @@ fun main(args: Array<String>) {
     grid.tiles[4][4] = TileStone
 
     // Setup drone
-    val drone = Drone(grid, Vector2f(-7f, 3f), 0xEEEEEE)
+    val drone = Drone(grid, Vector2f(-2f, 3f), 0xEEEEEE, 90f)
     drone.renderer = DroneRenderer(drone, droneShaderProgram, font,  bitmapTexture)
 
-    val scriptMgr = ScriptManager(drone, "drone_manual_miner.lua", Int.MAX_VALUE) { globals ->
+    val scriptMgr = ScriptManager(drone, "drone_ore_search.lua", Int.MAX_VALUE) { globals ->
         ModuleVector.install(globals)
         ModuleCore(drone).install(globals)
         ModuleScanner(drone, this).install(globals)
@@ -221,6 +221,7 @@ fun main(args: Array<String>) {
     val mouseYArr = DoubleArray(1)
     val selectedDrones = mutableListOf<Drone>()
     var lastTime = System.currentTimeMillis()
+    var gameTime = 0f
 
     // Loop
     while (!glfwWindowShouldClose(window)) {
@@ -233,10 +234,12 @@ fun main(args: Array<String>) {
 
         // Update game world
         if (!paused) {
+            gameTime += deltaTime
+
             // Update drone
             val accel: Vector2f = Vector2f(drone.desiredVelocity).sub(droneBody.linearVelocity.toJoml())
             if (accel.lengthSquared() > 0)
-                accel.normalize().mul(20f * deltaTime)
+                accel.normalize().mul(50f * deltaTime)
 
             droneBody.applyForce(accel.toDyn4j())
             drone.position.set(droneBody.transform.translation.x, droneBody.transform.translation.y)
@@ -376,14 +379,14 @@ fun main(args: Array<String>) {
         glDrawArrays(GL_TRIANGLES, 0, 6)
 
         // Render drone
-        drone.renderer?.render(camera.matrixArr)
+        drone.renderer?.render(camera.matrixArr, gameTime)
 
         // Render laser beam
         drone.laserBeam?.let { laser ->
             if (laser.renderer == null) {
                 laser.renderer = LaserBeamRenderer(laser, laserShaderProgram)
             }
-            laser.renderer?.render(camera.matrixArr)
+            laser.renderer?.render(camera.matrixArr, gameTime)
         }
 
         // Render fps counter

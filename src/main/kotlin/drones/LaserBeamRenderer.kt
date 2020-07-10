@@ -44,14 +44,14 @@ class LaserBeamRenderer(private val laserBeam: LaserBeam, private val shaderProg
         glEnableVertexAttribArray(1)
     }
 
-    override fun render(cameraMatrixArr: FloatArray) {
+    override fun render(cameraMatrixArr: FloatArray, time: Float) {
         updateModelMatrix()
 
         glUseProgram(shaderProgram)
         glUniformMatrix4fv(locationCameraMatrix, false, cameraMatrixArr)
         glUniformMatrix4fv(locationModelMatrix, false, modelMatrixArr)
         glUniform2f(locationLaserDimensions, laserBeam.actualLength, laserBeam.width)
-        glUniform1f(locationTime, (System.currentTimeMillis() - initTime) * 0.001f)
+        glUniform1f(locationTime, time)
 
         glBindVertexArray(vao)
         glDrawArrays(GL_TRIANGLES, 0, 6)

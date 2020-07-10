@@ -152,8 +152,8 @@ class DroneNavigator(val drone: Drone) {
         if (drone.hasDestination) {
             delta.set(drone.destination).sub(drone.position)
 
-            val thrustX = MathUtils.sign(drone.destination.x - drone.position.x) * min(1f, Math.abs(delta.x) / 3f)
-            val thrustY = MathUtils.sign(drone.destination.y - drone.position.y) * min(1f, Math.abs(delta.y) / 3f)
+            val thrustX = MathUtils.sign(drone.destination.x - drone.position.x) * min(1f, Math.abs(delta.x) / 1.25f)
+            val thrustY = MathUtils.sign(drone.destination.y - drone.position.y) * min(1f, Math.abs(delta.y) / 1.25f)
 
             drone.desiredVelocity.set(thrustX, thrustY)
 
