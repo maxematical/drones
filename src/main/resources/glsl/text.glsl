@@ -8,7 +8,16 @@ layout (std430, binding = 0) buffer myBuffer
     int font_charData[];
 };
 
-void drawChar(int charInfo) {
+uniform sampler2D BitmapTexture;
+
+// Draws the character within a box.
+// A monospaced string would be composed of equally-sized, spaced boxes.
+//
+// Arguments:
+// 1) charInfo: the character and associated info, e.g. font_charData[someIndex]
+// 2) boxUv: the uv coordinate within this box, ranging from (0,0) to (1,1), y-up
+// 3) fontScale: how much to scale the text from the bitmap
+vec4 drawChar(int charInfo, vec2 boxUv, vec2 boxDimensions, float fontScale) {
     // Determine the properties of the current character
     int char = charInfo & 255;
     int charFgColor = font_colorTheme[(charInfo >> 16) & 255];
@@ -24,33 +33,20 @@ void drawChar(int charInfo) {
     if (((packedOffset >> 17) & 1) == 1) bitmapOffset.x *= -1;
     if (((packedOffset >> 16) & 1) == 1) bitmapOffset.y *= -1;
 
-    vec2 charSizePx = bitmapUvWidthHeight * font_bitmapDimensions * FontScale;
+    // Adjust the BoxUV to account for character dimensions
+    vec2 charDimensionsPixels = bitmapUvWidthHeight * font_bitmapDimensions * fontScale;
+    vec2 charDimensionsRelative = charDimensionsPixels / boxDimensions;
 
-    // Calculate the corners of the current box
-    vec2 boxWidthHeight = vec2(scaledSpacing, UiDimensionsPx.y);
-    vec2 boxTopLeft = uiTopLeft + vec2(charIndex * scaledSpacing + extraSpace, 0);
-    vec2 boxBottomRight = boxTopLeft + boxWidthHeight;
-
-    //FragColor = vec4((fragCoord - boxTopLeft) / (boxBottomRight - boxTopLeft), 0.0, 1.0);return;
-
-    // Apply padding in the box based on the character's dimensions
-    vec2 glyphTopLeft = boxTopLeft + (boxWidthHeight - charSizePx) / 2;
-    vec2 glyphBottomRight = glyphTopLeft + charSizePx;
-    vec2 boxPaddedPosition = (fragCoord - glyphTopLeft) / (glyphBottomRight - glyphTopLeft);
-
-    bool isPixelInGlyph = fragCoord.x >= glyphTopLeft.x && fragCoord.y >= glyphTopLeft.y &&
-    fragCoord.x <= glyphBottomRight.x && fragCoord.y <= glyphBottomRight.y; // only include thse pixels
-
-    // Determine the coordinates from the bitmap to use
-    vec2 boxUv = boxPaddedPosition;
     boxUv.y = 1.0 - boxUv.y;
+    vec2 adjustedUv = (boxUv - 1) / charDimensionsRelative + 1;
+    bool outsideAdjustedUv = adjustedUv.x < 0 || adjustedUv.y < 0;
 
-    vec2 bitmapUv = (bitmapUvTopLeft - bitmapOffset) + boxUv * (bitmapUvWidthHeight + bitmapOffset);
-
+    // Calculate the UV of the glyph in the bitmap texture
+    vec2 bitmapUv = (bitmapUvTopLeft - bitmapOffset) + adjustedUv * (bitmapUvWidthHeight + bitmapOffset);
     bool isPixelInOffset = bitmapUv.x < bitmapUvTopLeft.x || bitmapUv.y < bitmapUvTopLeft.y;
 
     // Sample the bitmap texture with the calculated UV. Exclude pixels in the padding and offset areas
-    FragColor = texture(BitmapTexture, bitmapUv) * int(isPixelInGlyph) * int(!isPixelInOffset);
+    vec4 result = texture(BitmapTexture, bitmapUv) * int(!outsideAdjustedUv) * int(!isPixelInOffset);
 
     // Apply color theme
     float fgR = float((charFgColor >> 16) & 255) / 255.0;
@@ -60,6 +56,8 @@ void drawChar(int charInfo) {
     float bgG = float((charBgColor >>  8) & 255) / 255.0;
     float bgB = float( charBgColor        & 255) / 255.0;
 
-    FragColor.rgb = mix(vec3(bgR, bgG, bgB), vec3(fgR, fgG, fgB), FragColor.a);
-    FragColor.a = int(!wasCharIndexInvalid);
+    result.rgb = mix(vec3(bgR, bgG, bgB), vec3(fgR, fgG, fgB), result.a);
+    result.a = 1.0;
+
+    return result;
 }
