@@ -62,7 +62,7 @@ class LaserBeamRenderer(private val laserBeam: LaserBeam, private val shaderProg
             .translate(laserBeam.position.x(), laserBeam.position.y(), 0f)
             .rotate(laserBeam.rotation * MathUtils.DEG2RAD, 0f, 0f, 1f)
             .translate(laserBeam.actualLength * 0.5f, 0f, 0f)
-            .scale(laserBeam.unobstructedLength, laserBeam.width, 1f)
+            .scale(laserBeam.actualLength, laserBeam.width, 1f)
         modelMatrix.get(modelMatrixArr)
     }
 }

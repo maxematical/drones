@@ -8,13 +8,13 @@ function mining_laser.mine_tile(target)
     local delta = target_tile - core.getpos()
     local angle = math.atan2(delta.y, delta.x) * 180 / math.pi
 
-    mining_laser.laser_on(angle, vector.length(delta))
+    mining_laser.laser_on(angle)
 
     local starttime = core.gettime()
     while core.gettime() - starttime < 2.5 do
         delta = target_tile - core.getpos()
         angle = math.atan2(delta.y, delta.x) * 180 / math.pi
-        mining_laser.laser_target(angle, vector.length(delta))
+        mining_laser.laser_target(angle)
         coroutine.yield()
     end
 

@@ -559,43 +559,34 @@ class ModuleMiningLaser(private val drone: Drone) : DroneModule {
         globals.loadfile("libmininglaser.lua").call()
     }
 
-    private class Flaser_on(private val drone: Drone) : TwoArgFunction() {
-        override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
-            Fchecktype(arg1, "number",
+    private class Flaser_on(private val drone: Drone) : OneArgFunction() {
+        override fun call(arg: LuaValue): LuaValue {
+            Fchecktype(arg, "number",
                 "mining_laser.laser_on: First argument should be a number, the angle in degrees at which to point " +
                         "the laser")
-            Fchecktype(arg2, "number", true,
-                "mining_laser.laser_on: Second argument should be a number, the optional length of the laser")
 
-            val angle = arg1.checkdouble()
-            val length = Fclamparg(arg2.optdouble(5.0), 1, 5, "mining_laser.laser_on: Length must be between " +
-                    "%a and %b, got %x")
+            val angle = arg.checkdouble()
 
             if (drone.laserBeam != null) {
                 throw LuaError("mining_laser.laser_on: Can't turn the laser beam on, it was already on")
             }
-            drone.laserBeam = LaserBeam(drone.position, angle.toFloat(), 0.4f, length.toFloat())
+            drone.laserBeam = LaserBeam(drone.position, angle.toFloat(), 0.4f, 5f)
             return LuaValue.NIL
         }
     }
 
-    private class Flaser_target(private val drone: Drone) : TwoArgFunction() {
-        override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
-            Fchecktype(arg1, "number",
+    private class Flaser_target(private val drone: Drone) : OneArgFunction() {
+        override fun call(arg: LuaValue): LuaValue {
+            Fchecktype(arg, "number",
                 "mining_laser.laser_target: First argument should be a number, the angle in degrees at which to point " +
                         "the laser")
-            Fchecktype(arg2, "number", true,
-                "mining_laser.laser_target: Second argument should be a number, the optional length of the laser")
 
-            val angle = arg1.checkdouble()
-            val length = Fclamparg(arg2.optdouble(5.0), 1, 5, "mining_laser.laser_target: Length must be between " +
-                    "%a and %b, got %x")
+            val angle = arg.checkdouble()
 
             if (drone.laserBeam == null) {
                 throw LuaError("mining_laser.laser_target: Laser beam must be on before targeting")
             }
             drone.laserBeam?.rotation = angle.toFloat()
-            drone.laserBeam?.unobstructedLength = length.toFloat()
             return LuaValue.NIL
         }
     }
