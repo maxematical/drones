@@ -1,5 +1,5 @@
 #version 430 core
-#include <text.glsl>
+#include "text.glsl"
 
 uniform vec2 WindowSize;
 
@@ -34,5 +34,6 @@ void main()
     vec2 boxBottomRight = boxTopLeft + boxWidthHeight;
     vec2 boxUv = (fragCoord - boxTopLeft) / (boxBottomRight - boxTopLeft);
 
-    FragColor = drawChar(font_charData[charIndex], boxUv, boxWidthHeight, FontScale) * int(wasCharIndexValid);
+    FragColor = drawChar(font_charData[charIndex], boxUv, boxWidthHeight,
+                         FontScale, true, false) * int(wasCharIndexValid);
 }

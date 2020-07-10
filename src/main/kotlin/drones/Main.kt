@@ -363,12 +363,12 @@ fun main(args: Array<String>) {
         glUniform2f(glGetUniformLocation(gridShaderProgram, "CameraPos"), camera.positionc.x(), camera.positionc.y())
         glUniform2f(glGetUniformLocation(gridShaderProgram, "GridTopLeft"),
             grid.positionTopLeft.x(), -grid.positionTopLeft.y())
+        glUniform1f(glGetUniformLocation(gridShaderProgram, "GridWidth"), grid.width.toFloat())
 
         val renderedGrid = grid.toBitmapArray(font)
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo)
-        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1096, intArrayOf(grid.width))
-        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1100, intArrayOf(renderedGrid.size))
-        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1104, renderedGrid)
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1096, intArrayOf(renderedGrid.size))
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1100, renderedGrid)
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
         glBindTexture(GL_TEXTURE_2D, bitmapTexture)
