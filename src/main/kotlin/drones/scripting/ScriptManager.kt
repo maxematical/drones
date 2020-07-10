@@ -27,6 +27,14 @@ class ScriptManager(drone: Drone, filename: String, instructionLimit: Int = 20,
     var activeScanning: ModuleScanner.Fon? = null
     var nextCallback: LuaValue? = null
 
+    private var isRunningCallback = false
+    private var unsetRunningCallback = object : ZeroArgFunction() {
+        override fun call(): LuaValue {
+            isRunningCallback = false
+            return LuaValue.NIL
+        }
+    }
+
     init {
         navigator = DroneNavigator(drone)
 
@@ -52,24 +60,19 @@ class ScriptManager(drone: Drone, filename: String, instructionLimit: Int = 20,
 
         addLibs(globals)
 
-        globals.load("_thread = coroutine.create(loadfile('$filename'))").call()
-        thread = globals.get("_thread") as LuaThread
-        //globals.set("_thread", LuaValue.NIL)
+        globals.set("_unsetcb", unsetRunningCallback)
+
+        thread = createCoroutine(globals.get("loadfile").call(filename))
 
         // Limit the instruction count per script execution
         // We have to do this using the debug lib, but we don't want scripts accessing it, so we'll remove the debug
         // table directly afterwards
         globals.load(object : DebugLib() {
-            private var isRunningCallback = false
-
             override fun onInstruction(pc: Int, v: Varargs?, top: Int) {
                 super.onInstruction(pc, v, top)
 
                 if (nextCallback != null && !isRunningCallback) {
-                    isRunningCallback = true
-                    nextCallback!!.invoke()
-                    nextCallback = null
-                    isRunningCallback = false
+                    prepareCallbackFunction().call()
                 }
             }
         })
@@ -105,11 +108,13 @@ class ScriptManager(drone: Drone, filename: String, instructionLimit: Int = 20,
             }
         }
         if (isLuaFinished() && nextCallback != null) {
-            thread = globals.get("coroutine").get("create").call(nextCallback) as LuaThread
+            thread = createCoroutine(prepareCallbackFunction())
         }
 
         // Update enabled modules
-        nextCallback = activeScanning?.updateScanner()
+        if (!isRunningCallback) {
+            nextCallback = activeScanning?.updateScanner()
+        }
 
         // Update navigation
         navigator.updateNavigation()
@@ -122,6 +127,16 @@ class ScriptManager(drone: Drone, filename: String, instructionLimit: Int = 20,
 
     fun isLuaFinished(): Boolean =
         thread.status == "dead"
+
+    private fun createCoroutine(func: LuaValue): LuaThread =
+        globals.get("coroutine").get("create").call(func) as LuaThread
+
+    private fun prepareCallbackFunction(): LuaValue {
+        isRunningCallback = true
+        globals.set("_cb", nextCallback)
+        nextCallback = null
+        return globals.load("_cb(); _cb = nil; _unsetcb()")
+    }
 }
 
 class DroneNavigator(val drone: Drone) {

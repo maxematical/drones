@@ -175,7 +175,7 @@ fun main(args: Array<String>) {
     val drone = Drone(grid, Vector2f(-7f, 3f), 0xEEEEEE)
     drone.renderer = DroneRenderer(drone, droneShaderProgram, font,  bitmapTexture)
 
-    val scriptMgr = ScriptManager(drone, "drone_ore_search.lua", Int.MAX_VALUE) { globals ->
+    val scriptMgr = ScriptManager(drone, "drone_manual_miner.lua", Int.MAX_VALUE) { globals ->
         ModuleVector.install(globals)
         ModuleCore(drone).install(globals)
         ModuleScanner(drone, this).install(globals)

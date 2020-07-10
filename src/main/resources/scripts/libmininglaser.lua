@@ -21,5 +21,3 @@ function mining_laser.mine_tile(target)
     mining_laser.laser_off()
     sleep(0.5)
 end
-
-print('mineee')
