@@ -12,7 +12,6 @@ import org.luaj.vm2.lib.jse.JseBaseLib
 import org.luaj.vm2.lib.jse.JseIoLib
 import org.luaj.vm2.lib.jse.JseMathLib
 import java.lang.Float.min
-import java.lang.RuntimeException
 
 class ScriptManager(drone: Drone, filename: String, instructionLimit: Int = 20,
                     addLibs: ScriptManager.(Globals) -> Unit) {
@@ -61,6 +60,13 @@ class ScriptManager(drone: Drone, filename: String, instructionLimit: Int = 20,
         addLibs(globals)
 
         globals.set("_unsetcb", unsetRunningCallback)
+
+        val oldPrint = globals.get("print")
+        globals.set("print", object : VarArgFunction() {
+            override fun invoke(args: Varargs): Varargs {
+                return oldPrint.invoke(LuaValue.varargsOf(LuaValue.valueOf("LUA:"), args))
+            }
+        })
 
         thread = createCoroutine(globals.get("loadfile").call(filename))
 
