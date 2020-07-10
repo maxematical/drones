@@ -3,5 +3,5 @@ function on_scan_detected(coords)
     mining_laser.mine_tile(coords)
 end
 
-print('Manual miner -main script')
+print('Manual miner -- main script')
 scanner.on()

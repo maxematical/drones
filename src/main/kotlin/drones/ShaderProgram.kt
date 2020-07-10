@@ -1,6 +1,5 @@
 package drones
 
-import org.lwjgl.opengl.GL20
 import org.lwjgl.opengl.GL20.*
 import java.io.BufferedReader
 import java.io.FileNotFoundException
@@ -18,7 +17,7 @@ class Shader private constructor(filename: String, glType: Int) {
         val sourceCode = loadShaderFile(filename)
 
         glShaderObject = glCreateShader(glType)
-        glShaderSource(glShaderObject, sourceCode)
+        glShaderSource(glShaderObject, sourceCode.code)
         glCompileShader(glShaderObject)
 
         val success = IntArray(1)
@@ -30,6 +29,9 @@ class Shader private constructor(filename: String, glType: Int) {
     }
 
     companion object {
+        private val includeRegex = Regex("^#include [<\"](.+?)[>\"]")
+        private val includedFilesCache = mutableMapOf<String, ShaderSource>()
+
         fun create(filename: String, glType: Int): Shader =
             Shader(filename, glType)
 
@@ -49,7 +51,7 @@ class Shader private constructor(filename: String, glType: Int) {
             return program
         }
 
-        private fun loadShaderFile(filename: String): String {
+        private fun loadShaderFile(filename: String): ShaderSource {
             val instr = Main::class.java.getResourceAsStream(filename)
                 ?: throw FileNotFoundException("Could not find shader '$filename'")
 
@@ -57,16 +59,88 @@ class Shader private constructor(filename: String, glType: Int) {
 
             val sb = StringBuilder()
             var line: String?
+
+            val sections = mutableListOf<ShaderSource.Section>()
+            var currentSection = ShaderSource.Section(filename, 1)
+            var lineNumber = 0
+
             while (true) {
+                lineNumber++
                 line = reader.readLine()
                 if (line == null)
                     break
+
+                // Try to include file
+                // TODO: Obey preprocessor directives when including a file
+                val match = includeRegex.matchEntire(line)
+                if (match != null) {
+                    val includeFilename = match.groupValues[1]
+
+                    // Try to get included file from cache, otherwise read it from disk
+                    val includedSource: ShaderSource
+                    if (includeFilename in includedFilesCache) {
+                        includedSource = includedFilesCache[includeFilename]!!
+                    } else {
+                        includedSource = loadShaderFile("/glsl/$includeFilename")
+                        includedFilesCache[includeFilename] = includedSource
+                    }
+
+                    // Add new section for the included source
+                    currentSection.lastLine = lineNumber - 1
+                    sections.add(currentSection)
+
+                    currentSection = ShaderSource.Section("/glsl/$includeFilename", lineNumber)
+                    lineNumber += includedSource.totalLength + 1
+                    currentSection.lastLine = lineNumber - 1
+                    sections.add(currentSection)
+
+                    // Make another section for the rest of this file
+                    currentSection = ShaderSource.Section(filename, lineNumber)
+
+                    // Note the section that is from the included file
+                    line = includedSource.code.trim()
+
+                    // For some reason we have to increment the line number again
+                    lineNumber++
+                } else {
+                    sb.append("/*  ${currentSection.sourceFile}:${lineNumber - currentSection.startLine + 1}".padEnd(30) + " */ ")
+                }
 
                 sb.append(line)
                 sb.append('\n')
             }
 
-            return sb.toString()
+            currentSection.lastLine = lineNumber - 1
+            sections.add(currentSection)
+
+            return ShaderSource(sb.toString(), sections)
+        }
+    }
+
+    private class ShaderSource(val code: String, val sections: List<Section>) {
+        val totalLength = sections.sumBy { it.length }
+
+        fun getSourceFile(line: Int): String {
+            for (section in sections) {
+                if (section.startLine >= line && section.lastLine <= line) {
+                    return section.sourceFile
+                }
+            }
+            return "???"
+        }
+
+        fun getSourceLine(line: Int): Int {
+            for (section in sections) {
+                if (section.startLine >= line && section.lastLine <= line) {
+                    return line - section.startLine + 1
+                }
+            }
+            return -1
+        }
+
+        class Section(val sourceFile: String, val startLine: Int) {
+            var lastLine: Int = -1
+            val length: Int get() = lastLine - startLine + 1
         }
     }
 }

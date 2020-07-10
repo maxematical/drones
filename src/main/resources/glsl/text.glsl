@@ -1,38 +1,15 @@
-#version 430 core
-#include <text.glsl>
-
-uniform vec2 WindowSize;
-
-uniform vec2 UiAnchorPoint;
-uniform vec2 UiPositionPx;
-uniform vec2 UiDimensionsPx;
-
-uniform float FontScale;
-uniform float FontSpacing;
-
-uniform sampler2D BitmapTexture;
-
-out vec4 FragColor;
-
-void main()
+layout (std430, binding = 0) buffer myBuffer
 {
-    float scaledSpacing = FontSpacing * FontScale;
-    vec2 fragCoord = gl_FragCoord.xy;
+    int font_characterCoordsLut[128];
+    int font_characterOffsetLut[128];
+    vec2 font_bitmapDimensions;
+    int font_colorTheme[16];
+    int font_nChars;
+    int font_charData[];
+};
 
-    // Figure out the index of which character we're looking at
-    vec2 uiTopLeft = UiPositionPx - UiDimensionsPx * (UiAnchorPoint * 0.5 + 0.5);
-    vec2 relativePixel = fragCoord - uiTopLeft;
-    float widthChars = font_nChars * scaledSpacing; // the width of all boxes, in pixels
-    float extraSpace = UiDimensionsPx.x - widthChars;   // the extra space at the left of the quad, where there aren't
-                                                        // any characters
-    int charIndex = int(floor(( relativePixel.x - extraSpace ) / scaledSpacing));
-
-    // Avoid out-of-range array accesses by recording if the charIndex was out-of-bounds, then resetting it to 0
-    bool wasCharIndexInvalid = charIndex < 0 || charIndex >= font_nChars;
-    charIndex *= int(!wasCharIndexInvalid);
-
-    // Determine the properties of the character in this box
-    int charInfo = font_charData[charIndex];
+void drawChar(int charInfo) {
+    // Determine the properties of the current character
     int char = charInfo & 255;
     int charFgColor = font_colorTheme[(charInfo >> 16) & 255];
     int charBgColor = font_colorTheme[(charInfo >> 8) & 255];
@@ -62,7 +39,7 @@ void main()
     vec2 boxPaddedPosition = (fragCoord - glyphTopLeft) / (glyphBottomRight - glyphTopLeft);
 
     bool isPixelInGlyph = fragCoord.x >= glyphTopLeft.x && fragCoord.y >= glyphTopLeft.y &&
-        fragCoord.x <= glyphBottomRight.x && fragCoord.y <= glyphBottomRight.y; // only include thse pixels
+    fragCoord.x <= glyphBottomRight.x && fragCoord.y <= glyphBottomRight.y; // only include thse pixels
 
     // Determine the coordinates from the bitmap to use
     vec2 boxUv = boxPaddedPosition;
