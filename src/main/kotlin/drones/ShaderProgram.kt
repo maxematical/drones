@@ -5,6 +5,9 @@ import java.io.BufferedReader
 import java.io.FileNotFoundException
 import java.io.InputStreamReader
 
+// Whether to add information about which file each line of a GLSL program is from
+const val ADD_INCLUDE_DEBUG_INFO = true
+
 class Shader private constructor(filename: String, glType: Int) {
     val filename: String
     val glType: Int
@@ -14,22 +17,42 @@ class Shader private constructor(filename: String, glType: Int) {
         this.filename = filename
         this.glType = glType
 
-        val sourceCode = loadShaderFile(filename)
+        val source = loadShaderFile(filename)
 
         glShaderObject = glCreateShader(glType)
-        glShaderSource(glShaderObject, sourceCode.code)
+        glShaderSource(glShaderObject, source.sourceCode)
         glCompileShader(glShaderObject)
 
         val success = IntArray(1)
         glGetShaderiv(glShaderObject, GL_COMPILE_STATUS, success)
         if (success[0] == GL_FALSE) {
-            val message = glGetShaderInfoLog(glShaderObject)
+            val rawMessage = glGetShaderInfoLog(glShaderObject)
+            val message = processMessage(rawMessage, source)
             throw IllegalStateException("Couldn't compile shader '$filename'. Message:\n$message")
         }
     }
 
+    /**
+     * Replaces line numbers in the error message so that in shaders with #includes, it is possible to find which exact
+     * file had the error.
+     */
+    private fun processMessage(message: String, source: ShaderSource): String =
+        message.replace(errorMessageRegex) { matchResult ->
+            // The first group value (groupValues[1]) refers to the index of the source code provided to glShaderSource
+            // Not actually used here, but see https://stackoverflow.com/a/48162000 for more info
+
+            val sourceIndex = matchResult.groupValues[1]
+            val lineNumber = matchResult.groupValues[2].toInt()
+
+            val fromFile = source.getSourceFile(lineNumber).substring("/glsl/".length)
+            val fromLine = source.getSourceLine(lineNumber)
+
+            "ERROR: $sourceIndex:$fromFile:$fromLine:"
+        }
+
     companion object {
         private val includeRegex = Regex("^#include [<\"](.+?)[>\"]")
+        private val errorMessageRegex = Regex("ERROR: (\\d+):(\\d+):")
         private val includedFilesCache = mutableMapOf<String, ShaderSource>()
 
         fun create(filename: String, glType: Int): Shader =
@@ -61,7 +84,7 @@ class Shader private constructor(filename: String, glType: Int) {
             var line: String?
 
             val sections = mutableListOf<ShaderSource.Section>()
-            var currentSection = ShaderSource.Section(filename, 1)
+            var currentSection = ShaderSource.Section(filename, 1, 1)
             var lineNumber = 0
 
             while (true) {
@@ -88,22 +111,26 @@ class Shader private constructor(filename: String, glType: Int) {
                     // Add new section for the included source
                     currentSection.lastLine = lineNumber - 1
                     sections.add(currentSection)
+                    val oldSection = currentSection
 
-                    currentSection = ShaderSource.Section("/glsl/$includeFilename", lineNumber)
-                    lineNumber += includedSource.totalLength + 1
+                    currentSection = ShaderSource.Section("/glsl/$includeFilename", lineNumber, 1)
+                    lineNumber += includedSource.totalLength
                     currentSection.lastLine = lineNumber - 1
                     sections.add(currentSection)
 
                     // Make another section for the rest of this file
-                    currentSection = ShaderSource.Section(filename, lineNumber)
+                    currentSection = ShaderSource.Section(filename, lineNumber,
+                        oldSection.startLineInFile + oldSection.length + 1)
 
                     // Note the section that is from the included file
-                    line = includedSource.code.trim()
+                    line = includedSource.sourceCode.trim()
 
                     // For some reason we have to increment the line number again
                     lineNumber++
-                } else {
-                    sb.append("/*  ${currentSection.sourceFile}:${lineNumber - currentSection.startLine + 1}".padEnd(30) + " */ ")
+                } else if (ADD_INCLUDE_DEBUG_INFO) {
+                    sb.append("/*  ")
+                        .append("${currentSection.sourceFile}:${lineNumber - currentSection.startLine + 1}".padEnd(30))
+                        .append(" */ ")
                 }
 
                 sb.append(line)
@@ -117,12 +144,12 @@ class Shader private constructor(filename: String, glType: Int) {
         }
     }
 
-    private class ShaderSource(val code: String, val sections: List<Section>) {
+    private class ShaderSource(val sourceCode: String, val sections: List<Section>) {
         val totalLength = sections.sumBy { it.length }
 
         fun getSourceFile(line: Int): String {
             for (section in sections) {
-                if (section.startLine >= line && section.lastLine <= line) {
+                if (line >= section.startLine && line <= section.lastLine) {
                     return section.sourceFile
                 }
             }
@@ -131,14 +158,14 @@ class Shader private constructor(filename: String, glType: Int) {
 
         fun getSourceLine(line: Int): Int {
             for (section in sections) {
-                if (section.startLine >= line && section.lastLine <= line) {
-                    return line - section.startLine + 1
+                if (line >= section.startLine && line <= section.lastLine) {
+                    return section.startLineInFile + line - section.startLine
                 }
             }
             return -1
         }
 
-        class Section(val sourceFile: String, val startLine: Int) {
+        class Section(val sourceFile: String, val startLine: Int, val startLineInFile: Int) {
             var lastLine: Int = -1
             val length: Int get() = lastLine - startLine + 1
         }
