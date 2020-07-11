@@ -10,10 +10,7 @@ import org.dyn4j.geometry.Circle
 import org.dyn4j.geometry.Mass
 import org.dyn4j.geometry.Rectangle
 import org.dyn4j.geometry.Vector2
-import org.joml.Vector2f
-import org.joml.Vector2i
-import org.joml.Vector2ic
-import org.joml.Vector4f
+import org.joml.*
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL30.*
@@ -21,6 +18,7 @@ import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.stb.STBImage
 import org.lwjgl.system.MemoryUtil.NULL
 import java.io.FileNotFoundException
+import java.lang.Math
 import java.nio.ByteBuffer
 import kotlin.math.floor
 
@@ -102,11 +100,14 @@ fun main(args: Array<String>) {
 
     val laserFsh = Shader.create("/glsl/laserbeam.frag", GL_FRAGMENT_SHADER)
 
+    val dotFsh = Shader.create("/glsl/debugdot.frag", GL_FRAGMENT_SHADER)
+
     val gridShaderProgram = Shader.createProgram(defaultVsh, gridFsh)
     val droneShaderProgram = Shader.createProgram(objectVsh, droneFsh)
     val uiTextShaderProgram = Shader.createProgram(uiVsh, uiTextFsh)
     val uiBoxShaderProgram = Shader.createProgram(uiVsh, uiBoxFsh)
     val laserShaderProgram = Shader.createProgram(objectVsh, laserFsh)
+    val debugDotShaderProgram = Shader.createProgram(defaultVsh, dotFsh)
 
     // Set up bitmap (font) texture
     val font = loadFont()
@@ -224,19 +225,23 @@ fun main(args: Array<String>) {
 
     // Init info box
     val infoBox = UiBox(Ui.Params(windowContainer,
-        { dims, _ -> dims.set(300f, 0f) },
+        { dims, _ -> dims.set(300f, 90f) },
         { anchor, _ -> anchor.set(1f, 0f) },
         { pos, c -> pos.set(c.width - 10f, c.height * 0.5f) },
-        true))
+        { pad, c -> pad.set(0f, 10f, 100f, 10f) },
+        allowOverflow = false))
     infoBox.renderer = UiBoxRenderer(infoBox, uiBoxShaderProgram)
 
     val infoBoxText = UiText(Ui.Params(infoBox,
         { dims, _ -> dims.set(150f, 30f) },
-        { anchor, _ -> anchor.set(-1f, 0f) },
-        { pos, c -> pos.set(10f, c.height * 0.5f) }))
+        { anchor, _ -> anchor.set(-1f, -1f) },
+        { pos, c -> pos.set(0f, 0f) }))
     infoBoxText.requestedString = "In Box"
     infoBoxText.textBgColor = 12
     infoBoxText.renderer = UiTextRenderer(infoBoxText, uiTextShaderProgram, ssbo, font)
+
+    var debugDot: DebugDotRenderer? = null
+    debugDot = DebugDotRenderer(debugDotShaderProgram, infoBox.bottomLeft)
 
     // Misc.
     val mouseXArr = DoubleArray(1)
@@ -244,6 +249,8 @@ fun main(args: Array<String>) {
     val selectedDrones = mutableListOf<Drone>()
     var lastTime = System.currentTimeMillis()
     var gameTime = 0f
+
+    println("Debug position: ${debugDot?.debugPosition} / ${windowContainer.dimensions}")
 
     // Loop
     while (!glfwWindowShouldClose(window)) {
@@ -421,6 +428,9 @@ fun main(args: Array<String>) {
 
         // Render info box
         infoBox.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
+
+        // Render debug dot
+        debugDot?.render(screenDimensions, camera.matrixArr, gameTime)
 
         glfwPollEvents()
         glfwSwapBuffers(window)

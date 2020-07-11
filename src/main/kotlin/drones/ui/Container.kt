@@ -6,7 +6,7 @@ interface Container {
     /** Contains the width and height of the container, in pixels. */
     val dimensions: Vector2fc
 
-    /** Contains the bottom left coordinate of the container, in pixels. */
+    /** Contains the bottom left coordinate for children inside the container, in pixels. */
     val bottomLeft: Vector2fc
 
     /** The width of the container, in pixels. */
