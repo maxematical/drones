@@ -10,6 +10,23 @@ layout (std430, binding = 0) buffer myBuffer
 
 uniform sampler2D BitmapTexture;
 
+vec4 drawChar(int, vec2, vec2, float);
+vec4 drawChar(int, vec2, vec2, float, bool);
+vec4 drawChar(int, vec2, vec2, float, bool, bool);
+vec4 drawChar(int, vec2, vec2, float, bool, bool, bool);
+
+vec4 drawChar(int charInfo, vec2 boxUv, vec2 boxDimensions, float fontScale) {
+    return drawChar(charInfo, boxUv, boxDimensions, fontScale, false);
+}
+
+vec4 drawChar(int charInfo, vec2 boxUv, vec2 boxDimensions, float fontScale, bool flipY) {
+    return drawChar(charInfo, boxUv, boxDimensions, fontScale, flipY, false);
+}
+
+vec4 drawChar(int charInfo, vec2 boxUv, vec2 boxDimensions, float fontScale, bool flipY, bool centerChar) {
+    return drawChar(charInfo, boxUv, boxDimensions, fontScale, flipY, centerChar, false);
+}
+
 // Draws the character within a box.
 // A monospaced string would be composed of equally-sized, spaced boxes.
 //
@@ -17,7 +34,11 @@ uniform sampler2D BitmapTexture;
 // 1) charInfo: the character and associated info, e.g. font_charData[someIndex]
 // 2) boxUv: the uv coordinate within this box, ranging from (0,0) to (1,1)
 // 3) fontScale: how much to scale the text from the bitmap
-vec4 drawChar(int charInfo, vec2 boxUv, vec2 boxDimensions, float fontScale, bool flipY, bool centerChar) {
+// 4) flipY: whether boxUv's y-coordinate needs to be flipped
+// 5) centerChar: whether to ignore character offset and center the character in the box (99% of the time, false)
+// 6) transparentBg: whether the character background should be transparent instead of a solid color
+vec4 drawChar(int charInfo, vec2 boxUv, vec2 boxDimensions, float fontScale,
+        bool flipY, bool centerChar, bool transparentBg) {
     // Determine the properties of the current character
     int char = charInfo & 255;
     int charFgColor = font_colorTheme[(charInfo >> 16) & 255];
@@ -62,12 +83,14 @@ vec4 drawChar(int charInfo, vec2 boxUv, vec2 boxDimensions, float fontScale, boo
     float fgR = float((charFgColor >> 16) & 255) / 255.0;
     float fgG = float((charFgColor >>  8) & 255) / 255.0;
     float fgB = float( charFgColor        & 255) / 255.0;
+    float fgA = 1.0;
     float bgR = float((charBgColor >> 16) & 255) / 255.0;
     float bgG = float((charBgColor >>  8) & 255) / 255.0;
     float bgB = float( charBgColor        & 255) / 255.0;
+    float bgA = float(!transparentBg);
 
     result.rgb = mix(vec3(bgR, bgG, bgB), vec3(fgR, fgG, fgB), result.a);
-    result.a = 1.0;
+    result.a = mix(bgA, fgA, result.a);
 
     return result;
 }

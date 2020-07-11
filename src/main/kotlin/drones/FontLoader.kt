@@ -1,5 +1,6 @@
 package drones
 
+import org.lwjgl.opengl.GL30.*
 import java.io.FileNotFoundException
 import java.io.InputStream
 import java.nio.ByteBuffer
@@ -67,12 +68,21 @@ fun loadFont(): GameFont {
         characterOffsetLut[spaceCode] = 0
     }
 
-    val (bitmapWidth, bitmapHeight, bitmap) = readImage(
+    val (bitmapWidth, bitmapHeight, bitmapData) = readImage(
         "C:\\Users\\ofwar\\Documents\\Programming\\drones\\src\\main\\resources\\fonts\\lemon\\lemon_medium_14.png"
     )
 
+    val glBitmap = glGenTextures()
+    glBindTexture(GL_TEXTURE_2D, glBitmap)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmapWidth, bitmapHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, bitmapData)
+    glGenerateMipmap(GL_TEXTURE_2D)
+
     return GameFont("Consolas",
-        bitmap, bitmapWidth, bitmapHeight,
+        glBitmap, bitmapData, bitmapWidth, bitmapHeight,
         characterLut, characterCodeLut, characterCoordinatesLut, characterOffsetLut)
 }
 
@@ -92,6 +102,7 @@ data class XmlCharEntry(@JvmField @XmlAttribute var offset: String = "",
                         @JvmField @XmlAttribute var code: String = "")
 
 class GameFont(val name: String,
+               val glBitmap: Int,
                val bitmapTexture: ByteBuffer,
                val bitmapWidth: Int,
                val bitmapHeight: Int,

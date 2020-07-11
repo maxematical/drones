@@ -88,14 +88,6 @@ fun main(args: Array<String>) {
     glVertexAttribPointer(0, 3, GL_FLOAT, false, 12, 0) // set up vertex position for use in vertex shader
     glEnableVertexAttribArray(0)
 
-    val vaoFps = glGenVertexArrays()
-    glBindVertexArray(vaoFps)
-    val vboFps = glGenBuffers()
-    glBindBuffer(GL_ARRAY_BUFFER, vboFps)
-    glBufferData(GL_ARRAY_BUFFER, quadVertices, GL_STATIC_DRAW)
-    glVertexAttribPointer(0, 3, GL_FLOAT, false, 12, 0)
-    glEnableVertexAttribArray(0)
-
     // Set up the shader
     val defaultVertexShader = Shader.create("/glsl/default.vert", GL_VERTEX_SHADER)
     val gridFragmentShader = Shader.create("/glsl/grid.frag", GL_FRAGMENT_SHADER)
@@ -104,26 +96,17 @@ fun main(args: Array<String>) {
     val droneFragmentShader = Shader.create("/glsl/drone.frag", GL_FRAGMENT_SHADER)
 
     val uiVertexShader = Shader.create("/glsl/ui.vert", GL_VERTEX_SHADER)
-    val fpsFragmentShader = Shader.create("/glsl/fpscount.frag", GL_FRAGMENT_SHADER)
+    val uiTextFragmentShader = Shader.create("/glsl/uitext.frag", GL_FRAGMENT_SHADER)
 
     val laserFsh = Shader.create("/glsl/laserbeam.frag", GL_FRAGMENT_SHADER)
 
     val gridShaderProgram = Shader.createProgram(defaultVertexShader, gridFragmentShader)
     val droneShaderProgram = Shader.createProgram(objectVertexShader, droneFragmentShader)
-    val fpsShaderProgram = Shader.createProgram(uiVertexShader, fpsFragmentShader)
+    val uiTextShaderProgram = Shader.createProgram(uiVertexShader, uiTextFragmentShader)
     val laserShaderProgram = Shader.createProgram(objectVertexShader, laserFsh)
 
     // Set up bitmap (font) texture
     val font = loadFont()
-
-    val bitmapTexture = glGenTextures()
-    glBindTexture(GL_TEXTURE_2D, bitmapTexture)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, font.bitmapWidth, font.bitmapHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, font.bitmapTexture)
-    glGenerateMipmap(GL_TEXTURE_2D)
 
     // Set up alpha blending
     glEnable(GL_BLEND)
@@ -173,7 +156,7 @@ fun main(args: Array<String>) {
 
     // Setup drone
     val drone = Drone(grid, Vector2f(-2f, 3f), 0xEEEEEE, 90f)
-    drone.renderer = DroneRenderer(drone, droneShaderProgram, font,  bitmapTexture)
+    drone.renderer = DroneRenderer(drone, droneShaderProgram, font, font.glBitmap)
 
     val scriptMgr = ScriptManager(drone, "drone_ore_search.lua", Int.MAX_VALUE) { globals ->
         ModuleVector.install(globals)
@@ -211,10 +194,18 @@ fun main(args: Array<String>) {
     droneBody.transform.setTranslation(drone.position.x.toDouble(), drone.position.y.toDouble())
     world.addBody(droneBody)
 
+    val screenDimensions = Vector2f(windowWidth.toFloat(), windowHeight.toFloat())
+
     // Init Fps counter
+    val fpsCounter = FpsCounter(screenDimensions)
+    fpsCounter.renderer = UiRenderer(fpsCounter, uiTextShaderProgram, ssbo, font)
     var lastFps: Int = 0
     var fpsCountStart = System.currentTimeMillis()
     var fpsFramesCount = 0
+
+    // Init paused text
+    val pausedReminder = PausedReminder(screenDimensions)
+    pausedReminder.renderer = UiRenderer(pausedReminder, uiTextShaderProgram, ssbo, font)
 
     // Misc.
     val mouseXArr = DoubleArray(1)
@@ -374,7 +365,7 @@ fun main(args: Array<String>) {
         glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1100, renderedGrid)
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
-        glBindTexture(GL_TEXTURE_2D, bitmapTexture)
+        glBindTexture(GL_TEXTURE_2D, font.glBitmap)
         glBindVertexArray(vaoGrid)
         glDrawArrays(GL_TRIANGLES, 0, 6)
 
@@ -389,24 +380,17 @@ fun main(args: Array<String>) {
             laser.renderer?.render(camera.matrixArr, gameTime)
         }
 
-        // Render fps counter
-        glUseProgram(fpsShaderProgram)
-        glUniform2f(glGetUniformLocation(fpsShaderProgram, "WindowSize"), windowWidth.toFloat(), windowHeight.toFloat())
-        glUniform2f(glGetUniformLocation(fpsShaderProgram, "UiAnchorPoint"), 1f, 1f)
-        // UiPositionPx: y=0 means bottom
-        glUniform2f(glGetUniformLocation(fpsShaderProgram, "UiPositionPx"),
-            windowWidth.toFloat() - 14f, windowHeight.toFloat() - 10f)
-        glUniform2f(glGetUniformLocation(fpsShaderProgram, "UiDimensionsPx"), 120f, 38f)
-        glUniform1f(glGetUniformLocation(fpsShaderProgram, "FontScale"), 2f)
-        glUniform1f(glGetUniformLocation(fpsShaderProgram, "FontSpacing"), 12f)
+        // Render framerate counter
+        fpsCounter.requestedString = lastFps.toString()
+        fpsCounter.textAlign = Ui.TextAlign.RIGHT
+        fpsCounter.textFgColor = 10
+        fpsCounter.renderer?.render(camera.matrixArr, gameTime)
 
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo)
-        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1096, stringToBitmapArray(lastFps.toString(), font, 0, 10))
-        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
-
-        glBindVertexArray(vaoFps)
-        glBindTexture(GL_TEXTURE_2D, bitmapTexture)
-        glDrawArrays(GL_TRIANGLES, 0, 6)
+        // Render paused reminder
+        pausedReminder.requestedString = if (paused) "Paused" else ""
+        pausedReminder.transparentTextBg = true
+        pausedReminder.textAlign = Ui.TextAlign.CENTER
+        pausedReminder.renderer?.render(camera.matrixArr, gameTime)
 
         glfwPollEvents()
         glfwSwapBuffers(window)
