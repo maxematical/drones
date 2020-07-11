@@ -197,15 +197,26 @@ fun main(args: Array<String>) {
     val screenDimensions = Vector2f(windowWidth.toFloat(), windowHeight.toFloat())
 
     // Init Fps counter
-    val fpsCounter = FpsCounter(screenDimensions)
-    fpsCounter.renderer = UiRenderer(fpsCounter, uiTextShaderProgram, ssbo, font)
+    val fpsCounter = UiText(Ui.Params(screenDimensions,
+        { dims -> dims.set(120f, 38f) },
+        { anchor -> anchor.set(1f, 1f) },
+        { pos -> pos.set(screenWidth - 14f, screenHeight - 10f) }))
+    fpsCounter.textAlign = Ui.TextAlign.RIGHT
+    fpsCounter.textFgColor = 10
+    fpsCounter.renderer = UiTextRenderer(fpsCounter, uiTextShaderProgram, ssbo, font)
+
     var lastFps: Int = 0
     var fpsCountStart = System.currentTimeMillis()
     var fpsFramesCount = 0
 
     // Init paused text
-    val pausedReminder = PausedReminder(screenDimensions)
-    pausedReminder.renderer = UiRenderer(pausedReminder, uiTextShaderProgram, ssbo, font)
+    val pausedLabel = UiText(Ui.Params(screenDimensions,
+        { dims -> dims.set(180f, 30f) },
+        { anchor -> anchor.set(0f, -1f) },
+        { pos -> pos.set(screenWidth * 0.5f, 40f) }))
+    pausedLabel.transparentTextBg = true
+    pausedLabel.textAlign = Ui.TextAlign.CENTER
+    pausedLabel.renderer = UiTextRenderer(pausedLabel, uiTextShaderProgram, ssbo, font)
 
     // Misc.
     val mouseXArr = DoubleArray(1)
@@ -382,15 +393,11 @@ fun main(args: Array<String>) {
 
         // Render framerate counter
         fpsCounter.requestedString = lastFps.toString()
-        fpsCounter.textAlign = Ui.TextAlign.RIGHT
-        fpsCounter.textFgColor = 10
         fpsCounter.renderer?.render(camera.matrixArr, gameTime)
 
         // Render paused reminder
-        pausedReminder.requestedString = if (paused) "Paused" else ""
-        pausedReminder.transparentTextBg = true
-        pausedReminder.textAlign = Ui.TextAlign.CENTER
-        pausedReminder.renderer?.render(camera.matrixArr, gameTime)
+        pausedLabel.requestedString = if (paused) "Paused" else ""
+        pausedLabel.renderer?.render(camera.matrixArr, gameTime)
 
         glfwPollEvents()
         glfwSwapBuffers(window)
