@@ -224,9 +224,10 @@ fun main(args: Array<String>) {
 
     // Init info box
     val infoBox = UiBox(Ui.Params(windowContainer,
-        { dims, _ -> dims.set(300f, 180f) },
+        { dims, _ -> dims.set(300f, 0f) },
         { anchor, _ -> anchor.set(1f, 0f) },
-        { pos, c -> pos.set(c.width - 10f, c.height * 0.5f) }))
+        { pos, c -> pos.set(c.width - 10f, c.height * 0.5f) },
+        true))
     infoBox.renderer = UiBoxRenderer(infoBox, uiBoxShaderProgram)
 
     val infoBoxText = UiText(Ui.Params(infoBox,
@@ -420,7 +421,6 @@ fun main(args: Array<String>) {
 
         // Render info box
         infoBox.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
-        infoBoxText.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
 
         glfwPollEvents()
         glfwSwapBuffers(window)

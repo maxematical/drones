@@ -50,6 +50,10 @@ abstract class UiRenderer(private val ui: Ui, private val shaderProgram: Int) : 
 
         glBindVertexArray(vao)
         glDrawArrays(GL_TRIANGLES, 0, 6)
+
+        for (child in ui.children) {
+            child.renderer?.render(screenDimensions, cameraMatrixArr, time)
+        }
     }
 
     /** Called after the shader program is bound, but before the quad is drawn. */

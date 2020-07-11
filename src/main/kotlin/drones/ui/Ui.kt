@@ -18,9 +18,36 @@ abstract class Ui(private val params: Params) : Container {
     var shown: Boolean = true
     var renderer: Renderer? = null
 
+    private val mutChildren = mutableListOf<Ui>()
+    /** The immediate children of this UI element. (Not recursive) */
+    val children: List<Ui> = mutChildren
+
+    init {
+        if (params.container is Ui) {
+            params.container.mutChildren.add(this)
+        }
+    }
+
     /** The dimensions of the UI element, in pixels */
     override val dimensions: Vector2fc get() {
         params.updateDimensions(this, dimensionsVec, params.container)
+
+        // Expand this UI element to fit children, if necessary
+        if (params.allowOverflowX || params.allowOverflowY) {
+            var childrenWidth: Float = 0f
+            var childrenHeight: Float = 0f
+            for (child in children) {
+                val childDimensions = child.dimensions
+                childrenWidth += childDimensions.x()
+                childrenHeight += childDimensions.y()
+            }
+
+            if (params.allowOverflowX && dimensionsVec.x < childrenWidth)
+                dimensionsVec.x = childrenWidth
+            if (params.allowOverflowY && dimensionsVec.y < childrenHeight)
+                dimensionsVec.y = childrenHeight
+        }
+
         return dimensionsVec
     }
 
@@ -44,6 +71,10 @@ abstract class Ui(private val params: Params) : Container {
         return bottomLeftVec
     }
 
+    fun removeChild(child: Ui) {
+        mutChildren.remove(child)
+    }
+
     enum class TextAlign(val id: Int) {
         LEFT(0),
         RIGHT(1),
@@ -53,5 +84,14 @@ abstract class Ui(private val params: Params) : Container {
     data class Params(val container: Container,
                       val updateDimensions: Ui.(dims: Vector2f, c: Container) -> Unit,
                       val updateAnchorPoint: Ui.(anchor: Vector2f, c: Container) -> Unit,
-                      val updatePosition: Ui.(pos: Vector2f, c: Container) -> Unit)
+                      val updatePosition: Ui.(pos: Vector2f, c: Container) -> Unit,
+                      val allowOverflowX: Boolean,
+                      val allowOverflowY: Boolean) {
+        constructor(container: Container,
+                    updateDimensions: Ui.(dims: Vector2f, c: Container) -> Unit,
+                    updateAnchorPoint: Ui.(anchor: Vector2f, c: Container) -> Unit,
+                    updatePosition: Ui.(pos: Vector2f, c: Container) -> Unit,
+                    allowOverflow: Boolean = true) :
+                this(container, updateDimensions, updateAnchorPoint, updatePosition, allowOverflow, allowOverflow)
+    }
 }
