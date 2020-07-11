@@ -1,6 +1,7 @@
 package drones
 
 import drones.scripting.*
+import drones.ui.*
 import org.dyn4j.dynamics.Body
 import org.dyn4j.dynamics.BodyFixture
 import org.dyn4j.dynamics.RaycastResult
@@ -89,21 +90,23 @@ fun main(args: Array<String>) {
     glEnableVertexAttribArray(0)
 
     // Set up the shader
-    val defaultVertexShader = Shader.create("/glsl/default.vert", GL_VERTEX_SHADER)
-    val gridFragmentShader = Shader.create("/glsl/grid.frag", GL_FRAGMENT_SHADER)
+    val defaultVsh = Shader.create("/glsl/default.vert", GL_VERTEX_SHADER)
+    val gridFsh = Shader.create("/glsl/grid.frag", GL_FRAGMENT_SHADER)
 
-    val objectVertexShader = Shader.create("/glsl/object.vert", GL_VERTEX_SHADER)
-    val droneFragmentShader = Shader.create("/glsl/drone.frag", GL_FRAGMENT_SHADER)
+    val objectVsh = Shader.create("/glsl/object.vert", GL_VERTEX_SHADER)
+    val droneFsh = Shader.create("/glsl/drone.frag", GL_FRAGMENT_SHADER)
 
-    val uiVertexShader = Shader.create("/glsl/ui.vert", GL_VERTEX_SHADER)
-    val uiTextFragmentShader = Shader.create("/glsl/uitext.frag", GL_FRAGMENT_SHADER)
+    val uiVsh = Shader.create("/glsl/ui.vert", GL_VERTEX_SHADER)
+    val uiTextFsh = Shader.create("/glsl/uitext.frag", GL_FRAGMENT_SHADER)
+    val uiBoxFsh = Shader.create("/glsl/uibox.frag", GL_FRAGMENT_SHADER)
 
     val laserFsh = Shader.create("/glsl/laserbeam.frag", GL_FRAGMENT_SHADER)
 
-    val gridShaderProgram = Shader.createProgram(defaultVertexShader, gridFragmentShader)
-    val droneShaderProgram = Shader.createProgram(objectVertexShader, droneFragmentShader)
-    val uiTextShaderProgram = Shader.createProgram(uiVertexShader, uiTextFragmentShader)
-    val laserShaderProgram = Shader.createProgram(objectVertexShader, laserFsh)
+    val gridShaderProgram = Shader.createProgram(defaultVsh, gridFsh)
+    val droneShaderProgram = Shader.createProgram(objectVsh, droneFsh)
+    val uiTextShaderProgram = Shader.createProgram(uiVsh, uiTextFsh)
+    val uiBoxShaderProgram = Shader.createProgram(uiVsh, uiBoxFsh)
+    val laserShaderProgram = Shader.createProgram(objectVsh, laserFsh)
 
     // Set up bitmap (font) texture
     val font = loadFont()
@@ -195,12 +198,13 @@ fun main(args: Array<String>) {
     world.addBody(droneBody)
 
     val screenDimensions = Vector2f(windowWidth.toFloat(), windowHeight.toFloat())
+    val windowContainer = WindowContainer(screenDimensions)
 
     // Init Fps counter
-    val fpsCounter = UiText(Ui.Params(screenDimensions,
-        { dims -> dims.set(120f, 38f) },
-        { anchor -> anchor.set(1f, 1f) },
-        { pos -> pos.set(screenWidth - 14f, screenHeight - 10f) }))
+    val fpsCounter = UiText(Ui.Params(windowContainer,
+        { dims, _ -> dims.set(120f, 38f) },
+        { anchor, _ -> anchor.set(1f, 1f) },
+        { pos, c -> pos.set(c.width - 14f, c.height - 10f) }))
     fpsCounter.textAlign = Ui.TextAlign.RIGHT
     fpsCounter.textFgColor = 10
     fpsCounter.renderer = UiTextRenderer(fpsCounter, uiTextShaderProgram, ssbo, font)
@@ -210,13 +214,28 @@ fun main(args: Array<String>) {
     var fpsFramesCount = 0
 
     // Init paused text
-    val pausedLabel = UiText(Ui.Params(screenDimensions,
-        { dims -> dims.set(180f, 30f) },
-        { anchor -> anchor.set(0f, -1f) },
-        { pos -> pos.set(screenWidth * 0.5f, 40f) }))
+    val pausedLabel = UiText(Ui.Params(windowContainer,
+        { dims, _ -> dims.set(180f, 30f) },
+        { anchor, _ -> anchor.set(0f, -1f) },
+        { pos, c -> pos.set(c.width * 0.5f, 40f) }))
     pausedLabel.transparentTextBg = true
     pausedLabel.textAlign = Ui.TextAlign.CENTER
     pausedLabel.renderer = UiTextRenderer(pausedLabel, uiTextShaderProgram, ssbo, font)
+
+    // Init info box
+    val infoBox = UiBox(Ui.Params(windowContainer,
+        { dims, _ -> dims.set(300f, 180f) },
+        { anchor, _ -> anchor.set(1f, 0f) },
+        { pos, c -> pos.set(c.width - 10f, c.height * 0.5f) }))
+    infoBox.renderer = UiBoxRenderer(infoBox, uiBoxShaderProgram)
+
+    val infoBoxText = UiText(Ui.Params(infoBox,
+        { dims, _ -> dims.set(150f, 30f) },
+        { anchor, _ -> anchor.set(-1f, 0f) },
+        { pos, c -> pos.set(10f, c.height * 0.5f) }))
+    infoBoxText.requestedString = "In Box"
+    infoBoxText.textBgColor = 12
+    infoBoxText.renderer = UiTextRenderer(infoBoxText, uiTextShaderProgram, ssbo, font)
 
     // Misc.
     val mouseXArr = DoubleArray(1)
@@ -381,23 +400,27 @@ fun main(args: Array<String>) {
         glDrawArrays(GL_TRIANGLES, 0, 6)
 
         // Render drone
-        drone.renderer?.render(camera.matrixArr, gameTime)
+        drone.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
 
         // Render laser beam
         drone.laserBeam?.let { laser ->
             if (laser.renderer == null) {
                 laser.renderer = LaserBeamRenderer(laser, laserShaderProgram)
             }
-            laser.renderer?.render(camera.matrixArr, gameTime)
+            laser.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
         }
 
         // Render framerate counter
         fpsCounter.requestedString = lastFps.toString()
-        fpsCounter.renderer?.render(camera.matrixArr, gameTime)
+        fpsCounter.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
 
         // Render paused reminder
         pausedLabel.requestedString = if (paused) "Paused" else ""
-        pausedLabel.renderer?.render(camera.matrixArr, gameTime)
+        pausedLabel.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
+
+        // Render info box
+        infoBox.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
+        infoBoxText.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
 
         glfwPollEvents()
         glfwSwapBuffers(window)

@@ -1,6 +1,7 @@
 package drones
 
 import org.joml.Matrix4f
+import org.joml.Vector2fc
 import org.lwjgl.opengl.GL43.*
 
 class LaserBeamRenderer(private val laserBeam: LaserBeam, private val shaderProgram: Int) : Renderer {
@@ -44,7 +45,7 @@ class LaserBeamRenderer(private val laserBeam: LaserBeam, private val shaderProg
         glEnableVertexAttribArray(1)
     }
 
-    override fun render(cameraMatrixArr: FloatArray, time: Float) {
+    override fun render(screenDimensions: Vector2fc, cameraMatrixArr: FloatArray, time: Float) {
         updateModelMatrix()
 
         glUseProgram(shaderProgram)

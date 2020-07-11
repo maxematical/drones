@@ -1,5 +1,7 @@
 package drones
 
+import org.joml.Vector2fc
+
 interface Renderer {
-    fun render(cameraMatrixArr: FloatArray, time: Float)
+    fun render(screenDimensions: Vector2fc, cameraMatrixArr: FloatArray, time: Float)
 }

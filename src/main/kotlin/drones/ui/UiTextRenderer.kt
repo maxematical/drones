@@ -1,9 +1,12 @@
-package drones
+package drones.ui
 
+import drones.GameFont
+import drones.stringToBitmapArray
 import org.lwjgl.opengl.GL43.*
 
 class UiTextRenderer(private val ui: UiText, shaderProgram: Int,
-                     private val ssbo: Int, private val font: GameFont) : UiRenderer(ui, shaderProgram) {
+                     private val ssbo: Int, private val font: GameFont
+) : UiRenderer(ui, shaderProgram) {
     private val uniformFontScale: Int
     private val uniformFontSpacing: Int
     private val uniformFontAlign: Int

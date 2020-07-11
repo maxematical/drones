@@ -1,6 +1,6 @@
-package drones
+package drones.ui
 
-class UiText(params: Ui.Params) : Ui(params) {
+class UiText(params: Params) : Ui(params) {
     var requestedString: String? = null
     var textBgColor: Int = 0
     var textFgColor: Int = 15

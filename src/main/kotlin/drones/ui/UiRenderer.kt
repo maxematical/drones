@@ -1,5 +1,7 @@
-package drones
+package drones.ui
 
+import drones.Renderer
+import org.joml.Vector2fc
 import org.lwjgl.opengl.GL30.*
 
 abstract class UiRenderer(private val ui: Ui, private val shaderProgram: Int) : Renderer {
@@ -34,9 +36,12 @@ abstract class UiRenderer(private val ui: Ui, private val shaderProgram: Int) : 
         glEnableVertexAttribArray(0)
     }
 
-    final override fun render(cameraMatrixArr: FloatArray, time: Float) {
+    final override fun render(screenDimensions: Vector2fc, cameraMatrixArr: FloatArray, time: Float) {
+        if (!ui.shown)
+            return
+
         glUseProgram(shaderProgram)
-        glUniform2f(uniformWindowSize, ui.screenWidth, ui.screenHeight)
+        glUniform2f(uniformWindowSize, screenDimensions.x(), screenDimensions.y())
         glUniform2f(uniformUiAnchorPoint, ui.anchorPoint.x(), ui.anchorPoint.y())
         glUniform2f(uniformUiPositionPx, ui.position.x(), ui.position.y())
         glUniform2f(uniformUiDimensionsPx, ui.dimensions.x(), ui.dimensions.y())

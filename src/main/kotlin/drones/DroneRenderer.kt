@@ -1,5 +1,6 @@
 package drones
 
+import org.joml.Vector2fc
 import org.lwjgl.opengl.GL30.*
 
 class DroneRenderer(private val drone: Drone, private val shaderProgram: Int,
@@ -43,7 +44,7 @@ class DroneRenderer(private val drone: Drone, private val shaderProgram: Int,
         glEnableVertexAttribArray(1)
     }
 
-    override fun render(cameraMatrixArr: FloatArray, time: Float) {
+    override fun render(screenDimensions: Vector2fc, cameraMatrixArr: FloatArray, time: Float) {
         glUseProgram(shaderProgram)
         glUniformMatrix4fv(locationCameraMatrix, false, cameraMatrixArr)
         glUniformMatrix4fv(locationModelMatrix, false, drone.modelMatrixArr)
