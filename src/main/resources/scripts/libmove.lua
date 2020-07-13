@@ -34,4 +34,8 @@ function move.units(units_x, units_y)
     move.to(target)
 end
 
+function move.return_to_base()
+    move.to(vector.create(0, 0), 3)
+end
+
 return move

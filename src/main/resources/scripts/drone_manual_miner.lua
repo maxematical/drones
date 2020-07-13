@@ -5,3 +5,4 @@ end
 
 print('Manual miner -- main script')
 scanner.on()
+move.return_to_base()

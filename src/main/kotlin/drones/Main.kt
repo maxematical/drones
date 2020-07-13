@@ -160,8 +160,11 @@ fun main(args: Array<String>) {
     grid.tiles[4][4] = TileStone
 
     // Setup drones
+    val baseLocation = Vector2f(3f, -3f)
     val drone1 = Drone(grid, Vector2f(-2f, 3f), 0xEEEEEE, 90f)
     val drone2 = Drone(grid, Vector2f(2f, 0f), 0x888888, 90f)
+    drone1.scriptOrigin = baseLocation
+    drone2.scriptOrigin = baseLocation
 
     val installScripts: (Drone) -> ScriptManager.(Globals) -> Unit = { drone -> { globals ->
         ModuleVector.install(globals)
@@ -267,7 +270,7 @@ fun main(args: Array<String>) {
         logger.info("Object was successfully despawned")
     }
 
-    spawnObject(Base(Vector2f(3f, -3f)))
+    spawnObject(Base(baseLocation))
     spawnObject(drone1)
     spawnObject(drone2)
 

@@ -5,6 +5,7 @@ import org.dyn4j.geometry.Circle
 import org.dyn4j.geometry.Mass
 import org.dyn4j.geometry.Vector2
 import org.joml.Vector2f
+import org.joml.Vector2fc
 
 class Drone(val grid: Grid,
             override val position: Vector2f,
@@ -15,6 +16,7 @@ class Drone(val grid: Grid,
     val desiredVelocity: Vector2f = Vector2f(0f, 0f)
 
     var localTime: Float = 0f
+    var scriptOrigin: Vector2fc = Vector2f()
 
     var hasDestination: Boolean = false
     val destination: Vector2f = Vector2f()

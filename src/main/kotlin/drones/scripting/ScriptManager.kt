@@ -8,6 +8,7 @@ import drones.game.TileStone
 import drones.scripting.ModuleCore.Fchecktype
 import drones.scripting.ModuleCore.Fclamparg
 import org.joml.Vector2f
+import org.joml.Vector2fc
 import org.joml.Vector2i
 import org.luaj.vm2.*
 import org.luaj.vm2.compiler.LuaC
@@ -214,6 +215,9 @@ object ModuleVector : DroneModule {
 
         operator fun invoke(x: Float, y: Float): LuaValue =
             invoke(x.toDouble(), y.toDouble())
+
+        operator fun invoke(vec: Vector2fc): LuaValue =
+            invoke(vec.x(), vec.y())
     }
 
     object Fadd : TwoArgFunction() {
@@ -402,7 +406,9 @@ class ModuleCore(drone: Drone) : DroneModule {
 
     class Fgetpos(val drone: Drone) : ZeroArgFunction() {
         override fun call(): LuaValue {
-            return ModuleVector.Fcreate(drone.position.x, drone.position.y)
+            val pos = ModuleVector.Fcreate(drone.position)
+            ModuleVector.Fsub.call(pos, ModuleVector.Fcreate(drone.scriptOrigin))
+            return pos
         }
     }
 
@@ -442,6 +448,7 @@ class ModuleCore(drone: Drone) : DroneModule {
         override fun invoke(varargs: Varargs): Varargs {
             if (drone.hasDestination) {
                 val destinationVector = ModuleVector.Fcreate(drone.destination.x, drone.destination.y)
+                ModuleVector.Fsub.call(destinationVector, ModuleVector.Fcreate(drone.scriptOrigin))
                 val targetDistance = LuaValue.valueOf(drone.destinationTargetDistance.toDouble())
                 return LuaValue.varargsOf(destinationVector, targetDistance)
             } else {
@@ -463,7 +470,7 @@ class ModuleCore(drone: Drone) : DroneModule {
                     "be within the range %a to %b, got %x.")
 
             drone.hasDestination = true
-            drone.destination.set(vector.get("x").checkdouble(), vector.get("y").checkdouble())
+            drone.destination.set(vector.get("x").checkdouble(), vector.get("y").checkdouble()).add(drone.scriptOrigin)
             drone.destinationTargetDistance = distance.toFloat()
 
             return LuaValue.NIL
@@ -497,8 +504,8 @@ class ModuleScanner(private val drone: Drone, private val scriptMgr: ScriptManag
 
             val scan: LuaValue? = doScan<LuaValue>(drone, scanRadius) { tile, gridX, gridY ->
                 if (tile == TileStone) {
-                    val x = drone.grid.gridToWorldX(gridX)
-                    val y = drone.grid.gridToWorldY(gridY)
+                    val x = drone.grid.gridToWorldX(gridX) - drone.scriptOrigin.x()
+                    val y = drone.grid.gridToWorldY(gridY) - drone.scriptOrigin.y()
                     ModuleVector.Fcreate(x, y)
                 } else null
             }
@@ -529,9 +536,9 @@ class ModuleScanner(private val drone: Drone, private val scriptMgr: ScriptManag
                 println("Kotlin Scanner: Found stuff, sending to lua")
 
                 val (gridX, gridY) = scan
-                val worldX = drone.grid.gridToWorldX(gridX)
-                val worldY = drone.grid.gridToWorldY(gridY)
-                return globals.load("on_scan_detected(vector.create($worldX, $worldY))")
+                val scriptX = drone.grid.gridToWorldX(gridX) - drone.scriptOrigin.x()
+                val scriptY = drone.grid.gridToWorldY(gridY) - drone.scriptOrigin.y()
+                return globals.load("on_scan_detected(vector.create($scriptX, $scriptY))")
             }
             return null
         }
