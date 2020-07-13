@@ -1,9 +1,10 @@
 package drones.game
 
 import drones.MathUtils
+import org.joml.Vector2f
 import org.joml.Vector2fc
 
-class LaserBeam(override val position: Vector2fc,
+class LaserBeam(override val position: Vector2f,
                 override var rotation: Float,
                 var width: Float,
                 var unobstructedLength: Float) : GameObject() {
@@ -11,6 +12,10 @@ class LaserBeam(override val position: Vector2fc,
     var actualLength: Float = unobstructedLength
 
     var lifetime: Float = 0f
+
+    var colorR: Float = 1.5f
+    var colorG: Float = 1.5f
+    var colorB: Float = 1.5f
 
     override fun recomputeModelMatrix() {
         mutModelMatrix.identity()

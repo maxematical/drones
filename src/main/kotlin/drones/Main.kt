@@ -1,7 +1,7 @@
 package drones
 
 import drones.game.*
-import drones.render.BaseRenderer
+import drones.render.SimpleObjectRenderer
 import drones.render.DroneRenderer
 import drones.render.LaserBeamRenderer
 import drones.render.Shader
@@ -102,13 +102,13 @@ fun main(args: Array<String>) {
 
     val laserFsh = Shader.create("/glsl/laserbeam.frag", GL_FRAGMENT_SHADER)
 
-    val baseFsh = Shader.create("/glsl/base.frag", GL_FRAGMENT_SHADER)
+    val simpleObjFsh = Shader.create("/glsl/simpleobject.frag", GL_FRAGMENT_SHADER)
 
     val gridShaderProgram = Shader.createProgram(defaultVsh, gridFsh)
     val droneShaderProgram = Shader.createProgram(objectVsh, droneFsh)
     val uiTextShaderProgram = Shader.createProgram(uiVsh, uiTextFsh)
     val laserShaderProgram = Shader.createProgram(objectVsh, laserFsh)
-    val baseShaderProgram = Shader.createProgram(objectVsh, baseFsh)
+    val simpleObjShaderProgram = Shader.createProgram(objectVsh, simpleObjFsh)
 
     // Set up bitmap (font) texture
     val font = loadFont()
@@ -166,19 +166,6 @@ fun main(args: Array<String>) {
     drone1.scriptOrigin = baseLocation
     drone2.scriptOrigin = baseLocation
 
-    val installScripts: (Drone) -> ScriptManager.(Globals) -> Unit = { drone -> { globals ->
-        ModuleVector.install(globals)
-        ModuleCore(drone).install(globals)
-        ModuleScanner(drone, this).install(globals)
-        ModuleMiningLaser(drone).install(globals)
-        globals.set("move", globals.loadfile("libmove.lua").call())
-        globals.loadfile("libscanner.lua").call()
-    } }
-    val scriptMgr1 = ScriptManager(drone1, "drone_ore_search.lua", Int.MAX_VALUE, installScripts(drone1))
-    scriptMgr1.onComplete = { drone1.desiredVelocity.set(0f, 0f) }
-    val scriptMgr2 = ScriptManager(drone2, "drone_manual_miner.lua", Int.MAX_VALUE, installScripts(drone2))
-    scriptMgr2.onComplete = { drone2.desiredVelocity.set(0f, 0f) }
-
     // Setup physics
     val world = World()
     world.gravity.set(0.0, 0.0)
@@ -232,7 +219,21 @@ fun main(args: Array<String>) {
 
     val gameObjects = mutableListOf<GameObject>()
 
-    val gameState = GameState(world, grid, gridBody, LinkedList(), LinkedList())
+    val gameState = GameState(world, grid, gridBody, LinkedList(), LinkedList(), gameObjects)
+
+    val installScripts: (Drone) -> ScriptManager.(Globals) -> Unit = { drone -> { globals ->
+        ModuleVector.install(globals)
+        ModuleCore(drone).install(globals)
+        ModuleScanner(drone, this).install(globals)
+        ModuleMiningLaser(drone).install(globals)
+        ModuleTractorBeam(drone, gameState).install(globals)
+        globals.set("move", globals.loadfile("libmove.lua").call())
+        globals.loadfile("libscanner.lua").call()
+    } }
+    val scriptMgr1 = ScriptManager(drone1, "drone_ore_search.lua", Int.MAX_VALUE, installScripts(drone1))
+    scriptMgr1.onComplete = { drone1.desiredVelocity.set(0f, 0f) }
+    val scriptMgr2 = ScriptManager(drone2, "drone_manual_miner.lua", Int.MAX_VALUE, installScripts(drone2))
+    scriptMgr2.onComplete = { drone2.desiredVelocity.set(0f, 0f) }
 
     // Spawn the objects
     val spawnObject: (GameObject) -> Unit = { gameObject ->
@@ -243,13 +244,15 @@ fun main(args: Array<String>) {
         gameObject.renderer = when (gameObject) {
             is Drone -> DroneRenderer(gameObject, droneShaderProgram, font)
             is LaserBeam -> LaserBeamRenderer(gameObject, laserShaderProgram)
-            is Base -> BaseRenderer(gameObject, baseShaderProgram, font)
+            is Base -> SimpleObjectRenderer(gameObject, simpleObjShaderProgram, font, '#', 2f, true)
+            is OreChunk -> SimpleObjectRenderer(gameObject, simpleObjShaderProgram, font, 'o')
             else -> throw RuntimeException("Could not create renderer for GameObject $gameObject")
         }
         gameObject.behavior = when (gameObject) {
             is Drone -> DroneBehavior(gameState, gameObject)
-            is LaserBeam -> LaserBeamBehavior(gameState, gameObject)
+            is LaserBeam -> if (gameObject.behavior is IdleBehavior) LaserBeamBehavior(gameState, gameObject) else gameObject.behavior
             is Base -> gameObject.behavior
+            is OreChunk -> gameObject.behavior
             else -> throw RuntimeException("Could not create behavior for GameObject $gameObject")
         }
         if (gameObject is Drone)
@@ -261,6 +264,8 @@ fun main(args: Array<String>) {
     }
     val despawnObject: (GameObject) -> Unit = { gameObject ->
         logger.info("Despawning object $gameObject")
+        gameObject.behavior.remove()
+
         if (gameObject.physicsBody != null) {
             world.removeBody(gameObject.physicsBody)
         }
@@ -273,6 +278,7 @@ fun main(args: Array<String>) {
     spawnObject(Base(baseLocation))
     spawnObject(drone1)
     spawnObject(drone2)
+    spawnObject(OreChunk(Vector2f(5f, 5f), 0f))
 
     // Loop
     while (!glfwWindowShouldClose(window)) {
@@ -291,6 +297,8 @@ fun main(args: Array<String>) {
             for (gameObject in gameObjects) {
                 gameObject.behavior.update(deltaTime)
                 gameObject.recomputeModelMatrix()
+
+                gameObject.physicsBody?.userData = gameObject
             }
 
             for (gameObject in gameObjects) {
@@ -310,8 +318,8 @@ fun main(args: Array<String>) {
             gameState.despawnQueue.clear()
 
             // Update scripts
-            scriptMgr1.update()
-            scriptMgr2.update()
+            scriptMgr1.update(gameState)
+            scriptMgr2.update(gameState)
 
             // Update physics
             world.update(deltaTime.toDouble())

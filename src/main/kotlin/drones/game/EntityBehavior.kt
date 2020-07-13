@@ -5,4 +5,6 @@ package drones.game
  */
 interface EntityBehavior {
     fun update(deltaTime: Float)
+
+    fun remove() {}
 }

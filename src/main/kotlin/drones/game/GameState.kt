@@ -9,5 +9,6 @@ class GameState(
     val grid: Grid,
     val gridBody: Body,
     val spawnQueue: Queue<GameObject>,
-    val despawnQueue: Queue<GameObject>
+    val despawnQueue: Queue<GameObject>,
+    val objects: List<GameObject>
 )

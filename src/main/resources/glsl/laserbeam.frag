@@ -4,6 +4,7 @@ in vec2 vertexUv;
 
 uniform vec2 LaserDimensions;
 uniform float Time;
+uniform vec4 LaserColor;
 
 out vec4 FragColor;
 
@@ -46,5 +47,5 @@ void main()
     float taper2 = 1.0 - taper2Amount;
     taper2 = mix(taper2, 1.0, int(taper2Amount < 0));
 
-    FragColor = (light1 * 0.1 + 0.9) * light2 * (flicker * 0.04 + 0.96) * taper1 * taper2 * vec4(0.85, 0.85, 1.8, 1.0);
+    FragColor = (light1 * 0.1 + 0.9) * light2 * (flicker * 0.04 + 0.96) * taper1 * taper2 * LaserColor;
 }

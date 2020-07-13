@@ -1,12 +1,12 @@
 package drones.scripting
 
 import drones.*
-import drones.game.Drone
-import drones.game.LaserBeam
-import drones.game.Tile
-import drones.game.TileStone
+import drones.game.*
 import drones.scripting.ModuleCore.Fchecktype
 import drones.scripting.ModuleCore.Fclamparg
+import org.dyn4j.collision.Filter
+import org.dyn4j.dynamics.RaycastResult
+import org.dyn4j.geometry.Vector2
 import org.joml.Vector2f
 import org.joml.Vector2fc
 import org.joml.Vector2i
@@ -110,7 +110,7 @@ class ScriptManager(drone: Drone, filename: String, instructionLimit: Int = 20,
         // Might require DebugLib to be installed
     }
 
-    fun update() {
+    fun update(state: GameState) {
         // Update Lua script
         if (!isLuaFinished()) {
             val result: Varargs = thread.resume(LuaValue.varargsOf(emptyArray()))
@@ -124,7 +124,7 @@ class ScriptManager(drone: Drone, filename: String, instructionLimit: Int = 20,
 
         // Update enabled modules
         if (!isRunningCallback) {
-            nextCallback = activeScanning?.updateScanner()
+            nextCallback = activeScanning?.updateScanner(state)
         }
 
         // Update navigation
@@ -514,20 +514,18 @@ class ModuleScanner(private val drone: Drone, private val scriptMgr: ScriptManag
     }
 
     class Fon(val drone: Drone, val globals: Globals, val scriptMgr: ScriptManager) : OneArgFunction() {
-        private var callbackFunction: LuaValue? = null
-
         override fun call(arg: LuaValue): LuaValue {
-            val onScanFunc = globals.get("on_scan_detected")
-            if (onScanFunc != LuaValue.NIL) {
+            if (globals.get(TILE_DETECTED_CALLBACK) != LuaValue.NIL ||
+                globals.get(OBJECT_DETECTED_CALLBACK) != LuaValue.NIL) {
                 scriptMgr.activeScanning = this
-                this.callbackFunction = onScanFunc
             } else {
                 println("Error: can't enable active scanning because there isn't a scanning function defined")
             }
             return LuaValue.NIL
         }
 
-        fun updateScanner(): LuaValue? {
+        fun updateScanner(state: GameState): LuaValue? {
+            // Scan for tiles
             val scan: Pair<Int, Int>? = doScan(drone, 3) { tile, gridX, gridY ->
                 if (tile == TileStone) Pair(gridX, gridY) else null
             }
@@ -538,9 +536,27 @@ class ModuleScanner(private val drone: Drone, private val scriptMgr: ScriptManag
                 val (gridX, gridY) = scan
                 val scriptX = drone.grid.gridToWorldX(gridX) - drone.scriptOrigin.x()
                 val scriptY = drone.grid.gridToWorldY(gridY) - drone.scriptOrigin.y()
-                return globals.load("on_scan_detected(vector.create($scriptX, $scriptY))")
+                return globals.load("$TILE_DETECTED_CALLBACK(vector.create($scriptX, $scriptY))")
             }
+
+            // Scan for objects
+            if (globals.get(OBJECT_DETECTED_CALLBACK) != LuaValue.NIL) {
+                for (obj in state.objects) {
+                    if (obj != drone && obj != drone.carryingObject && drone.position.distance(obj.position) <= 3f) {
+                        val objX = obj.position.x() - drone.scriptOrigin.x()
+                        val objY = obj.position.y() - drone.scriptOrigin.y()
+                        val isCarryable = obj is OreChunk
+                        return globals.load("$OBJECT_DETECTED_CALLBACK(vector.create($objX, $objY), $isCarryable)")
+                    }
+                }
+            }
+
             return null
+        }
+
+        companion object {
+            private const val TILE_DETECTED_CALLBACK = "on_scan_detected"
+            private const val OBJECT_DETECTED_CALLBACK = "on_object_detected"
         }
     }
 
@@ -599,10 +615,14 @@ class ModuleMiningLaser(private val drone: Drone) : DroneModule {
 
             val angle = arg.checkdouble()
 
-            if (drone.laserBeam != null) {
+            if (drone.miningBeam != null) {
                 throw LuaError("mining_laser.laser_on: Can't turn the laser beam on, it was already on")
             }
-            drone.laserBeam = LaserBeam(drone.position, angle.toFloat(), 0.4f, 5f)
+            val laser = LaserBeam(drone.position, angle.toFloat(), 0.4f, 5f)
+            laser.colorR = 0.85f
+            laser.colorG = 0.85f
+            laser.colorB = 1.80f
+            drone.miningBeam = laser
             return LuaValue.NIL
         }
     }
@@ -615,22 +635,62 @@ class ModuleMiningLaser(private val drone: Drone) : DroneModule {
 
             val angle = arg.checkdouble()
 
-            if (drone.laserBeam == null) {
+            if (drone.miningBeam == null) {
                 throw LuaError("mining_laser.laser_target: Laser beam must be on before targeting")
             }
-            drone.laserBeam?.rotation = angle.toFloat()
+            drone.miningBeam?.rotation = angle.toFloat()
             return LuaValue.NIL
         }
     }
 
     private class Flaser_off(private val drone: Drone) : ZeroArgFunction() {
         override fun call(): LuaValue {
-            if (drone.laserBeam == null) {
+            if (drone.miningBeam == null) {
                 throw LuaError("mining_laser.laser_off: Can't turn the laser beam off, it was already off")
             }
-            drone.laserBeam?.requestDespawn = true
-            drone.laserBeam = null
+            drone.miningBeam?.requestDespawn = true
+            drone.miningBeam = null
             return LuaValue.NIL
+        }
+    }
+}
+
+class ModuleTractorBeam(private val drone: Drone, private val gameState: GameState) : DroneModule {
+    override fun buildModule(): LuaValue {
+        val table = LuaValue.tableOf()
+        table.set("fire_at", Ffire_at(drone, gameState))
+        return table
+    }
+
+    override fun install(globals: Globals) {
+        globals.set("tractor_beam", buildModule())
+    }
+
+    class Ffire_at(private val drone: Drone, private val gameState: GameState) : OneArgFunction() {
+        override fun call(arg: LuaValue): LuaValue {
+            Fchecktype(arg, "table", "tractor_beam.fire_at: Expected first argument to be a vector, the location to " +
+                    "fire towards.")
+
+            val fireTowardsVec = arg.checktable()
+            val fireTowardsX = fireTowardsVec.get("x").checkdouble() + drone.scriptOrigin.x()
+            val fireTowardsY = fireTowardsVec.get("y").checkdouble() + drone.scriptOrigin.y()
+
+            val rot = Math.atan2(fireTowardsY - drone.position.y, fireTowardsX - drone.position.x)
+            val rayLength = 3.0
+            val rayStart = Vector2(drone.position.x.toDouble(), drone.position.y.toDouble())
+            val rayEnd = Vector2(Math.cos(rot), Math.sin(rot)).multiply(rayLength).add(rayStart)
+            val results = mutableListOf<RaycastResult>()
+            if (gameState.world.raycast(rayStart, rayEnd, Filter { true }, true, false, true, results)) {
+                for (result in results) {
+                    val userData = result.body.userData
+                    if (userData is OreChunk) {
+                        drone.carryingObject = userData
+                        return LuaValue.TRUE
+                    }
+                }
+            }
+
+            return LuaValue.FALSE
         }
     }
 }

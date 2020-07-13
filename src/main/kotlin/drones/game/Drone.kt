@@ -22,8 +22,9 @@ class Drone(val grid: Grid,
     val destination: Vector2f = Vector2f()
     var destinationTargetDistance: Float = 0f
 
-    var laserBeam: LaserBeam? = null
+    var miningBeam: LaserBeam? = null
     var selected: Boolean = false
+    var carryingObject: GameObject? = null
 
     override val physicsBody: Body
     var physicalMass: Double = 1.0

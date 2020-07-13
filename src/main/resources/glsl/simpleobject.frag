@@ -9,11 +9,14 @@ uniform sampler2D BitmapTexture;
 uniform int PackedCharacterUv;
 uniform vec2 BitmapDimensions;
 
-void main() {
-    float nPatterns = 2.0;
-    vec2 uv2 = vertexUv * nPatterns - floor(vertexUv * nPatterns);
+uniform float NumberPatterns;
+uniform bool SwitchPatterns;
 
-    bool switchPattern = mod(floor(vertexUv.x * nPatterns) + floor(vertexUv.y * nPatterns), 2.0) == 1.0;
+void main() {
+    vec2 uv2 = vertexUv * NumberPatterns - floor(vertexUv * NumberPatterns);
+
+    bool switchPattern = SwitchPatterns &&
+        mod(floor(vertexUv.x * NumberPatterns) + floor(vertexUv.y * NumberPatterns), 2.0) == 1.0;
     uv2 = mix(uv2, uv2.yx, float(switchPattern));
 
     vec2 characterUvTopLeft = vec2((PackedCharacterUv >> 23) & 511, (PackedCharacterUv >> 14) & 511) / BitmapDimensions;
