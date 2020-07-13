@@ -108,3 +108,19 @@ More ideas 7/9
   achieved using different algorithms). E.g. it is easy to script drones to point their mining laser at the ore and
   mine it. But what if you can get more ore by ensuring the mining laser only is hitting small chunks of stone and not
   the ore itself? Better scripts will avoid hitting/destroying ore unnecessarily
+
+More ideas 7/13
+
+- power generation: How can we integrate power into the game (if we have it at all)?
+
+  - Individual drone power: range and operational time of a drone is influenced by their power capacity and usage.
+    Can optimize drones to be more power efficient by e.g. optimizing the script, changing the components, but that
+    could reduce their overall effectiveness. Drones recharge from base or possibly even other drones.
+
+  - Overall power: (Not sure if/how we should include this) Drones can recharge from the base, but what about the base's
+    power? Is it infinite or do we have to get it in some way?
+
+  - Idea: power generation depends on territory acquisition and thus the player must hold more ground in order to have
+    enough power
+
+  - Idea: ways to generate power but they are in dangerous areas that require specialized drones to operate in

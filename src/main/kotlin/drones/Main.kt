@@ -10,6 +10,7 @@ import org.joml.*
 import org.luaj.vm2.Globals
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
+import org.lwjgl.opengl.GL20
 import org.lwjgl.opengl.GL30.*
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.stb.STBImage
@@ -97,10 +98,13 @@ fun main(args: Array<String>) {
 
     val laserFsh = Shader.create("/glsl/laserbeam.frag", GL_FRAGMENT_SHADER)
 
+    val baseFsh = Shader.create("/glsl/base.frag", GL_FRAGMENT_SHADER)
+
     val gridShaderProgram = Shader.createProgram(defaultVsh, gridFsh)
     val droneShaderProgram = Shader.createProgram(objectVsh, droneFsh)
     val uiTextShaderProgram = Shader.createProgram(uiVsh, uiTextFsh)
     val laserShaderProgram = Shader.createProgram(objectVsh, laserFsh)
+    val baseShaderProgram = Shader.createProgram(objectVsh, baseFsh)
 
     // Set up bitmap (font) texture
     val font = loadFont()
@@ -151,7 +155,7 @@ fun main(args: Array<String>) {
     grid.tiles[4][3] = TileStone
     grid.tiles[4][4] = TileStone
 
-    // Setup drone
+    // Setup drones
     val drone1 = Drone(grid, Vector2f(-2f, 3f), 0xEEEEEE, 90f)
     val drone2 = Drone(grid, Vector2f(2f, 0f), 0x888888, 90f)
 
@@ -232,17 +236,20 @@ fun main(args: Array<String>) {
         gameObject.renderer = when (gameObject) {
             is Drone -> DroneRenderer(gameObject, droneShaderProgram, font)
             is LaserBeam -> LaserBeamRenderer(gameObject, laserShaderProgram)
+            is Base -> BaseRenderer(gameObject, baseShaderProgram, font)
             else -> throw RuntimeException("Could not create renderer for GameObject $gameObject")
         }
         gameObject.behavior = when (gameObject) {
             is Drone -> DroneBehavior(gameState, gameObject)
             is LaserBeam -> LaserBeamBehavior(gameState, gameObject)
+            is Base -> gameObject.behavior
             else -> throw RuntimeException("Could not create behavior for GameObject $gameObject")
         }
         if (gameObject is Drone)
             gameObject.hoverable = DroneHoverable(gameObject)
         gameObjects.add(gameObject)
         gameObject.spawned = true
+        gameObject.spawnedTime = gameTime
         logger.info("Object was successfully spawned")
     }
     val despawnObject: (GameObject) -> Unit = { gameObject ->
@@ -256,6 +263,7 @@ fun main(args: Array<String>) {
         logger.info("Object was successfully despawned")
     }
 
+    spawnObject(Base(Vector2f(3f, -3f)))
     spawnObject(drone1)
     spawnObject(drone2)
 

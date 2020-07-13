@@ -1,14 +1,9 @@
 package drones
 
-import org.joml.Vector2fc
 import org.lwjgl.opengl.GL30.*
 
-class DroneRenderer(private val drone: Drone, private val shaderProgram: Int,
-                    private val font: GameFont) : Renderer {
-    private val vao: Int
-
-    private val locationCameraMatrix: Int
-    private val locationModelMatrix: Int
+class DroneRenderer(private val drone: Drone, shaderProgram: Int,
+                    private val font: GameFont) : GameObjectRenderer(drone, shaderProgram) {
     private val locationPackedCharacterUv: Int
     private val locationBitmapDimensions: Int
     private val locationDroneColor: Int
@@ -16,48 +11,19 @@ class DroneRenderer(private val drone: Drone, private val shaderProgram: Int,
     private val locationIsSelected: Int
 
     init {
-        locationCameraMatrix = glGetUniformLocation(shaderProgram, "cameraMatrix")
-        locationModelMatrix = glGetUniformLocation(shaderProgram, "modelMatrix")
         locationPackedCharacterUv = glGetUniformLocation(shaderProgram, "packedCharacterUv")
         locationBitmapDimensions = glGetUniformLocation(shaderProgram, "bitmapDimensions")
         locationDroneColor = glGetUniformLocation(shaderProgram, "droneColor")
         locationLedColor = glGetUniformLocation(shaderProgram, "ledColor")
         locationIsSelected = glGetUniformLocation(shaderProgram, "isSelected")
-
-        val vertices: FloatArray = floatArrayOf(
-            -0.5f, -0.5f, 0.0f, 0f, 1f,
-            0.5f, -0.5f, 0.0f, 1f, 1f,
-            0.5f, 0.5f, 0.0f, 1f, 0f,
-
-            -0.5f, 0.5f, 0f, 0f, 0f,
-            -0.5f, -0.5f, 0f, 0f, 1f,
-            0.5f, 0.5f, 0f, 1f, 0f
-        )
-
-        vao = glGenVertexArrays()
-        glBindVertexArray(vao)
-
-        val vbo = glGenBuffers()
-        glBindBuffer(GL_ARRAY_BUFFER, vbo)
-        glBufferData(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW)
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, 20, 0)
-        glVertexAttribPointer(1, 2, GL_FLOAT, false, 20, 12)
-        glEnableVertexAttribArray(0)
-        glEnableVertexAttribArray(1)
     }
 
-    override fun render(screenDimensions: Vector2fc, cameraMatrixArr: FloatArray, time: Float) {
-        glUseProgram(shaderProgram)
-        glUniformMatrix4fv(locationCameraMatrix, false, cameraMatrixArr)
-        glUniformMatrix4fv(locationModelMatrix, false, drone.modelMatrixArr)
+    override fun setUniforms() {
         glUniform1i(locationPackedCharacterUv, font.characterCoordinatesLut[font.characterCodeLut['>']!!])
         glUniform2f(locationBitmapDimensions, font.bitmapWidth.toFloat(), font.bitmapHeight.toFloat())
         glUniform1i(locationDroneColor, drone.color)
         glUniform1i(locationLedColor, drone.ledColor)
         glUniform1i(locationIsSelected, if (drone.selected) GL_TRUE else GL_FALSE)
-
         glBindTexture(GL_TEXTURE_2D, font.glBitmap)
-        glBindVertexArray(vao)
-        glDrawArrays(GL_TRIANGLES, 0, 6)
     }
 }
