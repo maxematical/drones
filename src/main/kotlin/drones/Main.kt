@@ -1,10 +1,7 @@
 package drones
 
 import drones.game.*
-import drones.render.SimpleObjectRenderer
-import drones.render.DroneRenderer
-import drones.render.LaserBeamRenderer
-import drones.render.Shader
+import drones.render.*
 import drones.scripting.*
 import drones.ui.*
 import org.dyn4j.dynamics.Body
@@ -99,16 +96,21 @@ fun main(args: Array<String>) {
 
     val uiVsh = Shader.create("/glsl/ui.vert", GL_VERTEX_SHADER)
     val uiTextFsh = Shader.create("/glsl/uitext.frag", GL_FRAGMENT_SHADER)
+    val uiBoxFsh = Shader.create("/glsl/uibox.frag", GL_FRAGMENT_SHADER)
 
     val laserFsh = Shader.create("/glsl/laserbeam.frag", GL_FRAGMENT_SHADER)
 
     val simpleObjFsh = Shader.create("/glsl/simpleobject.frag", GL_FRAGMENT_SHADER)
 
+    val debugDotFsh = Shader.create("/glsl/debugdot.frag", GL_FRAGMENT_SHADER)
+
     val gridShaderProgram = Shader.createProgram(defaultVsh, gridFsh)
     val droneShaderProgram = Shader.createProgram(objectVsh, droneFsh)
     val uiTextShaderProgram = Shader.createProgram(uiVsh, uiTextFsh)
+    val uiBoxShaderProgram = Shader.createProgram(uiVsh, uiBoxFsh)
     val laserShaderProgram = Shader.createProgram(objectVsh, laserFsh)
     val simpleObjShaderProgram = Shader.createProgram(objectVsh, simpleObjFsh)
+    val debugDotShaderProgram = Shader.createProgram(defaultVsh, debugDotFsh)
 
     // Set up bitmap (font) texture
     val font = loadFont()
@@ -208,6 +210,34 @@ fun main(args: Array<String>) {
     pausedLabel.transparentTextBg = true
     pausedLabel.textAlign = Ui.TextAlign.CENTER
     pausedLabel.renderer = UiTextRenderer(pausedLabel, uiTextShaderProgram, ssbo, font)
+
+    // Init info box
+    val infoBox = UiBox(Ui.Params(windowContainer,
+        { dims, _ -> dims.set(300f, 0f) },
+        { anchor, _ -> anchor.set(1f, 0f) },
+        { pos, c -> pos.set(c.width - 10f, c.height * 0.5f) },
+        { pad, _ -> pad.set(0f, 10f, 100f, 10f) },
+        allowOverflow = false))
+    infoBox.renderer = UiBoxRenderer(infoBox, uiBoxShaderProgram)
+
+    val infoBoxText = UiText(Ui.Params(infoBox,
+        { dims, _ -> dims.set(150f, 30f) },
+        { anchor, _ -> anchor.set(-1f, -1f) },
+        { pos, c -> pos.set(0f, 0f) }))
+    infoBoxText.requestedString = "In Box"
+    infoBoxText.textBgColor = 12
+    infoBoxText.renderer = UiTextRenderer(infoBoxText, uiTextShaderProgram, ssbo, font)
+
+    /*
+
+    UiGrid.rows(nRows = 2)
+            .add(UiText("Hello:"), width = CellSize.Auto)
+            .add(UiText("56%"), width = CellSize.Auto)
+
+     */
+
+    var debugDot: DebugDotRenderer? = null
+    debugDot = DebugDotRenderer(debugDotShaderProgram, infoBox.bottomLeft)
 
     // Misc.
     val logger = LoggerFactory.getLogger(Main::class.java)

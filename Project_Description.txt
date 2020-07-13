@@ -127,3 +127,12 @@ More ideas 7/13
 
 - Laser beam that takes a second to charge before firing. (Physically appears in the world as it is charging) but it is
   slower to aim, so its possible to dodge this/create drones that can dodge this type of laser
+
+- Periodic bursts of radiation that can deal damage to unprotected drones. It's possible to detect these and the player
+  must hide their drones to protect them
+
+- Periodic times where it is difficult to communicate between drones, but also possibly messages can travel further in
+  a certain direction
+
+- It's always possible to see drones (and probably debug info about their script), but if communication is cut off from
+  the base, can't manually control them
