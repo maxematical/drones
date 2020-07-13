@@ -8,6 +8,7 @@ uniform vec2 bitmapDimensions;
 uniform sampler2D bitmap;
 uniform int droneColor;
 uniform int ledColor;
+uniform bool isSelected;
 
 void main()
 {
@@ -17,11 +18,26 @@ void main()
     vec2 bitmapUv = characterUvTopLeft + vertexUv * characterUvWidthHeight;
 
     FragColor = texture(bitmap, bitmapUv);
+    float textureAlpha = FragColor.a;
 
     float droneColorR = droneColor >> 16;
     float droneColorG = (droneColor >> 8) & 255;
     float droneColorB = droneColor & 255;
     FragColor.rgb *= vec3(droneColorR, droneColorG, droneColorB) / 255.0;
+
+    // Draw selection outline
+    float outlineScale = 0.1;
+    int range = 3;
+    bool drawOutline = false;
+    for (int y = 0; y < range; y++) {
+        for (int x = 0; x < range; x++) {
+            vec2 texUv = bitmapUv + vec2(x - range / 2, y - range / 2) * outlineScale / bitmapDimensions;
+            bool differentAlpha = abs(texture(bitmap, texUv).a - textureAlpha) > 0.1;
+            drawOutline = drawOutline || differentAlpha;
+        }
+    }
+    drawOutline = drawOutline && isSelected;
+    FragColor = mix(FragColor, vec4(1.0, 0.0, 0.0, 1.0), int(drawOutline));
 
     // Draw dot (LED) at center of drone
     float dotRadius = 0.17;

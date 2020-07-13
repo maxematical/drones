@@ -21,6 +21,7 @@ class Drone(val grid: Grid,
     var destinationTargetDistance: Float = 0f
 
     var laserBeam: LaserBeam? = null
+    var selected: Boolean = false
 
     override val physicsBody: Body
 

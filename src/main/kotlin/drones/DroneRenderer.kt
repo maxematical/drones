@@ -13,6 +13,7 @@ class DroneRenderer(private val drone: Drone, private val shaderProgram: Int,
     private val locationBitmapDimensions: Int
     private val locationDroneColor: Int
     private val locationLedColor: Int
+    private val locationIsSelected: Int
 
     init {
         locationCameraMatrix = glGetUniformLocation(shaderProgram, "cameraMatrix")
@@ -21,6 +22,7 @@ class DroneRenderer(private val drone: Drone, private val shaderProgram: Int,
         locationBitmapDimensions = glGetUniformLocation(shaderProgram, "bitmapDimensions")
         locationDroneColor = glGetUniformLocation(shaderProgram, "droneColor")
         locationLedColor = glGetUniformLocation(shaderProgram, "ledColor")
+        locationIsSelected = glGetUniformLocation(shaderProgram, "isSelected")
 
         val vertices: FloatArray = floatArrayOf(
             -0.5f, -0.5f, 0.0f, 0f, 1f,
@@ -52,6 +54,7 @@ class DroneRenderer(private val drone: Drone, private val shaderProgram: Int,
         glUniform2f(locationBitmapDimensions, font.bitmapWidth.toFloat(), font.bitmapHeight.toFloat())
         glUniform1i(locationDroneColor, drone.color)
         glUniform1i(locationLedColor, drone.ledColor)
+        glUniform1i(locationIsSelected, if (drone.selected) GL_TRUE else GL_FALSE)
 
         glBindTexture(GL_TEXTURE_2D, font.glBitmap)
         glBindVertexArray(vao)

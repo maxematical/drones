@@ -317,14 +317,27 @@ fun main(args: Array<String>) {
 
             if (mouseLeftClicked) {
                 // Check if we're clicking on any drones
+                var clickedOnDrone = false
+
                 for (obj in gameObjects) {
                     if (obj is Drone && obj.hoverable.isHover(transformedMousePos)) {
+                        clickedOnDrone = true
                         if (obj in selectedDrones) {
                             selectedDrones.remove(obj)
+                            obj.selected = false
                         } else {
                             selectedDrones.add(obj)
+                            obj.selected = true
                         }
                     }
+                }
+
+                // Deselect all drones if didn't click on anything
+                if (!clickedOnDrone) {
+                    for (drone in selectedDrones) {
+                        drone.selected = false
+                    }
+                    selectedDrones.clear()
                 }
             }
             if (mouseRightClicked) {
