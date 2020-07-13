@@ -14,6 +14,7 @@ import org.lwjgl.opengl.GL30.*
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.stb.STBImage
 import org.lwjgl.system.MemoryUtil.NULL
+import org.slf4j.LoggerFactory
 import java.io.FileNotFoundException
 import java.nio.ByteBuffer
 import java.util.*
@@ -93,18 +94,13 @@ fun main(args: Array<String>) {
 
     val uiVsh = Shader.create("/glsl/ui.vert", GL_VERTEX_SHADER)
     val uiTextFsh = Shader.create("/glsl/uitext.frag", GL_FRAGMENT_SHADER)
-    val uiBoxFsh = Shader.create("/glsl/uibox.frag", GL_FRAGMENT_SHADER)
 
     val laserFsh = Shader.create("/glsl/laserbeam.frag", GL_FRAGMENT_SHADER)
-
-    val dotFsh = Shader.create("/glsl/debugdot.frag", GL_FRAGMENT_SHADER)
 
     val gridShaderProgram = Shader.createProgram(defaultVsh, gridFsh)
     val droneShaderProgram = Shader.createProgram(objectVsh, droneFsh)
     val uiTextShaderProgram = Shader.createProgram(uiVsh, uiTextFsh)
-    val uiBoxShaderProgram = Shader.createProgram(uiVsh, uiBoxFsh)
     val laserShaderProgram = Shader.createProgram(objectVsh, laserFsh)
-    val debugDotShaderProgram = Shader.createProgram(defaultVsh, dotFsh)
 
     // Set up bitmap (font) texture
     val font = loadFont()
@@ -215,27 +211,8 @@ fun main(args: Array<String>) {
     pausedLabel.textAlign = Ui.TextAlign.CENTER
     pausedLabel.renderer = UiTextRenderer(pausedLabel, uiTextShaderProgram, ssbo, font)
 
-    // Init info box
-//    val infoBox = UiBox(Ui.Params(windowContainer,
-//        { dims, _ -> dims.set(300f, 90f) },
-//        { anchor, _ -> anchor.set(1f, 0f) },
-//        { pos, c -> pos.set(c.width - 10f, c.height * 0.5f) },
-//        { pad, c -> pad.set(0f, 10f, 100f, 10f) },
-//        allowOverflow = false))
-//    infoBox.renderer = UiBoxRenderer(infoBox, uiBoxShaderProgram)
-//
-//    val infoBoxText = UiText(Ui.Params(infoBox,
-//        { dims, _ -> dims.set(150f, 30f) },
-//        { anchor, _ -> anchor.set(-1f, -1f) },
-//        { pos, c -> pos.set(0f, 0f) }))
-//    infoBoxText.requestedString = "In Box"
-//    infoBoxText.textBgColor = 12
-//    infoBoxText.renderer = UiTextRenderer(infoBoxText, uiTextShaderProgram, ssbo, font)
-
-    var debugDot: DebugDotRenderer? = null
-//    debugDot = DebugDotRenderer(debugDotShaderProgram, infoBox.bottomLeft)
-
     // Misc.
+    val logger = LoggerFactory.getLogger(Main::class.java)
     val mouseXArr = DoubleArray(1)
     val mouseYArr = DoubleArray(1)
     val selectedDrones = mutableListOf<Drone>()
@@ -248,6 +225,7 @@ fun main(args: Array<String>) {
 
     // Spawn the objects
     val spawnObject: (GameObject) -> Unit = { gameObject ->
+        logger.info("Spawning object $gameObject")
         if (gameObject.physicsBody != null) {
             world.addBody(gameObject.physicsBody)
         }
@@ -265,20 +243,21 @@ fun main(args: Array<String>) {
             gameObject.hoverable = DroneHoverable(gameObject)
         gameObjects.add(gameObject)
         gameObject.spawned = true
+        logger.info("Object was successfully spawned")
     }
     val despawnObject: (GameObject) -> Unit = { gameObject ->
+        logger.info("Despawning object $gameObject")
         if (gameObject.physicsBody != null) {
             world.removeBody(gameObject.physicsBody)
         }
         gameObjects.remove(gameObject)
         gameObject.spawned = false
         gameObject.requestDespawn = false
+        logger.info("Object was successfully despawned")
     }
 
     spawnObject(drone1)
     spawnObject(drone2)
-
-    println("Debug position: ${debugDot?.debugPosition} / ${windowContainer.dimensions}")
 
     // Loop
     while (!glfwWindowShouldClose(window)) {
@@ -404,12 +383,6 @@ fun main(args: Array<String>) {
         // Render paused reminder
         pausedLabel.requestedString = if (paused) "Paused" else ""
         pausedLabel.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
-
-        // Render info box
-//        infoBox.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
-
-        // Render debug dot
-        debugDot?.render(screenDimensions, camera.matrixArr, gameTime)
 
         glfwPollEvents()
         glfwSwapBuffers(window)
