@@ -1,5 +1,6 @@
-package drones
+package drones.game
 
+import drones.*
 import org.joml.Vector2f
 
 class DroneBehavior(private val gameState: GameState, private val drone: Drone) : EntityBehavior {

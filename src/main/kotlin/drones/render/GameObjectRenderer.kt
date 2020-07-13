@@ -1,9 +1,11 @@
-package drones
+package drones.render
 
+import drones.game.GameObject
 import org.joml.Vector2fc
 import org.lwjgl.opengl.GL30.*
 
-abstract class GameObjectRenderer(private val obj: GameObject, private val shaderProgram: Int) : Renderer {
+abstract class GameObjectRenderer(private val obj: GameObject, private val shaderProgram: Int) :
+    Renderer {
     private val vao: Int
 
     private val locationCameraMatrix: Int

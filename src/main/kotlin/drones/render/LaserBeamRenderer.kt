@@ -1,5 +1,6 @@
-package drones
+package drones.render
 
+import drones.game.LaserBeam
 import org.lwjgl.opengl.GL43.glGetUniformLocation
 import org.lwjgl.opengl.GL43.glUniform2f
 

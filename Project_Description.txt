@@ -124,3 +124,6 @@ More ideas 7/13
     enough power
 
   - Idea: ways to generate power but they are in dangerous areas that require specialized drones to operate in
+
+- Laser beam that takes a second to charge before firing. (Physically appears in the world as it is charging) but it is
+  slower to aim, so its possible to dodge this/create drones that can dodge this type of laser

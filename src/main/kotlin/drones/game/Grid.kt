@@ -1,5 +1,6 @@
-package drones
+package drones.game
 
+import drones.GameFont
 import org.joml.Vector2f
 import org.joml.Vector2fc
 import org.joml.Vector2i

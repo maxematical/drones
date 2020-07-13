@@ -1,4 +1,4 @@
-package drones
+package drones.game
 
 import org.dyn4j.dynamics.Body
 import org.dyn4j.geometry.Circle
@@ -24,11 +24,12 @@ class Drone(val grid: Grid,
     var selected: Boolean = false
 
     override val physicsBody: Body
+    var physicalMass: Double = 1.0
 
     init {
         physicsBody = Body(1)
         physicsBody.addFixture(Circle(size.toDouble() * 0.5))
-        physicsBody.mass = Mass(Vector2(0.5, 0.5), 1.0, 1.0)
+        physicsBody.mass = Mass(Vector2(0.5, 0.5), physicalMass, 1.0)
         physicsBody.transform.setTranslation(position.x.toDouble(), position.y.toDouble())
     }
 }

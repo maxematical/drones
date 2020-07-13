@@ -1,5 +1,7 @@
-package drones
+package drones.render
 
+import drones.GameFont
+import drones.game.Base
 import org.lwjgl.opengl.GL30.*
 
 class BaseRenderer(base: Base, shaderProgram: Int, private val font: GameFont) :

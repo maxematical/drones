@@ -1,10 +1,11 @@
-package drones
+package drones.game
 
+import drones.*
 import org.dyn4j.dynamics.RaycastResult
-import org.dyn4j.dynamics.World
 import org.joml.Vector2ic
 
-class LaserBeamBehavior(private val state: GameState, private val laser: LaserBeam) : EntityBehavior {
+class LaserBeamBehavior(private val state: GameState, private val laser: LaserBeam) :
+    EntityBehavior {
     override fun update(deltaTime: Float) {
         laser.lifetime += deltaTime
 

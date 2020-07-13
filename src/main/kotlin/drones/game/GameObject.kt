@@ -1,5 +1,8 @@
-package drones
+package drones.game
 
+import drones.*
+import drones.render.DummyRenderer
+import drones.render.Renderer
 import org.dyn4j.dynamics.Body
 import org.joml.Matrix4f
 import org.joml.Matrix4fc

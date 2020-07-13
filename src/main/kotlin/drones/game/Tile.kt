@@ -1,4 +1,4 @@
-package drones
+package drones.game
 
 abstract class Tile {
     abstract val name: String

@@ -1,5 +1,6 @@
-package drones
+package drones.render
 
+import drones.Main
 import org.lwjgl.opengl.GL20.*
 import java.io.BufferedReader
 import java.io.FileNotFoundException
@@ -119,8 +120,10 @@ class Shader private constructor(filename: String, glType: Int) {
                     sections.add(currentSection)
 
                     // Make another section for the rest of this file
-                    currentSection = ShaderSource.Section(filename, lineNumber,
-                        oldSection.startLineInFile + oldSection.length + 1)
+                    currentSection = ShaderSource.Section(
+                        filename, lineNumber,
+                        oldSection.startLineInFile + oldSection.length + 1
+                    )
 
                     // Note the section that is from the included file
                     line = includedSource.sourceCode.trim()

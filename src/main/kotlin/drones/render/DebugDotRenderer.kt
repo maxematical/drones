@@ -1,4 +1,4 @@
-package drones
+package drones.render
 
 import org.joml.Vector2fc
 import org.lwjgl.opengl.GL30.*

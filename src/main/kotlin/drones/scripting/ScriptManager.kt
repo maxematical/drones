@@ -1,6 +1,10 @@
 package drones.scripting
 
 import drones.*
+import drones.game.Drone
+import drones.game.LaserBeam
+import drones.game.Tile
+import drones.game.TileStone
 import drones.scripting.ModuleCore.Fchecktype
 import drones.scripting.ModuleCore.Fclamparg
 import org.joml.Vector2f

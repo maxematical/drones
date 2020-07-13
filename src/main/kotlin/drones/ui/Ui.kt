@@ -1,6 +1,6 @@
 package drones.ui
 
-import drones.Renderer
+import drones.render.Renderer
 import org.joml.Vector2f
 import org.joml.Vector2fc
 

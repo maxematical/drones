@@ -1,5 +1,10 @@
 package drones
 
+import drones.game.*
+import drones.render.BaseRenderer
+import drones.render.DroneRenderer
+import drones.render.LaserBeamRenderer
+import drones.render.Shader
 import drones.scripting.*
 import drones.ui.*
 import org.dyn4j.dynamics.Body
@@ -10,7 +15,6 @@ import org.joml.*
 import org.luaj.vm2.Globals
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
-import org.lwjgl.opengl.GL20
 import org.lwjgl.opengl.GL30.*
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.stb.STBImage

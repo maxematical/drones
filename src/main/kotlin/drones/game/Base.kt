@@ -1,4 +1,4 @@
-package drones
+package drones.game
 
 import org.dyn4j.dynamics.Body
 import org.dyn4j.geometry.Geometry

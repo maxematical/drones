@@ -1,5 +1,6 @@
-package drones
+package drones.game
 
+import drones.MathUtils
 import org.joml.Vector2fc
 
 class LaserBeam(override val position: Vector2fc,

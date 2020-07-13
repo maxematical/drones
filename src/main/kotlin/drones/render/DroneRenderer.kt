@@ -1,9 +1,12 @@
-package drones
+package drones.render
 
+import drones.game.Drone
+import drones.GameFont
 import org.lwjgl.opengl.GL30.*
 
 class DroneRenderer(private val drone: Drone, shaderProgram: Int,
-                    private val font: GameFont) : GameObjectRenderer(drone, shaderProgram) {
+                    private val font: GameFont
+) : GameObjectRenderer(drone, shaderProgram) {
     private val locationPackedCharacterUv: Int
     private val locationBitmapDimensions: Int
     private val locationDroneColor: Int

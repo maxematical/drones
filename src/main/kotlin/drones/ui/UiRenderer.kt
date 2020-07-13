@@ -1,6 +1,6 @@
 package drones.ui
 
-import drones.Renderer
+import drones.render.Renderer
 import org.joml.Vector2fc
 import org.lwjgl.opengl.GL30.*
 
