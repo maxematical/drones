@@ -4,7 +4,7 @@ import org.joml.Vector2fc
 import org.lwjgl.opengl.GL30.*
 
 class DroneRenderer(private val drone: Drone, private val shaderProgram: Int,
-                    private val font: GameFont, private val bitmapTexture: Int) : Renderer {
+                    private val font: GameFont) : Renderer {
     private val vao: Int
 
     private val locationCameraMatrix: Int
@@ -53,7 +53,7 @@ class DroneRenderer(private val drone: Drone, private val shaderProgram: Int,
         glUniform1i(locationDroneColor, drone.color)
         glUniform1i(locationLedColor, drone.ledColor)
 
-        glBindTexture(GL_TEXTURE_2D, bitmapTexture)
+        glBindTexture(GL_TEXTURE_2D, font.glBitmap)
         glBindVertexArray(vao)
         glDrawArrays(GL_TRIANGLES, 0, 6)
     }

@@ -4,13 +4,10 @@ import drones.scripting.*
 import drones.ui.*
 import org.dyn4j.dynamics.Body
 import org.dyn4j.dynamics.BodyFixture
-import org.dyn4j.dynamics.RaycastResult
 import org.dyn4j.dynamics.World
-import org.dyn4j.geometry.Circle
-import org.dyn4j.geometry.Mass
 import org.dyn4j.geometry.Rectangle
-import org.dyn4j.geometry.Vector2
 import org.joml.*
+import org.luaj.vm2.Globals
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL30.*
@@ -18,8 +15,8 @@ import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.stb.STBImage
 import org.lwjgl.system.MemoryUtil.NULL
 import java.io.FileNotFoundException
-import java.lang.Math
 import java.nio.ByteBuffer
+import java.util.*
 import kotlin.math.floor
 
 class Main
@@ -159,20 +156,21 @@ fun main(args: Array<String>) {
     grid.tiles[4][4] = TileStone
 
     // Setup drone
-    val drone = Drone(grid, Vector2f(-2f, 3f), 0xEEEEEE, 90f)
-    drone.renderer = DroneRenderer(drone, droneShaderProgram, font, font.glBitmap)
+    val drone1 = Drone(grid, Vector2f(-2f, 3f), 0xEEEEEE, 90f)
+    val drone2 = Drone(grid, Vector2f(2f, 0f), 0x888888, 90f)
 
-    val scriptMgr = ScriptManager(drone, "drone_ore_search.lua", Int.MAX_VALUE) { globals ->
+    val installScripts: (Drone) -> ScriptManager.(Globals) -> Unit = { drone -> { globals ->
         ModuleVector.install(globals)
         ModuleCore(drone).install(globals)
         ModuleScanner(drone, this).install(globals)
         ModuleMiningLaser(drone).install(globals)
         globals.set("move", globals.loadfile("libmove.lua").call())
         globals.loadfile("libscanner.lua").call()
-    }
-    scriptMgr.onComplete = {
-        drone.desiredVelocity.set(0f, 0f)
-    }
+    } }
+    val scriptMgr1 = ScriptManager(drone1, "drone_ore_search.lua", Int.MAX_VALUE, installScripts(drone1))
+    scriptMgr1.onComplete = { drone1.desiredVelocity.set(0f, 0f) }
+    val scriptMgr2 = ScriptManager(drone2, "drone_manual_miner.lua", Int.MAX_VALUE, installScripts(drone2))
+    scriptMgr2.onComplete = { drone2.desiredVelocity.set(0f, 0f) }
 
     // Setup physics
     val world = World()
@@ -191,12 +189,6 @@ fun main(args: Array<String>) {
         }
     }
     world.addBody(gridBody)
-
-    val droneBody = Body(1)
-    droneBody.addFixture(Circle(drone.size.toDouble() * 0.5))
-    droneBody.mass = Mass(Vector2(0.5, 0.5), 1.0, 1.0)
-    droneBody.transform.setTranslation(drone.position.x.toDouble(), drone.position.y.toDouble())
-    world.addBody(droneBody)
 
     val screenDimensions = Vector2f(windowWidth.toFloat(), windowHeight.toFloat())
     val windowContainer = WindowContainer(screenDimensions)
@@ -224,24 +216,24 @@ fun main(args: Array<String>) {
     pausedLabel.renderer = UiTextRenderer(pausedLabel, uiTextShaderProgram, ssbo, font)
 
     // Init info box
-    val infoBox = UiBox(Ui.Params(windowContainer,
-        { dims, _ -> dims.set(300f, 90f) },
-        { anchor, _ -> anchor.set(1f, 0f) },
-        { pos, c -> pos.set(c.width - 10f, c.height * 0.5f) },
-        { pad, c -> pad.set(0f, 10f, 100f, 10f) },
-        allowOverflow = false))
-    infoBox.renderer = UiBoxRenderer(infoBox, uiBoxShaderProgram)
-
-    val infoBoxText = UiText(Ui.Params(infoBox,
-        { dims, _ -> dims.set(150f, 30f) },
-        { anchor, _ -> anchor.set(-1f, -1f) },
-        { pos, c -> pos.set(0f, 0f) }))
-    infoBoxText.requestedString = "In Box"
-    infoBoxText.textBgColor = 12
-    infoBoxText.renderer = UiTextRenderer(infoBoxText, uiTextShaderProgram, ssbo, font)
+//    val infoBox = UiBox(Ui.Params(windowContainer,
+//        { dims, _ -> dims.set(300f, 90f) },
+//        { anchor, _ -> anchor.set(1f, 0f) },
+//        { pos, c -> pos.set(c.width - 10f, c.height * 0.5f) },
+//        { pad, c -> pad.set(0f, 10f, 100f, 10f) },
+//        allowOverflow = false))
+//    infoBox.renderer = UiBoxRenderer(infoBox, uiBoxShaderProgram)
+//
+//    val infoBoxText = UiText(Ui.Params(infoBox,
+//        { dims, _ -> dims.set(150f, 30f) },
+//        { anchor, _ -> anchor.set(-1f, -1f) },
+//        { pos, c -> pos.set(0f, 0f) }))
+//    infoBoxText.requestedString = "In Box"
+//    infoBoxText.textBgColor = 12
+//    infoBoxText.renderer = UiTextRenderer(infoBoxText, uiTextShaderProgram, ssbo, font)
 
     var debugDot: DebugDotRenderer? = null
-    debugDot = DebugDotRenderer(debugDotShaderProgram, infoBox.bottomLeft)
+//    debugDot = DebugDotRenderer(debugDotShaderProgram, infoBox.bottomLeft)
 
     // Misc.
     val mouseXArr = DoubleArray(1)
@@ -249,6 +241,42 @@ fun main(args: Array<String>) {
     val selectedDrones = mutableListOf<Drone>()
     var lastTime = System.currentTimeMillis()
     var gameTime = 0f
+
+    val gameObjects = mutableListOf<GameObject>()
+
+    val gameState = GameState(world, grid, gridBody, LinkedList(), LinkedList())
+
+    // Spawn the objects
+    val spawnObject: (GameObject) -> Unit = { gameObject ->
+        if (gameObject.physicsBody != null) {
+            world.addBody(gameObject.physicsBody)
+        }
+        gameObject.renderer = when (gameObject) {
+            is Drone -> DroneRenderer(gameObject, droneShaderProgram, font)
+            is LaserBeam -> LaserBeamRenderer(gameObject, laserShaderProgram)
+            else -> throw RuntimeException("Could not create renderer for GameObject $gameObject")
+        }
+        gameObject.behavior = when (gameObject) {
+            is Drone -> DroneBehavior(gameState, gameObject)
+            is LaserBeam -> LaserBeamBehavior(gameState, gameObject)
+            else -> throw RuntimeException("Could not create behavior for GameObject $gameObject")
+        }
+        if (gameObject is Drone)
+            gameObject.hoverable = DroneHoverable(gameObject)
+        gameObjects.add(gameObject)
+        gameObject.spawned = true
+    }
+    val despawnObject: (GameObject) -> Unit = { gameObject ->
+        if (gameObject.physicsBody != null) {
+            world.removeBody(gameObject.physicsBody)
+        }
+        gameObjects.remove(gameObject)
+        gameObject.spawned = false
+        gameObject.requestDespawn = false
+    }
+
+    spawnObject(drone1)
+    spawnObject(drone2)
 
     println("Debug position: ${debugDot?.debugPosition} / ${windowContainer.dimensions}")
 
@@ -265,68 +293,31 @@ fun main(args: Array<String>) {
         if (!paused) {
             gameTime += deltaTime
 
-            // Update drone
-            val accel: Vector2f = Vector2f(drone.desiredVelocity).sub(droneBody.linearVelocity.toJoml())
-            if (accel.lengthSquared() > 0)
-                accel.normalize().mul(50f * deltaTime)
-
-            droneBody.applyForce(accel.toDyn4j())
-            drone.position.set(droneBody.transform.translation.x, droneBody.transform.translation.y)
-
-            if (droneBody.linearVelocity.magnitudeSquared > 1) {
-                droneBody.linearVelocity.normalize()
+            // Update gameObjects
+            for (gameObject in gameObjects) {
+                gameObject.behavior.update(deltaTime)
+                gameObject.recomputeModelMatrix()
             }
 
-            val desiredRotation: Float
-            if (drone.desiredVelocity.lengthSquared() > 0.0625f) {
-                desiredRotation = MathUtils.RAD2DEG *
-                        Math.atan2(drone.desiredVelocity.y.toDouble(), drone.desiredVelocity.x.toDouble()).toFloat()
-            } else {
-                desiredRotation = drone.rotation
-            }
-            val deltaRotation = MathUtils.clampRotation(desiredRotation - drone.rotation)
-
-            val desiredRotationSpeed = 150f * Math.min(1f, Math.abs(deltaRotation) / 60f)
-            val changeRotation = Math.signum(deltaRotation) *
-                    Math.min(Math.abs(deltaRotation), deltaTime * desiredRotationSpeed)
-            drone.rotation += changeRotation
-
-            drone.localTime += deltaTime
-
-            drone.recomputeModelMatrix()
-
-            // Update script
-            scriptMgr.update()
-
-            // Update laser beam
-            drone.laserBeam?.let { laser ->
-                laser.lifetime += deltaTime
-
-                val rotationRad = (laser.rotation * MathUtils.DEG2RAD).toDouble()
-                val laserStart = laser.position.toDyn4j()
-                val laserEnd = laserStart.copy().add(Math.cos(rotationRad) * laser.unobstructedLength,
-                    Math.sin(rotationRad) * laser.unobstructedLength)
-
-                val raycastResult = mutableListOf<RaycastResult>()
-                if (world.raycast(laserStart, laserEnd, { true }, true, false, false, raycastResult)) {
-                    laser.actualLength = raycastResult[0].raycast.distance.toFloat()
-                } else {
-                    laser.actualLength = laser.unobstructedLength
-                }
-
-                if (laser.lifetime >= 2.0f) {
-                    laser.lifetime = 0f
-
-                    if (raycastResult.isNotEmpty()) {
-                        val hit = raycastResult[0]
-                        if (hit.body == gridBody) {
-                            val hitGridCoordinates = hit.fixture.userData as Vector2ic
-                            grid.tiles[hitGridCoordinates.y()][hitGridCoordinates.x()] = TileAir
-                            hit.body.removeFixture(hit.fixture)
-                        }
-                    }
+            for (gameObject in gameObjects) {
+                if (gameObject.requestDespawn && gameObject !in gameState.despawnQueue) {
+                    gameState.despawnQueue.add(gameObject)
                 }
             }
+
+            // Perform spawning/despawning
+            for (toSpawn in gameState.spawnQueue) {
+                spawnObject(toSpawn)
+            }
+            for (toDespawn in gameState.despawnQueue) {
+                despawnObject(toDespawn)
+            }
+            gameState.spawnQueue.clear()
+            gameState.despawnQueue.clear()
+
+            // Update scripts
+            scriptMgr1.update()
+            scriptMgr2.update()
 
             // Update physics
             world.update(deltaTime.toDouble())
@@ -346,20 +337,14 @@ fun main(args: Array<String>) {
             camera.matrixInvc.transform(transformedMousePos) // now is in world space
 
             if (mouseLeftClicked) {
-                // Check if we're clicking on the drone
-                drone.modelMatrix.invert(drone.modelMatrixInv)
-
-                drone.modelMatrixInv.transform(transformedMousePos)
-
-                // We now have the mouse coordinates relative to the drone's quad
-                val clickedOnDrone = Math.abs(transformedMousePos.x) <= 0.5 && Math.abs(transformedMousePos.y) <= 0.5
-                if (clickedOnDrone) {
-                    if (drone in selectedDrones) {
-                        println("Drone deselect")
-                        selectedDrones.remove(drone)
-                    } else {
-                        println("Drone select")
-                        selectedDrones.add(drone)
+                // Check if we're clicking on any drones
+                for (obj in gameObjects) {
+                    if (obj is Drone && obj.hoverable.isHover(transformedMousePos)) {
+                        if (obj in selectedDrones) {
+                            selectedDrones.remove(obj)
+                        } else {
+                            selectedDrones.add(obj)
+                        }
                     }
                 }
             }
@@ -407,15 +392,9 @@ fun main(args: Array<String>) {
         glBindVertexArray(vaoGrid)
         glDrawArrays(GL_TRIANGLES, 0, 6)
 
-        // Render drone
-        drone.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
-
-        // Render laser beam
-        drone.laserBeam?.let { laser ->
-            if (laser.renderer == null) {
-                laser.renderer = LaserBeamRenderer(laser, laserShaderProgram)
-            }
-            laser.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
+        // Render game objects
+        for (obj in gameObjects) {
+            obj.renderer.render(screenDimensions, camera.matrixArr, gameTime)
         }
 
         // Render framerate counter
@@ -427,7 +406,7 @@ fun main(args: Array<String>) {
         pausedLabel.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
 
         // Render info box
-        infoBox.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
+//        infoBox.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
 
         // Render debug dot
         debugDot?.render(screenDimensions, camera.matrixArr, gameTime)

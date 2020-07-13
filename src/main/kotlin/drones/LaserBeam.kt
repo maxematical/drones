@@ -2,14 +2,12 @@ package drones
 
 import org.joml.Vector2fc
 
-class LaserBeam(val position: Vector2fc,
-                var rotation: Float,
+class LaserBeam(override val position: Vector2fc,
+                override var rotation: Float,
                 var width: Float,
-                var unobstructedLength: Float) {
+                var unobstructedLength: Float) : GameObject() {
 
     var actualLength: Float = unobstructedLength
 
-    var renderer: Renderer? = null
     var lifetime: Float = 0f
-
 }

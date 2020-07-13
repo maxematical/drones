@@ -617,6 +617,7 @@ class ModuleMiningLaser(private val drone: Drone) : DroneModule {
             if (drone.laserBeam == null) {
                 throw LuaError("mining_laser.laser_off: Can't turn the laser beam off, it was already off")
             }
+            drone.laserBeam?.requestDespawn = true
             drone.laserBeam = null
             return LuaValue.NIL
         }

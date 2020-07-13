@@ -1,13 +1,17 @@
 package drones
 
-import org.joml.*
+import org.dyn4j.dynamics.Body
+import org.dyn4j.geometry.Circle
+import org.dyn4j.geometry.Mass
+import org.dyn4j.geometry.Vector2
+import org.joml.Vector2f
 
 class Drone(val grid: Grid,
-            val position: Vector2f,
+            override val position: Vector2f,
             val color: Int = 0xFFFFFF,
-            var rotation: Float = 0f,
-            val size: Float = 0.8f,
-            var ledColor: Int = 0xFF0000) {
+            override var rotation: Float = 0f,
+            override val size: Float = 0.8f,
+            var ledColor: Int = 0xFF0000) : GameObject() {
     val desiredVelocity: Vector2f = Vector2f(0f, 0f)
 
     var localTime: Float = 0f
@@ -16,23 +20,14 @@ class Drone(val grid: Grid,
     val destination: Vector2f = Vector2f()
     var destinationTargetDistance: Float = 0f
 
-    var renderer: Renderer? = null
     var laserBeam: LaserBeam? = null
 
-    val modelMatrix: Matrix4f = Matrix4f()
-    val modelMatrixInv: Matrix4f = Matrix4f()
-    val modelMatrixArr: FloatArray = FloatArray(16)
+    override val physicsBody: Body
 
     init {
-        recomputeModelMatrix()
-    }
-
-    fun recomputeModelMatrix() {
-        modelMatrix.identity()
-        modelMatrix.translate(position.x, position.y, 0f)
-        modelMatrix.rotate(rotation * MathUtils.DEG2RAD, 0f, 0f, 1f)
-        modelMatrix.scale(size)
-        modelMatrix.invert(modelMatrixInv)
-        modelMatrix.get(modelMatrixArr)
+        physicsBody = Body(1)
+        physicsBody.addFixture(Circle(size.toDouble() * 0.5))
+        physicsBody.mass = Mass(Vector2(0.5, 0.5), 1.0, 1.0)
+        physicsBody.transform.setTranslation(position.x.toDouble(), position.y.toDouble())
     }
 }
