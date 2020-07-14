@@ -1,38 +1,27 @@
 package drones.ui
 
-import drones.GameFont
-import drones.stringToBitmapArray
-import org.lwjgl.opengl.GL43.*
+import org.lwjgl.opengl.GL43
 
-class UiTextRenderer(private val ui: UiText, shaderProgram: Int,
-                     private val ssbo: Int, private val font: GameFont
-) : UiRenderer(ui, shaderProgram) {
-    private val uniformFontScale: Int
-    private val uniformFontSpacing: Int
-    private val uniformFontAlign: Int
-    private val uniformFontTransparentBg: Int
+class UiTextRenderer(private val element: UiTextElement, shaderProgram: Int) : UiRenderer(element, shaderProgram) {
+    private val stringLengthArr = IntArray(1)
+    private val textData = IntArray(256)
 
-    init {
-        uniformFontScale = glGetUniformLocation(shaderProgram, "FontScale")
-        uniformFontSpacing = glGetUniformLocation(shaderProgram, "FontSpacing")
-        uniformFontAlign = glGetUniformLocation(shaderProgram, "FontAlign")
-        uniformFontTransparentBg = glGetUniformLocation(shaderProgram, "FontTransparentBg")
+    override fun setUniforms() {
+        updateTextData()
+        GL43.glBufferSubData(0, 1096, stringLengthArr)
+        GL43.glBufferSubData(0, 1100, textData)
+
+        GL43.glBindTexture(GL43.GL_TEXTURE_2D, element.font.glBitmap)
     }
 
-    override fun preRender() {
-        glUniform1f(uniformFontScale, ui.fontScale)
-        glUniform1f(uniformFontSpacing, ui.fontSpacing)
-        glUniform1i(uniformFontAlign, ui.textAlign.id)
-        glUniform1i(uniformFontTransparentBg, if (ui.transparentTextBg) 1 else 0)
+    private fun updateTextData() {
+        stringLengthArr[0] = element.string.length
 
-        ui.requestedString?.let { str ->
-            val arr = stringToBitmapArray(str, font, ui.textBgColor, ui.textFgColor)
-
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, ssbo)
-            glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1096, arr)
-            glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
+        var index = 0
+        for (char: Char in element.string) {
+            val charCode: Int = element.font.characterCodeLut[char] ?: error("Font does not have character '$char'")
+            val data = (charCode and 255) or (0 shl 8) or (15 shl 16)
+            textData[index++] = data
         }
-
-        glBindTexture(GL_TEXTURE_2D, font.glBitmap)
     }
 }

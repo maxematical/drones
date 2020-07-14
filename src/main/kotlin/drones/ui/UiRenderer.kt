@@ -1,32 +1,22 @@
 package drones.ui
 
-import drones.render.Renderer
 import org.joml.Vector2fc
-import org.lwjgl.opengl.GL30.*
+import org.lwjgl.opengl.GL43.*
 
-abstract class UiRenderer(private val ui: Ui, private val shaderProgram: Int) : Renderer {
-    private val uniformWindowSize: Int
-    private val uniformUiAnchorPoint: Int
-    private val uniformUiPositionPx: Int
-    private val uniformUiDimensionsPx: Int
-
+abstract class UiRenderer(private val element: UiElement, private val shaderProgram: Int) {
     private val vao: Int
 
+    private val locationQuadMatrix: Int
+    private val locationScreenDimensions: Int
+    private val locationElementDimensions: Int
+    private val locationElementPosition: Int
+
     init {
-        uniformWindowSize = glGetUniformLocation(shaderProgram, "WindowSize")
-        uniformUiAnchorPoint = glGetUniformLocation(shaderProgram, "UiAnchorPoint")
-        uniformUiPositionPx = glGetUniformLocation(shaderProgram, "UiPositionPx")
-        uniformUiDimensionsPx = glGetUniformLocation(shaderProgram, "UiDimensionsPx")
+        locationQuadMatrix = glGetUniformLocation(shaderProgram, "QuadMatrix")
+        locationScreenDimensions = glGetUniformLocation(shaderProgram, "ScreenDimensions")
+        locationElementDimensions = glGetUniformLocation(shaderProgram, "ElementDimensions")
+        locationElementPosition = glGetUniformLocation(shaderProgram, "ElementPosition")
 
-        val quadVertices: FloatArray = floatArrayOf(
-            -1f, -1f, 0.0f,
-            1f, -1f, 0.0f,
-            1f, 1f, 0.0f,
-
-            -1f, 1f, 0f,
-            -1f, -1f, 0f,
-            1f, 1f, 0f
-        )
         vao = glGenVertexArrays()
         glBindVertexArray(vao)
         val vbo = glGenBuffers()
@@ -36,26 +26,31 @@ abstract class UiRenderer(private val ui: Ui, private val shaderProgram: Int) : 
         glEnableVertexAttribArray(0)
     }
 
-    final override fun render(screenDimensions: Vector2fc, cameraMatrixArr: FloatArray, time: Float) {
-        if (!ui.shown)
-            return
+    fun render(screenDimensions: Vector2fc) {
+        element.recomputeMatrices(screenDimensions)
 
-        glUseProgram(shaderProgram)
-        glUniform2f(uniformWindowSize, screenDimensions.x(), screenDimensions.y())
-        glUniform2f(uniformUiAnchorPoint, ui.anchorPoint.x(), ui.anchorPoint.y())
-        glUniform2f(uniformUiPositionPx, ui.position.x(), ui.position.y())
-        glUniform2f(uniformUiDimensionsPx, ui.dimensions.x(), ui.dimensions.y())
+        glUniformMatrix4fv(locationQuadMatrix, false, element.quadMatrixArr)
+        glUniform2f(locationScreenDimensions, screenDimensions.x(), screenDimensions.y())
+        glUniform2f(locationElementDimensions, element.computedDimensions.x(), element.computedDimensions.y())
+        glUniform2f(locationElementPosition, element.computedPosition.x(), element.computedPosition.y())
 
-        preRender()
+        setUniforms()
 
         glBindVertexArray(vao)
         glDrawArrays(GL_TRIANGLES, 0, 6)
-
-        for (child in ui.children) {
-            child.renderer?.render(screenDimensions, cameraMatrixArr, time)
-        }
     }
 
-    /** Called after the shader program is bound, but before the quad is drawn. */
-    open fun preRender() {}
+    open fun setUniforms() {}
+
+    private companion object {
+        val quadVertices = floatArrayOf(
+            0f, 0f, 0f,
+            1f, 0f, 0f,
+            1f, 1f, 0f,
+
+            0f, 0f, 0f,
+            1f, 1f, 0f,
+            0f, 1f, 0f
+        )
+    }
 }

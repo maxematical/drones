@@ -187,46 +187,46 @@ fun main(args: Array<String>) {
     world.addBody(gridBody)
 
     val screenDimensions = Vector2f(windowWidth.toFloat(), windowHeight.toFloat())
-    val windowContainer = WindowContainer(screenDimensions)
+//    val windowContainer = WindowContainer(screenDimensions)
 
     // Init Fps counter
-    val fpsCounter = UiText(Ui.Params(windowContainer,
-        { dims, _ -> dims.set(120f, 38f) },
-        { anchor, _ -> anchor.set(1f, 1f) },
-        { pos, c -> pos.set(c.width - 14f, c.height - 10f) }))
-    fpsCounter.textAlign = Ui.TextAlign.RIGHT
-    fpsCounter.textFgColor = 10
-    fpsCounter.renderer = UiTextRenderer(fpsCounter, uiTextShaderProgram, ssbo, font)
+//    val fpsCounter = UiText(Ui.Params(windowContainer,
+//        { dims, _ -> dims.set(120f, 38f) },
+//        { anchor, _ -> anchor.set(1f, 1f) },
+//        { pos, c -> pos.set(c.width - 14f, c.height - 10f) }))
+//    fpsCounter.textAlign = Ui.TextAlign.RIGHT
+//    fpsCounter.textFgColor = 10
+//    fpsCounter.renderer = UiTextRenderer(fpsCounter, uiTextShaderProgram, ssbo, font)
 
     var lastFps: Int = 0
     var fpsCountStart = System.currentTimeMillis()
     var fpsFramesCount = 0
 
     // Init paused text
-    val pausedLabel = UiText(Ui.Params(windowContainer,
-        { dims, _ -> dims.set(180f, 30f) },
-        { anchor, _ -> anchor.set(0f, -1f) },
-        { pos, c -> pos.set(c.width * 0.5f, 40f) }))
-    pausedLabel.transparentTextBg = true
-    pausedLabel.textAlign = Ui.TextAlign.CENTER
-    pausedLabel.renderer = UiTextRenderer(pausedLabel, uiTextShaderProgram, ssbo, font)
+//    val pausedLabel = UiText(Ui.Params(windowContainer,
+//        { dims, _ -> dims.set(180f, 30f) },
+//        { anchor, _ -> anchor.set(0f, -1f) },
+//        { pos, c -> pos.set(c.width * 0.5f, 40f) }))
+//    pausedLabel.transparentTextBg = true
+//    pausedLabel.textAlign = Ui.TextAlign.CENTER
+//    pausedLabel.renderer = UiTextRenderer(pausedLabel, uiTextShaderProgram, ssbo, font)
 
     // Init info box
-    val infoBox = UiBox(Ui.Params(windowContainer,
-        { dims, _ -> dims.set(300f, 0f) },
-        { anchor, _ -> anchor.set(1f, 0f) },
-        { pos, c -> pos.set(c.width - 10f, c.height * 0.5f) },
-        { pad, _ -> pad.set(0f, 10f, 100f, 10f) },
-        allowOverflow = false))
-    infoBox.renderer = UiBoxRenderer(infoBox, uiBoxShaderProgram)
-
-    val infoBoxText = UiText(Ui.Params(infoBox,
-        { dims, _ -> dims.set(150f, 30f) },
-        { anchor, _ -> anchor.set(-1f, -1f) },
-        { pos, c -> pos.set(0f, 0f) }))
-    infoBoxText.requestedString = "In Box"
-    infoBoxText.textBgColor = 12
-    infoBoxText.renderer = UiTextRenderer(infoBoxText, uiTextShaderProgram, ssbo, font)
+//    val infoBox = UiBox(Ui.Params(windowContainer,
+//        { dims, _ -> dims.set(300f, 0f) },
+//        { anchor, _ -> anchor.set(1f, 0f) },
+//        { pos, c -> pos.set(c.width - 10f, c.height * 0.5f) },
+//        { pad, _ -> pad.set(0f, 10f, 100f, 10f) },
+//        allowOverflow = false))
+//    infoBox.renderer = UiBoxRenderer(infoBox, uiBoxShaderProgram)
+//
+//    val infoBoxText = UiText(Ui.Params(infoBox,
+//        { dims, _ -> dims.set(150f, 30f) },
+//        { anchor, _ -> anchor.set(-1f, -1f) },
+//        { pos, c -> pos.set(0f, 0f) }))
+//    infoBoxText.requestedString = "In Box"
+//    infoBoxText.textBgColor = 12
+//    infoBoxText.renderer = UiTextRenderer(infoBoxText, uiTextShaderProgram, ssbo, font)
 
     /*
 
@@ -237,7 +237,7 @@ fun main(args: Array<String>) {
      */
 
     var debugDot: DebugDotRenderer? = null
-    debugDot = DebugDotRenderer(debugDotShaderProgram, infoBox.bottomLeft)
+//    debugDot = DebugDotRenderer(debugDotShaderProgram, infoBox.bottomLeft)
 
     // Misc.
     val logger = LoggerFactory.getLogger(Main::class.java)
@@ -443,12 +443,12 @@ fun main(args: Array<String>) {
         }
 
         // Render framerate counter
-        fpsCounter.requestedString = lastFps.toString()
-        fpsCounter.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
+//        fpsCounter.requestedString = lastFps.toString()
+//        fpsCounter.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
 
         // Render paused reminder
-        pausedLabel.requestedString = if (paused) "Paused" else ""
-        pausedLabel.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
+//        pausedLabel.requestedString = if (paused) "Paused" else ""
+//        pausedLabel.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
 
         glfwPollEvents()
         glfwSwapBuffers(window)

@@ -23,6 +23,7 @@ fun loadFont(): GameFont {
     val characterLut = CharArray(128)
     val characterCoordinatesLut = IntArray(128)
     val characterOffsetLut = IntArray(128)
+    var characterWidthLut = IntArray(128)
     val characterCodeLut = mutableMapOf<Char, Int>()
 
     for (idx in 0..min(127, chars.lastIndex)) {
@@ -36,23 +37,26 @@ fun loadFont(): GameFont {
         if (offset.size != 2)
             throw RuntimeException("Invalid offset attribute for character '${chars[idx].code}")
 
+        val characterWidth = chars[idx].width.toInt()
+        characterWidthLut[idx] = characterWidth
+
         // IMPORTANT: The added numbers here should be the padding X and Y for this bitmap.
         val offsetX = offset[0].toInt() + -1
         val offsetY = offset[1].toInt() + -3
 
-        val characterX = rect[0].toInt()
-        val characterY = rect[1].toInt()
-        val characterWidth = rect[2].toInt()
-        val characterHeight = rect[3].toInt()
+        val uvX = rect[0].toInt()
+        val uvY = rect[1].toInt()
+        val uvWidth = rect[2].toInt()
+        val uvHeight = rect[3].toInt()
 
-        if (characterX >= 512 || characterY >= 512 || characterWidth >= 128 || characterHeight >= 128)
+        if (uvX >= 512 || uvY >= 512 || uvWidth >= 128 || uvHeight >= 128)
             println("Warning: Character '${chars[idx].code}' may not display properly with this font because the " +
                     "bitmap is too large")
 
-        characterCoordinatesLut[idx] = (characterX shl 23) or
-                (characterY shl 14) or
-                (characterWidth shl 7) or
-                characterHeight
+        characterCoordinatesLut[idx] = (uvX shl 23) or
+                (uvY shl 14) or
+                (uvWidth shl 7) or
+                uvHeight
 
         characterOffsetLut[idx] = ((if (offsetX < 0) 1 else 0) shl 17) or
                 ((if (offsetY < 0) 1 else 0) shl 16) or
@@ -82,8 +86,8 @@ fun loadFont(): GameFont {
     glGenerateMipmap(GL_TEXTURE_2D)
 
     return GameFont("Consolas",
-        glBitmap, bitmapData, bitmapWidth, bitmapHeight,
-        characterLut, characterCodeLut, characterCoordinatesLut, characterOffsetLut)
+        glBitmap, bitmapData, bitmapWidth, bitmapHeight, 14,
+        characterLut, characterCodeLut, characterCoordinatesLut, characterOffsetLut, characterWidthLut)
 }
 
 fun getFontXmlStream(filename: String): InputStream =
@@ -97,7 +101,8 @@ class XmlFontEntry {
     var children: MutableList<XmlCharEntry> = mutableListOf()
 }
 
-data class XmlCharEntry(@JvmField @XmlAttribute var offset: String = "",
+data class XmlCharEntry(@JvmField @XmlAttribute var width: String = "",
+                        @JvmField @XmlAttribute var offset: String = "",
                         @JvmField @XmlAttribute var rect: String = "",
                         @JvmField @XmlAttribute var code: String = "")
 
@@ -106,6 +111,7 @@ class GameFont(val name: String,
                val bitmapTexture: ByteBuffer,
                val bitmapWidth: Int,
                val bitmapHeight: Int,
+               val lineHeight: Int,
                /** Look up character by Glyph ID */
                val characterLut: CharArray,
                /** Look up Glyph ID by character */
@@ -113,4 +119,6 @@ class GameFont(val name: String,
                /** Look up packed UV coordinates by Glyph ID */
                val characterCoordinatesLut: IntArray, // length of array is 128
                /** Look up packed character offset by Glyph ID */
-               val characterOffsetLut: IntArray) // similar to characterCoordinatesLut
+               val characterOffsetLut: IntArray,
+               /** Look up character width by Glyph ID */
+               val characterWidthLut: IntArray)
