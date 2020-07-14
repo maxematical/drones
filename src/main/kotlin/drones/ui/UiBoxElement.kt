@@ -14,6 +14,8 @@ class UiBoxElement(private val boxMinDimensions: Vector2fc) : UiElement() {
     override val children: List<UiLayout> = childList
 
     var shouldCenterChild = true
+    var borderWidth: Int = 3
+    var borderColor: Int = 0xFFFFFF
 
     fun setChild(newChild: UiLayout?) {
         child = newChild

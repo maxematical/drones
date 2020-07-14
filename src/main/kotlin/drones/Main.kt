@@ -12,6 +12,7 @@ import org.joml.*
 import org.luaj.vm2.Globals
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
+import org.lwjgl.opengl.GL20
 import org.lwjgl.opengl.GL30.*
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.stb.STBImage
@@ -104,9 +105,11 @@ fun main(args: Array<String>) {
 
     val debugDotFsh = Shader.create("/glsl/debugdot.frag", GL_FRAGMENT_SHADER)
 
+    val solidColorFsh = Shader.create("/glsl/solidcolor.frag", GL_FRAGMENT_SHADER)
+
     val gridShaderProgram = Shader.createProgram(defaultVsh, gridFsh)
     val droneShaderProgram = Shader.createProgram(objectVsh, droneFsh)
-    val uiTextShaderProgram = Shader.createProgram(uiVsh, uiTextFsh)
+    val uiTextShaderProgram = Shader.createProgram(uiVsh, solidColorFsh)
     val uiBoxShaderProgram = Shader.createProgram(uiVsh, uiBoxFsh)
     val laserShaderProgram = Shader.createProgram(objectVsh, laserFsh)
     val simpleObjShaderProgram = Shader.createProgram(objectVsh, simpleObjFsh)
@@ -197,6 +200,11 @@ fun main(args: Array<String>) {
 //    fpsCounter.textAlign = Ui.TextAlign.RIGHT
 //    fpsCounter.textFgColor = 10
 //    fpsCounter.renderer = UiTextRenderer(fpsCounter, uiTextShaderProgram, ssbo, font)
+
+    val fpsCounter = UiTextElement(font, "FPS??")
+    fpsCounter.textFgColor = 10
+    fpsCounter.renderer = UiTextRenderer(fpsCounter, uiTextShaderProgram, ssbo)
+    fpsCounter.rootComputeMeasurements(screenDimensions, Vector2f(1f, 1f))
 
     var lastFps: Int = 0
     var fpsCountStart = System.currentTimeMillis()
@@ -443,6 +451,7 @@ fun main(args: Array<String>) {
         }
 
         // Render framerate counter
+        fpsCounter.render(screenDimensions)
 //        fpsCounter.requestedString = lastFps.toString()
 //        fpsCounter.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
 

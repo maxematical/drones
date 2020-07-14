@@ -22,8 +22,10 @@ abstract class UiRenderer(private val element: UiElement, private val shaderProg
         val vbo = glGenBuffers()
         glBindBuffer(GL_ARRAY_BUFFER, vbo)
         glBufferData(GL_ARRAY_BUFFER, quadVertices, GL_STATIC_DRAW)
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, 12, 0)
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 20, 0)
+        glVertexAttribPointer(1, 2, GL_FLOAT, false, 20, 12)
         glEnableVertexAttribArray(0)
+        glEnableVertexAttribArray(1)
     }
 
     fun render(screenDimensions: Vector2fc) {
@@ -44,14 +46,15 @@ abstract class UiRenderer(private val element: UiElement, private val shaderProg
     open fun setUniforms() {}
 
     private companion object {
+        //   X,   Y,  Z,    u,  v
         val quadVertices = floatArrayOf(
-            0f, -1f, 0f,
-            1f, -1f, 0f,
-            1f,  0f, 0f,
+            0f, -1f, 0f,   0f, 0f,
+            1f, -1f, 0f,   1f, 0f,
+            1f,  0f, 0f,   1f, 1f,
 
-            0f, -1f, 0f,
-            1f,  0f, 0f,
-            0f,  0f, 0f
+            0f, -1f, 0f,   0f, 0f,
+            1f,  0f, 0f,   1f, 1f,
+            0f,  0f, 0f,   0f, 1f
         )
     }
 }

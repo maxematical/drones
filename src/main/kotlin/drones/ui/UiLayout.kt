@@ -26,7 +26,7 @@ abstract class UiLayout {
                                 rootAnchor: Vector2fc = Vector2f(0f, 0f)) {
         computeChildMeasurements()
         computedDimensions.set(autoDimensions)
-        computedRelativePosition.set(rootAnchor).mul(autoDimensions).add(rootPosition)
+        computedRelativePosition.set(-rootAnchor.x(), 1f - rootAnchor.y()).mul(autoDimensions).add(rootPosition)
         onMeasurementsComputed()
         computeAbsolutePosition(Vector2f(0f, 0f))
     }
