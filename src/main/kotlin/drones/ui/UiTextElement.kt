@@ -4,8 +4,7 @@ import drones.GameFont
 import org.joml.Vector2f
 import org.joml.Vector2fc
 
-class UiTextElement(layout: UiLayout, parentLayout: UiLayout,
-                    val font: GameFont) : UiElement(layout, parentLayout) {
+class UiTextElement(val font: GameFont) : UiElement() {
     var string: String = ""
         set(value) {
             field = value
@@ -19,6 +18,9 @@ class UiTextElement(layout: UiLayout, parentLayout: UiLayout,
     override val autoDimensions: Vector2fc = mutableDimensions
 
     override var renderer: UiTextRenderer? = null
+    override val children: List<UiLayout> = emptyList()
+
+    override fun computeChildMeasurements() {}
 
     private fun updateDimensions() {
         var width = 0f

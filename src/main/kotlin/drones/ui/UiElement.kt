@@ -1,15 +1,10 @@
 package drones.ui
 
 import org.joml.Matrix4f
-import org.joml.Vector2f
 import org.joml.Vector2fc
 
-abstract class UiElement(val layout: UiLayout, val parentLayout: UiLayout) {
-    abstract val autoDimensions: Vector2fc
+abstract class UiElement : UiLayout() {
     abstract val renderer: UiRenderer?
-
-    val computedDimensions: Vector2f = Vector2f()
-    val computedPosition: Vector2f = Vector2f()
 
     private val quadMatrix: Matrix4f = Matrix4f()
     private val invQuadMatrix: Matrix4f = Matrix4f()
@@ -29,5 +24,10 @@ abstract class UiElement(val layout: UiLayout, val parentLayout: UiLayout) {
 
         quadMatrix.get(quadMatrixArr)
         invQuadMatrix.get(invQuadMatrixArr)
+    }
+
+    override fun render(screenDimensions: Vector2fc) {
+        this.renderer?.render(screenDimensions)
+        super.render(screenDimensions)
     }
 }

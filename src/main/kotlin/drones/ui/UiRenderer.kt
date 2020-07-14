@@ -29,6 +29,7 @@ abstract class UiRenderer(private val element: UiElement, private val shaderProg
     fun render(screenDimensions: Vector2fc) {
         element.recomputeMatrices(screenDimensions)
 
+        glUseProgram(shaderProgram)
         glUniformMatrix4fv(locationQuadMatrix, false, element.quadMatrixArr)
         glUniform2f(locationScreenDimensions, screenDimensions.x(), screenDimensions.y())
         glUniform2f(locationElementDimensions, element.computedDimensions.x(), element.computedDimensions.y())
