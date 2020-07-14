@@ -18,7 +18,7 @@ abstract class UiElement : UiLayout() {
         quadMatrix
             .identity()
             .translate(-1f, 1f, 0f)
-            .translate(computedPosition.x() * mulX, -computedPosition.y() * mulY, 0f)
+            .translate(computedRelativePosition.x() * mulX, -computedRelativePosition.y() * mulY, 0f)
             .scale(computedDimensions.x() * mulX, computedDimensions.y() * mulY, 0f)
         quadMatrix.invert(invQuadMatrix)
 

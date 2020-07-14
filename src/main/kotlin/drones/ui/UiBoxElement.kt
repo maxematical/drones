@@ -29,7 +29,7 @@ class UiBoxElement(private val boxMinDimensions: Vector2fc) : UiElement() {
         if (child != null) {
             child.computeChildMeasurements()
             child.computedDimensions.set(child.autoDimensions)
-            child.computedPosition.set(0f, 0f)
+            child.computedRelativePosition.set(0f, 0f)
             child.onMeasurementsComputed()
         }
 
@@ -41,7 +41,7 @@ class UiBoxElement(private val boxMinDimensions: Vector2fc) : UiElement() {
         val child = this.child
         if (child != null) {
             // Formula: ChildPos = (BoxDimensions - ChildDimensions) / 2
-            child.computedPosition.set(autoDimensions).sub(child.computedDimensions).mul(0.5f)
+            child.computedRelativePosition.set(autoDimensions).sub(child.computedDimensions).mul(0.5f)
         }
     }
 }

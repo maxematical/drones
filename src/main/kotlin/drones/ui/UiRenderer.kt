@@ -33,7 +33,7 @@ abstract class UiRenderer(private val element: UiElement, private val shaderProg
         glUniformMatrix4fv(locationQuadMatrix, false, element.quadMatrixArr)
         glUniform2f(locationScreenDimensions, screenDimensions.x(), screenDimensions.y())
         glUniform2f(locationElementDimensions, element.computedDimensions.x(), element.computedDimensions.y())
-        glUniform2f(locationElementPosition, element.computedPosition.x(), element.computedPosition.y())
+        glUniform2f(locationElementPosition, element.computedRelativePosition.x(), element.computedRelativePosition.y())
 
         setUniforms()
 
@@ -45,13 +45,13 @@ abstract class UiRenderer(private val element: UiElement, private val shaderProg
 
     private companion object {
         val quadVertices = floatArrayOf(
-            0f, 0f, 0f,
-            1f, 0f, 0f,
-            1f, 1f, 0f,
+            0f, -1f, 0f,
+            1f, -1f, 0f,
+            1f,  0f, 0f,
 
-            0f, 0f, 0f,
-            1f, 1f, 0f,
-            0f, 1f, 0f
+            0f, -1f, 0f,
+            1f,  0f, 0f,
+            0f,  0f, 0f
         )
     }
 }

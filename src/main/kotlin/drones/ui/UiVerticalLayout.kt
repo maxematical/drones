@@ -10,7 +10,7 @@ class UiVerticalLayout : UiLayout() {
     private val mutableDimensions = Vector2f()
     override val autoDimensions: Vector2fc = mutableDimensions
 
-    fun addChild(element: UiElement) {
+    fun addChild(element: UiLayout) {
         mutableChildren.add(element)
     }
 
@@ -20,7 +20,7 @@ class UiVerticalLayout : UiLayout() {
         for (child in children) {
             child.computeChildMeasurements()
             child.computedDimensions.set(child.autoDimensions)
-            child.computedPosition.set(0f, nextY)
+            child.computedRelativePosition.set(0f, nextY)
             child.onMeasurementsComputed()
 
             maxWidth = Math.max(child.computedDimensions.x(), maxWidth)
