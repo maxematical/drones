@@ -32,7 +32,7 @@ class UiTest {
         val outerBox = UiBoxElement(Vector2f(100f, 100f))
         val centeredBox = UiBoxElement(Vector2f(40f, 12f))
         outerBox.setChild(centeredBox)
-        outerBox.shouldCenterChild = true
+        outerBox.centerChild = true
         outerBox.rootComputeMeasurements()
 
         assertEquals(Vector2f(100f, 100f), outerBox.computedDimensions)

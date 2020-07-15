@@ -2,8 +2,8 @@
 
 in vec2 uv;
 
-uniform vec2 UiDimensionsPx;
-uniform float BoxBorderSize;
+uniform vec2 ElementDimensions;
+uniform int BoxBorderSize;
 uniform int BoxBorderColor;
 
 out vec4 FragColor;
@@ -12,7 +12,7 @@ void main()
 {
     vec2 distanceFromEdge = vec2(min(uv.x, 1.0 - uv.x),
                                  min(uv.y, 1.0 - uv.y));
-    vec2 distanceFromEdgePx = distanceFromEdge * UiDimensionsPx;
+    vec2 distanceFromEdgePx = distanceFromEdge * ElementDimensions;
     bool drawBorder = distanceFromEdgePx.x <= BoxBorderSize || distanceFromEdgePx.y <= BoxBorderSize;
 
     float colorR = ((BoxBorderColor >> 16) & 255) / 255.0;

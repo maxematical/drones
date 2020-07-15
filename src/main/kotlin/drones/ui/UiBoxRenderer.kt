@@ -8,7 +8,7 @@ class UiBoxRenderer(private val element: UiBoxElement, shaderProgram: Int) : UiR
     private val locationBorderColor: Int
 
     init {
-        locationBorderWidth = glGetUniformLocation(shaderProgram, "BoxBorderWidth")
+        locationBorderWidth = glGetUniformLocation(shaderProgram, "BoxBorderSize")
         locationBorderColor = glGetUniformLocation(shaderProgram, "BoxBorderColor")
     }
 

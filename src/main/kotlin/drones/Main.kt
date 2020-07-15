@@ -12,7 +12,6 @@ import org.joml.*
 import org.luaj.vm2.Globals
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
-import org.lwjgl.opengl.GL20
 import org.lwjgl.opengl.GL30.*
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.stb.STBImage
@@ -205,7 +204,7 @@ fun main(args: Array<String>) {
     fpsCounter.textFgColor = 10
     fpsCounter.fontScale = 2.0f
     fpsCounter.renderer = UiTextRenderer(fpsCounter, uiTextShaderProgram, ssbo)
-    fpsCounter.rootComputeMeasurements(screenDimensions, Vector2f(1f, 1f))
+    fpsCounter.rootComputeMeasurements(screenDimensions, screenDimensions, Vector2f(1f, 1f))
 
     var lastFps: Int = 0
     var fpsCountStart = System.currentTimeMillis()
@@ -244,6 +243,17 @@ fun main(args: Array<String>) {
             .add(UiText("56%"), width = CellSize.Auto)
 
      */
+
+
+    val sideBox = UiBoxElement(Vector2f(240f, 100f))
+    val infoText = UiTextElement(font, "Hello")
+    infoText.renderer = UiTextRenderer(infoText, uiTextShaderProgram, ssbo)
+    sideBox.setChild(infoText)
+    sideBox.centerChild = true
+    sideBox.renderer = UiBoxRenderer(sideBox, uiBoxShaderProgram)
+    sideBox.rootComputeMeasurements(screenDimensions,
+        Vector2f(screenDimensions.x(), screenDimensions.y() * 0.5f), Vector2f(1f, 0.5f))
+
 
     var debugDot: DebugDotRenderer? = null
     //debugDot = DebugDotRenderer(debugDotShaderProgram, fpsCounter.computedPosition)
@@ -460,6 +470,7 @@ fun main(args: Array<String>) {
 //        pausedLabel.requestedString = if (paused) "Paused" else ""
 //        pausedLabel.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
 
+        sideBox.render(screenDimensions)
         debugDot?.render(screenDimensions, camera.matrixArr, gameTime)
 
         glfwPollEvents()

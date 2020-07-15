@@ -7,13 +7,13 @@ class UiBoxElement(private val boxMinDimensions: Vector2fc) : UiElement() {
     private val mutableDimensions = Vector2f(boxMinDimensions)
     override val autoDimensions: Vector2fc = mutableDimensions
 
-    override val renderer: UiRenderer? = null
+    override var renderer: UiBoxRenderer? = null
 
     private var child: UiLayout? = null
     private val childList = mutableListOf<UiLayout>()
     override val children: List<UiLayout> = childList
 
-    var shouldCenterChild = true
+    var centerChild = true
     var borderWidth: Int = 3
     var borderColor: Int = 0xFFFFFF
 
@@ -44,6 +44,7 @@ class UiBoxElement(private val boxMinDimensions: Vector2fc) : UiElement() {
         if (child != null) {
             // Formula: ChildPos = (BoxDimensions - ChildDimensions) / 2
             child.computedRelativePosition.set(autoDimensions).sub(child.computedDimensions).mul(0.5f)
+            child.computedRelativePosition.y *= -1
         }
     }
 }
