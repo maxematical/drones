@@ -22,6 +22,16 @@ object MathUtils {
         if (result >= 180) result -= 360
         return result
     }
+
+    /**
+     * Returns whether a number is negative. Unlike the check "a >= 0", this will return true even if a is negative
+     * zero.
+     */
+    fun isNegative(a: Float): Boolean =
+        (a.toBits() and 0x80000000.toInt()) != 0
+
+    fun isPositive(a: Float): Boolean =
+        !isNegative(a)
 }
 
 fun Vector2fc.toDyn4j(result: Vector2 = Vector2()): Vector2 {

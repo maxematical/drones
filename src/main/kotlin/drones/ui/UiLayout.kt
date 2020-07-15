@@ -1,5 +1,6 @@
 package drones.ui
 
+import drones.MathUtils
 import org.joml.Vector2f
 import org.joml.Vector2fc
 
@@ -46,7 +47,7 @@ abstract class UiLayout {
      */
     private fun computeAbsolutePosition(parentPosition: Vector2fc, parentDimensions: Vector2fc) {
         computedPosition.x = computedRelativePosition.x() + parentPosition.x()
-        if (computedRelativePosition.y() >= 0) {
+        if (MathUtils.isPositive(computedRelativePosition.y())) {
             computedPosition.y = computedRelativePosition.y() + parentPosition.y() - parentDimensions.y()
         } else {
             computedPosition.y = computedRelativePosition.y() + parentPosition.y()

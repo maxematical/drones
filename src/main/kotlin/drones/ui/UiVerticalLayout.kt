@@ -16,17 +16,17 @@ class UiVerticalLayout : UiLayout() {
 
     override fun computeChildMeasurements() {
         var maxWidth = 0f
-        var nextY = 0f
+        var totalHeight = 0f
         for (child in children) {
             child.computeChildMeasurements()
             child.computedDimensions.set(child.autoDimensions)
-            child.computedRelativePosition.set(0f, nextY)
+            child.computedRelativePosition.set(0f, -totalHeight)
             child.onMeasurementsComputed()
 
             maxWidth = Math.max(child.computedDimensions.x(), maxWidth)
-            nextY += child.computedDimensions.y()
+            totalHeight += child.computedDimensions.y()
         }
 
-        mutableDimensions.set(maxWidth, nextY)
+        mutableDimensions.set(maxWidth, totalHeight)
     }
 }
