@@ -16,6 +16,7 @@ class UiTextElement(val font: GameFont, var string: String = "",
     var textBgColor: Int = 0
     var textAlign: TextAlign = TextAlign.LEFT_ALIGN
     var transparentBg: Boolean = false
+    var lineSpacing: Float = 1.2f
 
     private val mutableDimensions = Vector2f(0f, 1.0f * fontSize)
     override val autoDimensions: Vector2fc = mutableDimensions
@@ -35,7 +36,7 @@ class UiTextElement(val font: GameFont, var string: String = "",
             width += charWidth * fontScale
         }
 
-        mutableDimensions.set(width, fontSize.toFloat())
+        mutableDimensions.set(width, fontSize * lineSpacing)
         mutableDimensions.max(minDimensions)
     }
 

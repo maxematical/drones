@@ -5,6 +5,7 @@ in vec2 uv;
 uniform vec2 ElementDimensions;
 uniform int BoxBorderSize;
 uniform int BoxBorderColor;
+uniform int BoxBackgroundColor;
 
 out vec4 FragColor;
 
@@ -15,8 +16,15 @@ void main()
     vec2 distanceFromEdgePx = distanceFromEdge * ElementDimensions;
     bool drawBorder = distanceFromEdgePx.x <= BoxBorderSize || distanceFromEdgePx.y <= BoxBorderSize;
 
-    float colorR = ((BoxBorderColor >> 16) & 255) / 255.0;
-    float colorG = ((BoxBorderColor >> 8) & 255) / 255.0;
-    float colorB = (BoxBorderColor & 255) / 255.0;
-    FragColor = mix(vec4(0.0), vec4(colorR, colorG, colorB, 1.0), int(drawBorder));
+    float borderR = ((BoxBorderColor >> 16) & 255) / 255.0;
+    float borderG = ((BoxBorderColor >>  8) & 255) / 255.0;
+    float borderB = ( BoxBorderColor        & 255) / 255.0;
+    vec4 borderCol = vec4(borderR, borderG, borderB, 1.0);
+
+    float backgroundR = ((BoxBackgroundColor >> 16) & 255) / 255.0;
+    float backgroundG = ((BoxBackgroundColor >>  8) & 255) / 255.0;
+    float backgroundB = ( BoxBackgroundColor        & 255) / 255.0;
+    vec4 backgroundCol = vec4(backgroundR, backgroundG, backgroundB, 1.0);
+
+    FragColor = mix(backgroundCol, borderCol, int(drawBorder));
 }

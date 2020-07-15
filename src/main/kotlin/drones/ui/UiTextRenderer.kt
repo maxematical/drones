@@ -12,12 +12,14 @@ class UiTextRenderer(private val element: UiTextElement, shaderProgram: Int,
     private val locationLetterSpacing: Int
     private val locationTextAlign: Int
     private val locationTransparentBg: Int
+    private val locationLineHeight: Int
 
     init {
         locationFontScale = glGetUniformLocation(shaderProgram, "TextFontScale")
         locationLetterSpacing = glGetUniformLocation(shaderProgram, "TextLetterSpacing")
         locationTextAlign = glGetUniformLocation(shaderProgram, "TextAlign")
         locationTransparentBg = glGetUniformLocation(shaderProgram, "TextTransparentBg")
+        locationLineHeight = glGetUniformLocation(shaderProgram, "TextLineHeight")
     }
 
     override fun setUniforms() {
@@ -31,6 +33,7 @@ class UiTextRenderer(private val element: UiTextElement, shaderProgram: Int,
         glUniform1f(locationLetterSpacing, element.font.characterWidthLut[0].toFloat() * element.fontScale)
         glUniform1i(locationTextAlign, element.textAlign.id)
         glUniform1i(locationTransparentBg, if (element.transparentBg) GL_TRUE else GL_FALSE)
+        glUniform1i(locationLineHeight, element.fontSize)
 
         glBindTexture(GL_TEXTURE_2D, element.font.glBitmap)
     }

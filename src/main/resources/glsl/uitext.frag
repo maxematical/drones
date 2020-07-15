@@ -9,6 +9,7 @@ uniform float TextFontScale;
 uniform float TextLetterSpacing;
 uniform int TextAlign;
 uniform bool TextTransparentBg;
+uniform int TextLineHeight;
 
 out vec4 FragColor;
 
@@ -38,7 +39,7 @@ void main()
     bool wasCharIndexValid = charIndex >= 0 && charIndex < font_nChars;
     charIndex *= int(wasCharIndexValid);
 
-    vec2 boxDimensions = vec2(TextLetterSpacing, ElementDimensions.y);
+    vec2 boxDimensions = vec2(TextLetterSpacing, TextLineHeight);
     vec2 boxTopLeft = ElementPosition + vec2(charIndex * TextLetterSpacing + extraSpace, 0);
     vec2 boxBottomRight = boxTopLeft + vec2(boxDimensions.x, -boxDimensions.y);
     vec2 boxUv = (fragCoord - boxTopLeft) / (boxBottomRight - boxTopLeft);

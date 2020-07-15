@@ -246,14 +246,44 @@ fun main(args: Array<String>) {
      */
 
 
-    val sideBox = UiBoxElement(Vector2f(240f, 100f))
-    val infoText = UiTextElement(font, "Hello")
-    infoText.renderer = UiTextRenderer(infoText, uiTextShaderProgram, ssbo)
-    sideBox.setChild(infoText)
-    sideBox.centerChild = true
+    val sideBox = UiBoxElement(Vector2f(240f, 240f))
+    sideBox.setChild(UiVerticalLayout().apply {
+        addChild(UiTextElement(font, "Hello").apply {
+            renderer = UiTextRenderer(this, uiTextShaderProgram, ssbo)
+            fontScale = 1.5f
+            transparentBg = true
+        })
+        addChild(UiTextElement(font, "XX/XX HP").apply {
+            renderer = UiTextRenderer(this, uiTextShaderProgram, ssbo)
+            fontScale = 1.0f
+            transparentBg = true
+            textFgColor = 15
+        })
+        addChild(UiTextElement(font, "XX/XX Stored Power").apply {
+            renderer = UiTextRenderer(this, uiTextShaderProgram, ssbo)
+            fontScale = 1.0f
+            transparentBg = true
+            textFgColor = 15
+        })
+    })
+    sideBox.centerChild = false
+    sideBox.borderWidth = 3
+    sideBox.padding = 6f
     sideBox.renderer = UiBoxRenderer(sideBox, uiBoxShaderProgram)
     sideBox.rootComputeMeasurements(screenDimensions,
-        Vector2f(screenDimensions.x(), screenDimensions.y() * 0.5f), Vector2f(1f, 0.5f))
+        Vector2f(screenDimensions.x() - 8f, screenDimensions.y() * 0.5f), Vector2f(1f, 0.5f))
+
+
+    val tooltipBox = UiBoxElement()
+    tooltipBox.padding = 3f
+    tooltipBox.centerChild = false
+    tooltipBox.borderWidth = 2
+    tooltipBox.renderer = UiBoxRenderer(tooltipBox, uiBoxShaderProgram)
+    val tooltipText = UiTextElement(font).apply {
+        renderer = UiTextRenderer(this, uiTextShaderProgram, ssbo)
+    }
+    tooltipBox.setChild(tooltipText)
+    val tooltipBoxPosition = Vector2f(0f, 0f) // Will be updated and used as an argument in rootUpdatePosition()
 
 
     var debugDot: DebugDotRenderer? = null
@@ -375,19 +405,36 @@ fun main(args: Array<String>) {
             world.update(deltaTime.toDouble())
         }
 
+        // Get mouse position
+        // (0,0) means the top left corner of the window. Mouse position is measured in pixels.
+        glfwGetCursorPos(window, mouseXArr, mouseYArr)
+        val mouseX: Float = mouseXArr[0].toFloat()
+        val mouseY: Float = mouseYArr[0].toFloat()
+
+        // Transform mouse coordinates to [-1,1] range
+        val normalizedX = -1f + 2f * (mouseX / windowWidth)
+        val normalizedY = 1f - 2f * (mouseY / windowHeight)
+
+        // Begin transforming the mouse position to desired spaces
+        val transformedMousePos = Vector4f(normalizedX, normalizedY, 0f, 1f)
+        camera.matrixInvc.transform(transformedMousePos) // now is in world space
+
+        // Update tooltip
+        var drawTooltip: Boolean = false
+        for (obj in gameObjects) {
+            if (obj.hoverable.isHover(transformedMousePos)) {
+                drawTooltip = true
+
+                val newText = obj.toString()
+                if (tooltipText.string != newText) {
+                    tooltipText.string = newText
+                    tooltipBox.rootComputeMeasurements(screenDimensions)
+                }
+            }
+        }
+
         // Handle mouse click
         if (mouseLeftClicked || mouseRightClicked) {
-            // (0,0) means the top left corner of the window. Mouse position is measured in pixels.
-            glfwGetCursorPos(window, mouseXArr, mouseYArr)
-
-            // Transform mouse coordinates to [-1,1] range
-            val mouseX = -1f + 2f * (mouseXArr[0].toFloat() / windowWidth)
-            val mouseY = 1f - 2f * (mouseYArr[0].toFloat() / windowHeight)
-
-            // Begin transforming the mouse position to desired spaces
-            val transformedMousePos = Vector4f(mouseX, mouseY, 0f, 1f)
-            camera.matrixInvc.transform(transformedMousePos) // now is in world space
-
             if (mouseLeftClicked) {
                 // Check if we're clicking on any drones
                 var clickedOnDrone = false
@@ -472,7 +519,14 @@ fun main(args: Array<String>) {
 //        pausedLabel.requestedString = if (paused) "Paused" else ""
 //        pausedLabel.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
 
+        if (drawTooltip) {
+            tooltipBoxPosition.set(mouseX, screenDimensions.y() - mouseY)
+            tooltipBox.rootUpdatePosition(screenDimensions, tooltipBoxPosition)
+            tooltipBox.render(screenDimensions)
+        }
+
         sideBox.render(screenDimensions)
+        debugDot?.debugPosition = tooltipBox.computedPosition
         debugDot?.render(screenDimensions, camera.matrixArr, gameTime)
 
         glfwPollEvents()

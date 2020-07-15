@@ -39,6 +39,14 @@ abstract class UiLayout {
         computeAbsolutePosition(Vector2f(0f, screenDimensions.y()), screenDimensions)
     }
 
+    fun rootUpdatePosition(screenDimensions: Vector2fc,
+                           newRootPosition: Vector2fc,
+                           rootAnchor: Vector2fc = Vector2f(0f, 0f)) {
+        computedRelativePosition.set(-rootAnchor.x(), 1f - rootAnchor.y()).mul(autoDimensions).add(newRootPosition)
+        onMeasurementsComputed()
+        computeAbsolutePosition(Vector2f(0f, screenDimensions.y()), screenDimensions)
+    }
+
     /**
      * The final part of the measurement computing process. The absolute position [computedPosition] is set based on
      * the given parent's position and this element's [computedRelativePosition].
