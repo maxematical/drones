@@ -200,9 +200,10 @@ fun main(args: Array<String>) {
 //    fpsCounter.textFgColor = 10
 //    fpsCounter.renderer = UiTextRenderer(fpsCounter, uiTextShaderProgram, ssbo, font)
 
-    val fpsCounter = UiTextElement(font, "FPS??")
+    val fpsCounter = UiTextElement(font, minDimensions = Vector2f(9f * 2f * 5f, 0f))
     fpsCounter.textFgColor = 10
     fpsCounter.fontScale = 2.0f
+    fpsCounter.textAlign = UiTextElement.TextAlign.RIGHT_ALIGN
     fpsCounter.renderer = UiTextRenderer(fpsCounter, uiTextShaderProgram, ssbo)
     fpsCounter.rootComputeMeasurements(screenDimensions, screenDimensions, Vector2f(1f, 1f))
 
@@ -462,6 +463,7 @@ fun main(args: Array<String>) {
         }
 
         // Render framerate counter
+        fpsCounter.string = lastFps.toString()
         fpsCounter.render(screenDimensions)
 //        fpsCounter.requestedString = lastFps.toString()
 //        fpsCounter.renderer?.render(screenDimensions, camera.matrixArr, gameTime)

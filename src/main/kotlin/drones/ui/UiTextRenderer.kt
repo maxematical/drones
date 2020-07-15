@@ -10,11 +10,13 @@ class UiTextRenderer(private val element: UiTextElement, shaderProgram: Int,
 
     private val locationFontScale: Int
     private val locationLetterSpacing: Int
+    private val locationTextAlign: Int
     private val locationTransparentBg: Int
 
     init {
         locationFontScale = glGetUniformLocation(shaderProgram, "TextFontScale")
         locationLetterSpacing = glGetUniformLocation(shaderProgram, "TextLetterSpacing")
+        locationTextAlign = glGetUniformLocation(shaderProgram, "TextAlign")
         locationTransparentBg = glGetUniformLocation(shaderProgram, "TextTransparentBg")
     }
 
@@ -27,6 +29,7 @@ class UiTextRenderer(private val element: UiTextElement, shaderProgram: Int,
 
         glUniform1f(locationFontScale, element.fontScale)
         glUniform1f(locationLetterSpacing, element.font.characterWidthLut[0].toFloat() * element.fontScale)
+        glUniform1i(locationTextAlign, element.textAlign.id)
         glUniform1i(locationTransparentBg, if (element.transparentBg) GL_TRUE else GL_FALSE)
 
         glBindTexture(GL_TEXTURE_2D, element.font.glBitmap)

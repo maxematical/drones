@@ -4,7 +4,8 @@ import drones.GameFont
 import org.joml.Vector2f
 import org.joml.Vector2fc
 
-class UiTextElement(val font: GameFont, var string: String = "") : UiElement() {
+class UiTextElement(val font: GameFont, var string: String = "",
+                    private val minDimensions: Vector2fc = Vector2f(0f, 0f)) : UiElement() {
 
     var fontSize: Int = font.lineHeight
     var fontScale: Float
@@ -13,7 +14,7 @@ class UiTextElement(val font: GameFont, var string: String = "") : UiElement() {
 
     var textFgColor: Int = 15
     var textBgColor: Int = 0
-
+    var textAlign: TextAlign = TextAlign.LEFT_ALIGN
     var transparentBg: Boolean = false
 
     private val mutableDimensions = Vector2f(0f, 1.0f * fontSize)
@@ -35,5 +36,12 @@ class UiTextElement(val font: GameFont, var string: String = "") : UiElement() {
         }
 
         mutableDimensions.set(width, fontSize.toFloat())
+        mutableDimensions.max(minDimensions)
+    }
+
+    enum class TextAlign(val id: Int) {
+        LEFT_ALIGN(0),
+        RIGHT_ALIGN(1),
+        CENTER_ALIGN(2)
     }
 }

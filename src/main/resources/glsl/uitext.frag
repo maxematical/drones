@@ -7,6 +7,7 @@ uniform vec2 ElementDimensions;
 
 uniform float TextFontScale;
 uniform float TextLetterSpacing;
+uniform int TextAlign;
 uniform bool TextTransparentBg;
 
 out vec4 FragColor;
@@ -28,7 +29,7 @@ void main()
     mulLut[0] = 0.0; // left-aligned: extraSpace should be zero
     mulLut[1] = 1.0; // right-aligned: extraSpace should be same
     mulLut[2] = 0.5; // center-aligned: extraSpace should be half
-    extraSpace *= mulLut[0];
+    extraSpace *= mulLut[TextAlign];
 
     // Calculate the index of the character in this box
     int charIndex = int(floor(( relativePixel.x - extraSpace ) / TextLetterSpacing));
