@@ -8,7 +8,7 @@ class DroneBehavior(private val gameState: GameState, private val drone: Drone) 
 
     override fun update(deltaTime: Float) {
         val accel: Vector2f = Vector2f(drone.desiredVelocity).sub(drone.physicsBody.linearVelocity.toJoml())
-        if (accel.lengthSquared() > 0)
+        if (accel.lengthSquared() > 0 && accel.lengthSquared() > (50f * 50f * deltaTime * deltaTime))
             accel.normalize().mul(50f * deltaTime)
 
         drone.physicsBody.applyForce(accel.toDyn4j())
