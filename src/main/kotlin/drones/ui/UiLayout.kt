@@ -19,6 +19,10 @@ abstract class UiLayout {
      */
     val computedPosition: Vector2f = Vector2f()
 
+    /**
+     * Called when the layout should a) compute the measurements of its children (i.e. `computedRelativePosition` and
+     * `computedPosition`) and b) compute its own `autoDimensions`.
+     */
     abstract fun computeChildMeasurements()
     open fun onMeasurementsComputed() {}
 

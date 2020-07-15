@@ -33,10 +33,11 @@ vec4 drawChar(int charInfo, vec2 boxUv, vec2 boxDimensions, float fontScale, boo
 // Arguments:
 // 1) charInfo: the character and associated info, e.g. font_charData[someIndex]
 // 2) boxUv: the uv coordinate within this box, ranging from (0,0) to (1,1)
-// 3) fontScale: how much to scale the text from the bitmap
-// 4) flipY: whether boxUv's y-coordinate needs to be flipped
-// 5) centerChar: whether to ignore character offset and center the character in the box (99% of the time, false)
-// 6) transparentBg: whether the character background should be transparent instead of a solid color
+// 3) boxDimensions: the dimensions, in pixels, of each box
+// 4) fontScale: how much to scale the text from the bitmap
+// 5) flipY: whether boxUv's y-coordinate needs to be flipped
+// 6) centerChar: whether to ignore character offset and center the character in the box (99% of the time, false)
+// 7) transparentBg: whether the character background should be transparent instead of a solid color
 vec4 drawChar(int charInfo, vec2 boxUv, vec2 boxDimensions, float fontScale,
         bool flipY, bool centerChar, bool transparentBg) {
     // Determine the properties of the current character

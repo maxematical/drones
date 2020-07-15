@@ -109,7 +109,7 @@ fun main(args: Array<String>) {
 
     val gridShaderProgram = Shader.createProgram(defaultVsh, gridFsh)
     val droneShaderProgram = Shader.createProgram(objectVsh, droneFsh)
-    val uiTextShaderProgram = Shader.createProgram(uiVsh, solidColorFsh)
+    val uiTextShaderProgram = Shader.createProgram(uiVsh, uiTextFsh)
     val uiBoxShaderProgram = Shader.createProgram(uiVsh, uiBoxFsh)
     val laserShaderProgram = Shader.createProgram(objectVsh, laserFsh)
     val simpleObjShaderProgram = Shader.createProgram(objectVsh, simpleObjFsh)
@@ -203,6 +203,7 @@ fun main(args: Array<String>) {
 
     val fpsCounter = UiTextElement(font, "FPS??")
     fpsCounter.textFgColor = 10
+    fpsCounter.fontScale = 2.0f
     fpsCounter.renderer = UiTextRenderer(fpsCounter, uiTextShaderProgram, ssbo)
     fpsCounter.rootComputeMeasurements(screenDimensions, Vector2f(1f, 1f))
 
@@ -245,7 +246,7 @@ fun main(args: Array<String>) {
      */
 
     var debugDot: DebugDotRenderer? = null
-//    debugDot = DebugDotRenderer(debugDotShaderProgram, infoBox.bottomLeft)
+    //debugDot = DebugDotRenderer(debugDotShaderProgram, fpsCounter.computedPosition)
 
     // Misc.
     val logger = LoggerFactory.getLogger(Main::class.java)
@@ -458,6 +459,8 @@ fun main(args: Array<String>) {
         // Render paused reminder
 //        pausedLabel.requestedString = if (paused) "Paused" else ""
 //        pausedLabel.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
+
+        debugDot?.render(screenDimensions, camera.matrixArr, gameTime)
 
         glfwPollEvents()
         glfwSwapBuffers(window)

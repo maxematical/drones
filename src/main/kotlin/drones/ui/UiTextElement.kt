@@ -4,18 +4,17 @@ import drones.GameFont
 import org.joml.Vector2f
 import org.joml.Vector2fc
 
-class UiTextElement(val font: GameFont, string: String = "") : UiElement() {
-    var string: String = string
-        set(value) {
-            field = value
-            updateDimensions()
-        }
+class UiTextElement(val font: GameFont, var string: String = "") : UiElement() {
 
     var fontSize: Int = font.lineHeight
-    val fontScale: Float get() = 1.0f * fontSize / font.lineHeight
+    var fontScale: Float
+        get() = 1.0f * fontSize / font.lineHeight
+        set(value) { fontSize = (font.lineHeight * value).toInt() }
 
     var textFgColor: Int = 15
     var textBgColor: Int = 0
+
+    var transparentBg: Boolean = false
 
     private val mutableDimensions = Vector2f(0f, 1.0f * fontSize)
     override val autoDimensions: Vector2fc = mutableDimensions
@@ -23,11 +22,9 @@ class UiTextElement(val font: GameFont, string: String = "") : UiElement() {
     override var renderer: UiTextRenderer? = null
     override val children: List<UiLayout> = emptyList()
 
-    init {
+    override fun computeChildMeasurements() {
         updateDimensions()
     }
-
-    override fun computeChildMeasurements() {}
 
     private fun updateDimensions() {
         var width = 0f
@@ -37,6 +34,6 @@ class UiTextElement(val font: GameFont, string: String = "") : UiElement() {
             width += charWidth * fontScale
         }
 
-        mutableDimensions.set(width, 1.0f * fontSize)
+        mutableDimensions.set(width, fontSize.toFloat())
     }
 }
