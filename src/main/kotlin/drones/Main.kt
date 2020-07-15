@@ -8,7 +8,10 @@ import org.dyn4j.dynamics.Body
 import org.dyn4j.dynamics.BodyFixture
 import org.dyn4j.dynamics.World
 import org.dyn4j.geometry.Rectangle
-import org.joml.*
+import org.joml.Math
+import org.joml.Vector2f
+import org.joml.Vector2i
+import org.joml.Vector4f
 import org.luaj.vm2.Globals
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
@@ -272,6 +275,8 @@ fun main(args: Array<String>) {
     sideBox.renderer = UiBoxRenderer(sideBox, uiBoxShaderProgram)
     sideBox.rootComputeMeasurements(screenDimensions,
         Vector2f(screenDimensions.x() - 8f, screenDimensions.y() * 0.5f), Vector2f(1f, 0.5f))
+    var showBaseInfo = false
+    var baseInfoTransition = 0f
 
 
     val tooltipBox = UiBoxElement()
@@ -335,8 +340,7 @@ fun main(args: Array<String>) {
             is OreChunk -> gameObject.behavior
             else -> throw RuntimeException("Could not create behavior for GameObject $gameObject")
         }
-        if (gameObject is Drone)
-            gameObject.hoverable = DroneHoverable(gameObject)
+        gameObject.hoverable = SimpleObjectHoverable(gameObject)
         gameObjects.add(gameObject)
         gameObject.spawned = true
         gameObject.spawnedTime = gameTime
@@ -436,12 +440,15 @@ fun main(args: Array<String>) {
         // Handle mouse click
         if (mouseLeftClicked || mouseRightClicked) {
             if (mouseLeftClicked) {
-                // Check if we're clicking on any drones
-                var clickedOnDrone = false
+                // Check if we're clicking on any drones or the base
+                var clickedDrone = false
+                var clickedBase = false
 
                 for (obj in gameObjects) {
-                    if (obj is Drone && obj.hoverable.isHover(transformedMousePos)) {
-                        clickedOnDrone = true
+                    val hover = obj.hoverable.isHover(transformedMousePos)
+
+                    if (obj is Drone && hover) {
+                        clickedDrone = true
                         if (obj in selectedDrones) {
                             selectedDrones.remove(obj)
                             obj.selected = false
@@ -450,15 +457,22 @@ fun main(args: Array<String>) {
                             obj.selected = true
                         }
                     }
+
+                    if (obj is Base && hover) {
+                        clickedBase = true
+                    }
                 }
 
                 // Deselect all drones if didn't click on anything
-                if (!clickedOnDrone) {
+                if (!clickedDrone) {
                     for (drone in selectedDrones) {
                         drone.selected = false
                     }
                     selectedDrones.clear()
                 }
+
+                // Only show base info if we clicked on it
+                showBaseInfo = clickedBase
             }
             if (mouseRightClicked) {
                 for (selectedDrone in selectedDrones) {
@@ -525,7 +539,24 @@ fun main(args: Array<String>) {
             tooltipBox.render(screenDimensions)
         }
 
-        sideBox.render(screenDimensions)
+        val desiredBaseInfoTransition: Float = if (showBaseInfo) 1f else 0f
+        val prevTransition = baseInfoTransition
+        baseInfoTransition = Math.clamp(0f, 1f,
+            baseInfoTransition + java.lang.Math.signum(desiredBaseInfoTransition - 0.5f) * 6f * deltaTime)
+
+        if (baseInfoTransition > 0) {
+            if (baseInfoTransition != prevTransition) {
+                val finalX = screenDimensions.x() - sideBox.computedDimensions.x() - 8f
+                val sideBoxX = MathUtils.lerp(screenDimensions.x(), finalX, MathUtils.smoothstep(baseInfoTransition))
+
+                sideBox.rootUpdatePosition(screenDimensions,
+                    Vector2f(sideBoxX, screenDimensions.y() * 0.5f),
+                    Vector2f(0f, 0.5f))
+            }
+
+            sideBox.render(screenDimensions)
+        }
+
         debugDot?.debugPosition = tooltipBox.computedPosition
         debugDot?.render(screenDimensions, camera.matrixArr, gameTime)
 

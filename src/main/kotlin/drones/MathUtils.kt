@@ -23,6 +23,14 @@ object MathUtils {
         return result
     }
 
+    fun lerp(a: Float, b: Float, x: Float): Float {
+        val x2 = org.joml.Math.clamp(0f, 1f, x)
+        return a * (1f - x2) + b * x2
+    }
+
+    fun smoothstep(a: Float): Float =
+        3f * (a * a) - 2f * (a * a * a)
+
     /**
      * Returns whether a number is negative. Unlike the check "a >= 0", this will return true even if a is negative
      * zero.
