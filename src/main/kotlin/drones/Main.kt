@@ -17,11 +17,8 @@ import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL30.*
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
-import org.lwjgl.stb.STBImage
 import org.lwjgl.system.MemoryUtil.NULL
 import org.slf4j.LoggerFactory
-import java.io.FileNotFoundException
-import java.nio.ByteBuffer
 import java.util.*
 import kotlin.math.floor
 
@@ -118,7 +115,8 @@ fun main(args: Array<String>) {
     val debugDotShaderProgram = Shader.createProgram(defaultVsh, debugDotFsh)
 
     // Set up bitmap (font) texture
-    val font = loadFont()
+    //val font = loadFont("Lemon", "medium", 14, -1, -3)
+    val font = loadFont("Consolas", "regular", 14, 8, 0)
 
     // Set up alpha blending
     glEnable(GL_BLEND)
@@ -598,16 +596,6 @@ fun mouseCallback(window: Long, button: Int, action: Int, mods: Int) {
     if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
         mouseRightClicked = true
     }
-}
-
-fun readImage(filename: String): Triple<Int, Int, ByteBuffer> {
-    val x = IntArray(1)
-    val y = IntArray(1)
-    val channels = IntArray(1)
-    val bytes = STBImage.stbi_load(filename, x, y, channels, 4) ?:
-        throw FileNotFoundException("Could not find file '$filename'")
-
-    return Triple(x[0], y[0], bytes)
 }
 
 /**

@@ -1,9 +1,14 @@
 package drones
 
 import org.lwjgl.opengl.GL30.*
+import org.lwjgl.stb.STBImage
+import org.lwjgl.stb.STBImage.stbi_load_from_memory
+import org.lwjgl.system.MemoryStack
 import java.io.FileNotFoundException
 import java.io.InputStream
 import java.nio.ByteBuffer
+import java.nio.channels.Channels
+import java.nio.channels.ReadableByteChannel
 import javax.xml.bind.JAXBContext
 import javax.xml.bind.annotation.XmlAttribute
 import javax.xml.bind.annotation.XmlElement
@@ -11,8 +16,24 @@ import javax.xml.bind.annotation.XmlRootElement
 import kotlin.math.abs
 import kotlin.math.min
 
-fun loadFont(): GameFont {
-    val xmlStream = getFontXmlStream("lemon/lemon_medium_14.xml")
+/**
+ * Loads a font's bitmap texture, parses its XML file, and returns a GameFont object ready to be used for rendering.
+ *
+ * It is expected that a PNG bitmap and an XML meta file will be in the resources folder, with file names
+ * `FAMILY/FAMILY_STYLE_SIZE.(png|xml)`, respectively.
+ *
+ * @param family the name of the font family
+ * @param style the name of the font style used in the bitmap image's name
+ * @param size the size (line height) of the font in the bitmap
+ * @param paddingX the horizontal padding chosen when generating the bitmap with FontBuilder
+ * (i.e. right padding minus left padding)
+ * @param paddingY the vertical padding chosen when generating the bitmap with FontBuilder
+ * (i.e. down padding minus up padding)
+ */
+fun loadFont(family: String, style: String, size: Int, paddingX: Int, paddingY: Int): GameFont {
+    val fontpath = "/fonts/${family.toLowerCase()}/${family.toLowerCase()}_${style.toLowerCase()}_$size"
+
+    val xmlStream = getFontXmlStream(fontpath + ".xml")
 
     val ctx = JAXBContext.newInstance(XmlFontEntry::class.java)
     val unmarshaller = ctx.createUnmarshaller()
@@ -23,7 +44,7 @@ fun loadFont(): GameFont {
     val characterLut = CharArray(128)
     val characterCoordinatesLut = IntArray(128)
     val characterOffsetLut = IntArray(128)
-    var characterWidthLut = IntArray(128)
+    val characterWidthLut = IntArray(128)
     val characterCodeLut = mutableMapOf<Char, Int>()
 
     for (idx in 0..min(127, chars.lastIndex)) {
@@ -39,10 +60,8 @@ fun loadFont(): GameFont {
 
         val characterWidth = chars[idx].width.toInt()
         characterWidthLut[idx] = characterWidth
-
-        // IMPORTANT: The added numbers here should be the padding X and Y for this bitmap.
-        val offsetX = offset[0].toInt() + -1
-        val offsetY = offset[1].toInt() + -3
+        val offsetX = offset[0].toInt() + paddingX
+        val offsetY = offset[1].toInt() + paddingY
 
         val uvX = rect[0].toInt()
         val uvY = rect[1].toInt()
@@ -72,9 +91,7 @@ fun loadFont(): GameFont {
         characterOffsetLut[spaceCode] = 0
     }
 
-    val (bitmapWidth, bitmapHeight, bitmapData) = readImage(
-        "C:\\Users\\ofwar\\Documents\\Programming\\drones\\src\\main\\resources\\fonts\\lemon\\lemon_medium_14.png"
-    )
+    val (bitmapWidth, bitmapHeight, bitmapData) = loadFontBitmap(fontpath + ".png")
 
     val glBitmap = glGenTextures()
     glBindTexture(GL_TEXTURE_2D, glBitmap)
@@ -85,14 +102,55 @@ fun loadFont(): GameFont {
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bitmapWidth, bitmapHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, bitmapData)
     glGenerateMipmap(GL_TEXTURE_2D)
 
-    return GameFont("Consolas",
-        glBitmap, bitmapData, bitmapWidth, bitmapHeight, 14,
+    return GameFont(family.toLowerCase().capitalize(),
+        glBitmap, bitmapData, bitmapWidth, bitmapHeight, size,
         characterLut, characterCodeLut, characterCoordinatesLut, characterOffsetLut, characterWidthLut)
 }
 
-fun getFontXmlStream(filename: String): InputStream =
-    Main::class.java.getResourceAsStream("/fonts/$filename")
-        ?: throw FileNotFoundException("Could not find font 'fonts/$filename'")
+private fun getFontXmlStream(filename: String): InputStream =
+    Main::class.java.getResourceAsStream(filename)
+        ?: throw FileNotFoundException("Could not find font '$filename'")
+
+private fun loadFontBitmap(filename: String): Triple<Int, Int, ByteBuffer> {
+    return Main::class.java.getResourceAsStream(filename).use { instr: InputStream? ->
+        if (instr == null) error("Bitmap image not found, filename: '$filename'")
+
+        MemoryStack.stackPush().use { stack ->
+            // Taken from https://git.io/JJGjz
+
+            val w = stack.mallocInt(1)
+            val h = stack.mallocInt(1)
+            val nchannels = stack.mallocInt(1)
+
+            val channel: ReadableByteChannel = Channels.newChannel(instr)
+            var buffer = ByteBuffer.allocateDirect(1024 * 8) // 8KB
+
+            // Read bytes from the channel into the buffer
+            while (channel.read(buffer) > -1) {
+                // Resize the buffer if it is full
+                if (!buffer.hasRemaining()) {
+                    buffer = resizeBuffer(buffer, buffer.capacity() * 2)
+                }
+            }
+            // Reset position of the buffer, prepare for loading into stbi
+            buffer.flip()
+
+            // Extract information from image bytes
+            val bytes = stbi_load_from_memory(buffer, w, h, nchannels, 4)
+                ?: throw RuntimeException("Couldn't load image: ${STBImage.stbi_failure_reason()}")
+            Triple(w[0], h[0], bytes)
+
+            // TODO Free the image using stbi_free, after giving the texture to OpenGL
+        }
+    }
+}
+
+private fun resizeBuffer(buffer: ByteBuffer, newCapacity: Int): ByteBuffer {
+    val new = ByteBuffer.allocateDirect(newCapacity)
+    buffer.flip()
+    new.put(buffer)
+    return new
+}
 
 @XmlRootElement(name = "Font")
 class XmlFontEntry {
