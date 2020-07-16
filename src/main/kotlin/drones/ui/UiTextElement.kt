@@ -33,7 +33,7 @@ class UiTextElement(val font: GameFont, var string: String = "",
         for (ch: Char in string) {
             val charCode: Int = font.characterCodeLut[ch] ?: error("Font does not suppor character '$ch'")
             val charWidth: Int = font.characterWidthLut[charCode]
-            width += charWidth * fontScale
+            width += (charWidth + 1) * fontScale
         }
 
         mutableDimensions.set(width, fontSize * lineSpacing)

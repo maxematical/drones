@@ -30,7 +30,7 @@ class UiTextRenderer(private val element: UiTextElement, shaderProgram: Int,
         glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1100, textData)
 
         glUniform1f(locationFontScale, element.fontScale)
-        glUniform1f(locationLetterSpacing, element.font.characterWidthLut[0].toFloat() * element.fontScale)
+        glUniform1f(locationLetterSpacing, (element.font.characterWidthLut[0].toFloat()+1) * element.fontScale)
         glUniform1i(locationTextAlign, element.textAlign.id)
         glUniform1i(locationTransparentBg, if (element.transparentBg) GL_TRUE else GL_FALSE)
         glUniform1i(locationLineHeight, element.fontSize)
