@@ -115,8 +115,8 @@ fun main(args: Array<String>) {
     val debugDotShaderProgram = Shader.createProgram(defaultVsh, debugDotFsh)
 
     // Set up bitmap (font) texture
-    //val font = loadFont("Lemon", "medium", 14, -1, -3)
-    val font = loadFont("Consolas", "regular", 14, 8, 0)
+    val font = loadFont("Lemon", "medium", 14)
+    //val font = loadFont("Consolas", "regular", 14)
 
     // Set up alpha blending
     glEnable(GL_BLEND)
@@ -284,6 +284,7 @@ fun main(args: Array<String>) {
     tooltipBox.renderer = UiBoxRenderer(tooltipBox, uiBoxShaderProgram)
     val tooltipText = UiTextElement(font).apply {
         renderer = UiTextRenderer(this, uiTextShaderProgram, ssbo)
+        lineSpacing = 1.0f
     }
     tooltipBox.setChild(tooltipText)
     val tooltipBoxPosition = Vector2f(0f, 0f) // Will be updated and used as an argument in rootUpdatePosition()
@@ -427,7 +428,7 @@ fun main(args: Array<String>) {
             if (obj.hoverable.isHover(transformedMousePos)) {
                 drawTooltip = true
 
-                val newText = obj.toString()
+                val newText = "`_{ | } " + obj.toString()
                 if (tooltipText.string != newText) {
                     tooltipText.string = newText
                     tooltipBox.rootComputeMeasurements(screenDimensions)

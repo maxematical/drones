@@ -25,12 +25,8 @@ import kotlin.math.min
  * @param family the name of the font family
  * @param style the name of the font style used in the bitmap image's name
  * @param size the size (line height) of the font in the bitmap
- * @param paddingX the horizontal padding chosen when generating the bitmap with FontBuilder
- * (i.e. right padding minus left padding)
- * @param paddingY the vertical padding chosen when generating the bitmap with FontBuilder
- * (i.e. down padding minus up padding)
  */
-fun loadFont(family: String, style: String, size: Int, paddingX: Int, paddingY: Int): GameFont {
+fun loadFont(family: String, style: String, size: Int): GameFont {
     val fontpath = "/fonts/${family.toLowerCase()}/${family.toLowerCase()}_${style.toLowerCase()}_$size"
 
     val xmlStream = getFontXmlStream(fontpath + ".xml")
@@ -60,8 +56,8 @@ fun loadFont(family: String, style: String, size: Int, paddingX: Int, paddingY: 
 
         val characterWidth = chars[idx].width.toInt()
         characterWidthLut[idx] = characterWidth
-        val offsetX = offset[0].toInt() + paddingX
-        val offsetY = offset[1].toInt() + paddingY
+        val offsetX = offset[0].toInt()
+        val offsetY = offset[1].toInt()
 
         val uvX = rect[0].toInt()
         val uvY = rect[1].toInt()
@@ -103,7 +99,7 @@ fun loadFont(family: String, style: String, size: Int, paddingX: Int, paddingY: 
     glGenerateMipmap(GL_TEXTURE_2D)
 
     return GameFont(family.toLowerCase().capitalize(),
-        glBitmap, bitmapData, bitmapWidth, bitmapHeight, size,
+        glBitmap, bitmapData, bitmapWidth, bitmapHeight, font.height,
         characterLut, characterCodeLut, characterCoordinatesLut, characterOffsetLut, characterWidthLut)
 }
 
@@ -154,6 +150,8 @@ private fun resizeBuffer(buffer: ByteBuffer, newCapacity: Int): ByteBuffer {
 
 @XmlRootElement(name = "Font")
 class XmlFontEntry {
+    @JvmField @XmlAttribute var height: Int = 0
+
     @XmlElement(name = "Char")
     @JvmField
     var children: MutableList<XmlCharEntry> = mutableListOf()

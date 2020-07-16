@@ -49,7 +49,7 @@ vec4 drawChar(int charInfo, vec2 boxUv, vec2 boxDimensions, float fontScale,
 
     // Determine the character's coordinates on the bitmap
     vec2 bitmapUvTopLeft = vec2((packedCoords >> 23) & 511, (packedCoords >> 14) & 511) / font_bitmapDimensions;
-    vec2 bitmapUvWidthHeight = vec2((packedCoords >> 7) & 127, packedCoords & 127) / font_bitmapDimensions;
+    vec2 bitmapUvDimensions = vec2((packedCoords >> 7) & 127, packedCoords & 127) / font_bitmapDimensions;
 
     vec2 bitmapOffset = vec2((packedOffset >> 8) & 255, packedOffset & 255) / font_bitmapDimensions;
     if (((packedOffset >> 17) & 1) == 1) bitmapOffset.x *= -1;
@@ -59,22 +59,21 @@ vec4 drawChar(int charInfo, vec2 boxUv, vec2 boxDimensions, float fontScale,
     bitmapOffset *= int(!centerChar);
 
     // Calculate character dimensions when it is actually scaled up
-    vec2 charDimensionsPixels = (bitmapUvWidthHeight + bitmapOffset) * font_bitmapDimensions * fontScale;
-    vec2 charDimensionsRelative = charDimensionsPixels / boxDimensions;
+    vec2 charDimensions = fontScale * font_bitmapDimensions * (bitmapUvDimensions + bitmapOffset);
 
     // Flip boxUv.y if requested
     boxUv.y = mix(boxUv.y, 1.0 - boxUv.y, int(flipY));
 
     // Adjust the BoxUV to account for character dimensions
     // Two different algorithms to calculate adjustedUv, depending on whether we want to center the character or not
-    vec2 nonCenteredAdjustedUv = (boxUv - 1) / charDimensionsRelative + 1;
-    vec2 centeredAdjustedUv = (boxUv - 0.5 * (1 - charDimensionsRelative)) / charDimensionsRelative;
-
-    vec2 adjustedUv = mix(nonCenteredAdjustedUv, centeredAdjustedUv, int(centerChar));
+    vec2 boxPixel = boxUv * boxDimensions;
+    vec2 adjustedUv1 = boxPixel / charDimensions;
+    vec2 adjustedUv2 = (boxPixel - 0.5 * (boxDimensions - charDimensions)) / charDimensions;
+    vec2 adjustedUv = mix(adjustedUv1, adjustedUv2, int(centerChar));
     bool outsideAdjustedUv = adjustedUv.x < 0 || adjustedUv.y < 0 || adjustedUv.x > 1 || adjustedUv.y > 1;
 
     // Calculate the UV of the glyph in the bitmap texture
-    vec2 bitmapUv = (bitmapUvTopLeft - bitmapOffset) + adjustedUv * (bitmapUvWidthHeight + bitmapOffset);
+    vec2 bitmapUv = (bitmapUvTopLeft - bitmapOffset) + adjustedUv * (bitmapUvDimensions + bitmapOffset);
     bool isPixelInOffset = bitmapUv.x < bitmapUvTopLeft.x || bitmapUv.y < bitmapUvTopLeft.y;
 
     // Sample the bitmap texture with the calculated UV. Exclude pixels in the padding and offset areas
