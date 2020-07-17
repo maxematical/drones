@@ -6,9 +6,11 @@ import org.dyn4j.geometry.Mass
 import org.dyn4j.geometry.Vector2
 import org.joml.Vector2f
 import org.joml.Vector2fc
+import java.util.*
+import kotlin.properties.Delegates
+import kotlin.properties.Delegates.observable
 
-class Drone(val grid: Grid,
-            override val position: Vector2f,
+class Drone(override val position: Vector2f,
             val color: Int = 0xFFFFFF,
             override var rotation: Float = 0f,
             override val size: Float = 0.8f,
@@ -24,15 +26,19 @@ class Drone(val grid: Grid,
 
     var miningBeam: LaserBeam? = null
     var selected: Boolean = false
-    var carryingObject: GameObject? = null
 
-    override val physicsBody: Body
-    var physicalMass: Double = 1.0
+    var carryingObject: CarryingObject? = null
+
+    val scanQueue: Queue<ScanRequest> = LinkedList()
+    val scanResultQueue: Queue<Vector2fc> = LinkedList()
+
+    override val physics: PhysicsBehavior
 
     init {
-        physicsBody = Body(1)
-        physicsBody.addFixture(Circle(size.toDouble() * 0.5))
-        physicsBody.mass = Mass(Vector2(0.5, 0.5), physicalMass, 1.0)
-        physicsBody.transform.setTranslation(position.x.toDouble(), position.y.toDouble())
+        val body = Body(1)
+        body.addFixture(Circle(size.toDouble() * 0.5))
+        body.mass = Mass(Vector2(0.5, 0.5), 1.0, 1.0)
+        body.transform.setTranslation(position.x.toDouble(), position.y.toDouble())
+        physics = PhysicsBehavior(this, body, 0.0)
     }
 }

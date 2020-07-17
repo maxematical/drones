@@ -7,33 +7,32 @@ import org.dyn4j.geometry.Vector2
 import org.joml.Vector2fc
 
 class TractorBeamBehavior(private val gameState: GameState, private val beam: LaserBeam,
-                          private val ownerPosition: Vector2fc, private val targetPosition: Vector2fc,
                           private val ownerBody: Body, private val targetBody: Body) :
-        EntityBehavior {
+        Behavior {
     private var constraint: RopeJoint? = null
 
-    private val ownerPhysicsPosition = Vector2()
-    private val targetPhysicsPosition = Vector2()
+    private val ownerPosition = Vector2()
+    private val targetPosition = Vector2()
 
     override fun update(deltaTime: Float) {
-        ownerPhysicsPosition.set(ownerPosition.x().toDouble(), ownerPosition.y().toDouble())
-        targetPhysicsPosition.set(targetPosition.x().toDouble(), targetPosition.y().toDouble())
+        ownerPosition.set(ownerBody.transform.translationX, ownerBody.transform.translationY)
+        targetPosition.set(targetBody.transform.translationX, targetBody.transform.translationY)
 
         if (constraint == null) {
-            val joint = RopeJoint(ownerBody, targetBody, ownerPhysicsPosition, targetPhysicsPosition)
+            val joint = RopeJoint(ownerBody, targetBody, ownerPosition, targetPosition)
             joint.lowerLimit = 0.75
             joint.upperLimit = 2.5
             gameState.world.addJoint(joint)
             constraint = joint
         }
 
-        beam.rotation = Math.atan2(targetPosition.y() - ownerPosition.y().toDouble(),
-            targetPosition.x() - ownerPosition.x().toDouble()).toFloat() * MathUtils.RAD2DEG
-        beam.unobstructedLength = ownerPosition.distance(targetPosition)
-        beam.actualLength = ownerPosition.distance(targetPosition)
+        beam.rotation = Math.atan2(targetPosition.y - ownerPosition.y, targetPosition.x - ownerPosition.x)
+            .toFloat() * MathUtils.RAD2DEG
+        beam.unobstructedLength = ownerPosition.distance(targetPosition).toFloat()
+        beam.actualLength = beam.unobstructedLength
     }
 
-    override fun remove() {
+    override fun destroy() {
         constraint?.let(gameState.world::removeJoint)
     }
 }

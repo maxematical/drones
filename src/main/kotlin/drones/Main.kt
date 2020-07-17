@@ -166,10 +166,12 @@ fun main(args: Array<String>) {
 
     // Setup drones
     val baseLocation = Vector2f(3f, -3f)
-    val drone1 = Drone(grid, Vector2f(-2f, 3f), 0xEEEEEE, 90f)
-    val drone2 = Drone(grid, Vector2f(2f, 0f), 0x888888, 90f)
+    val drone1 = Drone(Vector2f(-2f, 3f), 0xEEEEEE, 90f)
+    val drone2 = Drone(Vector2f(2f, 0f), 0x888888, 90f)
     drone1.scriptOrigin = baseLocation
     drone2.scriptOrigin = baseLocation
+    drone1.createBehavior = CreateDroneBehavior(drone1)
+    drone2.createBehavior = CreateDroneBehavior(drone2)
 
     // Setup physics
     val world = World()
@@ -308,7 +310,7 @@ fun main(args: Array<String>) {
     val installScripts: (Drone) -> ScriptManager.(Globals) -> Unit = { drone -> { globals ->
         ModuleVector.install(globals)
         ModuleCore(drone).install(globals)
-        ModuleScanner(drone, this).install(globals)
+        ModuleScanner(drone, this, globals).install(globals)
         ModuleMiningLaser(drone).install(globals)
         ModuleTractorBeam(drone, gameState).install(globals)
         globals.set("move", globals.loadfile("libmove.lua").call())
@@ -322,22 +324,12 @@ fun main(args: Array<String>) {
     // Spawn the objects
     val spawnObject: (GameObject) -> Unit = { gameObject ->
         logger.info("Spawning object $gameObject")
-        if (gameObject.physicsBody != null) {
-            world.addBody(gameObject.physicsBody)
-        }
         gameObject.renderer = when (gameObject) {
             is Drone -> DroneRenderer(gameObject, droneShaderProgram, font)
             is LaserBeam -> LaserBeamRenderer(gameObject, laserShaderProgram)
             is Base -> SimpleObjectRenderer(gameObject, simpleObjShaderProgram, font, '#', 2f, true)
             is OreChunk -> SimpleObjectRenderer(gameObject, simpleObjShaderProgram, font, 'o')
             else -> throw RuntimeException("Could not create renderer for GameObject $gameObject")
-        }
-        gameObject.behavior = when (gameObject) {
-            is Drone -> DroneBehavior(gameState, gameObject)
-            is LaserBeam -> if (gameObject.behavior is IdleBehavior) LaserBeamBehavior(gameState, gameObject) else gameObject.behavior
-            is Base -> gameObject.behavior
-            is OreChunk -> gameObject.behavior
-            else -> throw RuntimeException("Could not create behavior for GameObject $gameObject")
         }
         gameObject.hoverable = SimpleObjectHoverable(gameObject)
         gameObjects.add(gameObject)
@@ -347,11 +339,9 @@ fun main(args: Array<String>) {
     }
     val despawnObject: (GameObject) -> Unit = { gameObject ->
         logger.info("Despawning object $gameObject")
-        gameObject.behavior.remove()
+        gameObject.behavior?.destroy()
+        gameObject.physics?.destroy(gameState)
 
-        if (gameObject.physicsBody != null) {
-            world.removeBody(gameObject.physicsBody)
-        }
         gameObjects.remove(gameObject)
         gameObject.spawned = false
         gameObject.requestDespawn = false
@@ -378,10 +368,12 @@ fun main(args: Array<String>) {
 
             // Update gameObjects
             for (gameObject in gameObjects) {
-                gameObject.behavior.update(deltaTime)
-                gameObject.recomputeModelMatrix()
+                if (gameObject.behavior == null) {
+                    gameObject.behavior = gameObject.createBehavior.create(gameState)
+                }
+                gameObject.behavior?.update(deltaTime)
 
-                gameObject.physicsBody?.userData = gameObject
+                gameObject.recomputeModelMatrix()
             }
 
             for (gameObject in gameObjects) {
@@ -401,11 +393,13 @@ fun main(args: Array<String>) {
             gameState.despawnQueue.clear()
 
             // Update scripts
-            scriptMgr1.update(gameState)
-            scriptMgr2.update(gameState)
+            scriptMgr1.update(gameState, drone1)
+            scriptMgr2.update(gameState, drone2)
 
             // Update physics
             world.update(deltaTime.toDouble())
+            for (gameObject in gameObjects)
+                gameObject.physics?.update(gameState, deltaTime)
         }
 
         // Get mouse position

@@ -3,19 +3,19 @@ package drones.game
 import drones.*
 import org.joml.Vector2f
 
-class DroneBehavior(private val gameState: GameState, private val drone: Drone) : EntityBehavior {
+class DroneBehavior(private val gameState: GameState, private val drone: Drone) : Behavior {
+    private val body get() = drone.physics.physicsBody
     private var carryingBeam: LaserBeam? = null
 
     override fun update(deltaTime: Float) {
-        val accel: Vector2f = Vector2f(drone.desiredVelocity).sub(drone.physicsBody.linearVelocity.toJoml())
+        val accel: Vector2f = Vector2f(drone.desiredVelocity).sub(body.linearVelocity.toJoml())
         if (accel.lengthSquared() > 0 && accel.lengthSquared() > (50f * 50f * deltaTime * deltaTime))
             accel.normalize().mul(50f * deltaTime)
 
-        drone.physicsBody.applyForce(accel.toDyn4j())
-        drone.position.set(drone.physicsBody.transform.translation.x, drone.physicsBody.transform.translation.y)
+        body.applyForce(accel.toDyn4j())
 
-        if (drone.physicsBody.linearVelocity.magnitudeSquared > 1) {
-            drone.physicsBody.linearVelocity.normalize()
+        if (body.linearVelocity.magnitudeSquared > 1) {
+            body.linearVelocity.normalize()
         }
 
         val desiredRotation: Float
@@ -43,8 +43,7 @@ class DroneBehavior(private val gameState: GameState, private val drone: Drone) 
             laser.colorR = 1.8f * 0.185f
             laser.colorG = 1.8f * 1.0f
             laser.colorB = 1.8f * 0.6f
-            laser.behavior = TractorBeamBehavior(gameState, laser, drone.position, carrying.position,
-                drone.physicsBody, carrying.physicsBody!!)
+            laser.behavior = TractorBeamBehavior(gameState, laser, drone.physics.physicsBody, carrying.carryingBody)
             gameState.spawnQueue.add(laser)
             carryingBeam = laser
         }
@@ -53,4 +52,9 @@ class DroneBehavior(private val gameState: GameState, private val drone: Drone) 
             carryingBeam = null
         }
     }
+}
+
+class CreateDroneBehavior(private val drone: Drone) : CreateBehavior {
+    override fun create(state: GameState): Behavior =
+        DroneBehavior(state, drone)
 }

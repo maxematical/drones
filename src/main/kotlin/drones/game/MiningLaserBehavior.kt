@@ -4,8 +4,7 @@ import drones.*
 import org.dyn4j.dynamics.RaycastResult
 import org.joml.Vector2ic
 
-class LaserBeamBehavior(private val state: GameState, private val laser: LaserBeam) :
-    EntityBehavior {
+class MiningLaserBehavior(private val state: GameState, private val laser: LaserBeam) : Behavior {
     override fun update(deltaTime: Float) {
         laser.lifetime += deltaTime
 
@@ -34,4 +33,9 @@ class LaserBeamBehavior(private val state: GameState, private val laser: LaserBe
             }
         }
     }
+}
+
+class CreateMiningLaserBehavior(private val laser: LaserBeam) : CreateBehavior {
+    override fun create(state: GameState): Behavior =
+        MiningLaserBehavior(state, laser)
 }

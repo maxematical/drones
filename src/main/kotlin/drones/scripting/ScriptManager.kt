@@ -28,7 +28,8 @@ class ScriptManager(drone: Drone, filename: String, instructionLimit: Int = 20,
 
     val navigator: DroneNavigator
 
-    var activeScanning: ModuleScanner.Fon? = null
+    var activeScanning: Boolean = false
+
     var nextCallback: LuaValue? = null
 
     private var isRunningCallback = false
@@ -110,7 +111,7 @@ class ScriptManager(drone: Drone, filename: String, instructionLimit: Int = 20,
         // Might require DebugLib to be installed
     }
 
-    fun update(state: GameState) {
+    fun update(state: GameState, drone: Drone) {
         // Update Lua script
         if (!isLuaFinished()) {
             val result: Varargs = thread.resume(LuaValue.varargsOf(emptyArray()))
@@ -124,7 +125,12 @@ class ScriptManager(drone: Drone, filename: String, instructionLimit: Int = 20,
 
         // Update enabled modules
         if (!isRunningCallback) {
-            nextCallback = activeScanning?.updateScanner(state)
+            ModuleScanner.processScanQueue(state, drone)
+
+            if (activeScanning) {
+                if (nextCallback == null)
+                    nextCallback = ModuleScanner.updateActiveScanning(state, drone, globals)
+            }
         }
 
         // Update navigation
@@ -136,7 +142,7 @@ class ScriptManager(drone: Drone, filename: String, instructionLimit: Int = 20,
         }
     }
 
-    fun isLuaFinished(): Boolean =
+    private fun isLuaFinished(): Boolean =
         thread.status == "dead"
 
     private fun createCoroutine(func: LuaValue): LuaThread =
@@ -478,71 +484,93 @@ class ModuleCore(drone: Drone) : DroneModule {
     }
 }
 
-class ModuleScanner(private val drone: Drone, private val scriptMgr: ScriptManager) : DroneModule {
-    private val scan = Fscan(drone)
-    private var globals: Globals? = null // TODO very messy code
+class ModuleScanner(private val drone: Drone,
+                    private val scriptMgr: ScriptManager, private val globals: Globals) : DroneModule {
+    // TODO Refactor messy control flow between scriptmgr and modulescanner
+
+    private val pushScan = Fpush_scan(drone)
+    private val popScan = Fpop_scan(drone)
 
     override fun buildModule(): LuaValue {
         val module = LuaTable()
-        module.set("scan", scan)
-        module.set("on", Fon(drone, globals!!, scriptMgr))
+        module.set("push_scan", pushScan)
+        module.set("pop_scan", popScan)
+        module.set("on", Fon(drone, scriptMgr, this))
         module.set("off", Foff(scriptMgr))
         return module
     }
 
     override fun install(globals: Globals) {
-        this.globals = globals
-        globals.set("scanner", buildModule())
+        globals.set("scanner", buildModule()) // TODO load libscanner.lua
     }
 
-    class Fscan(val drone: Drone) : OneArgFunction() {
+    class Fpush_scan(private val drone: Drone) : OneArgFunction() {
         override fun call(arg: LuaValue): LuaValue {
             Fchecktype(arg, "number", true,
-                "scanner.scan: First argument should be a number, e.g. scanner.scan(2)")
+                "scanner.push_scan: First argument should be a number, e.g. scanner.push_scan(2)")
             val scanRadius = Fclamparg(arg.optint(3), 0, 3,
                 "scanner.scan: First argument should be in the range %a to %b, got %x")
 
-            val scan: LuaValue? = doScan<LuaValue>(drone, scanRadius) { tile, gridX, gridY ->
-                if (tile == TileStone) {
-                    val x = drone.grid.gridToWorldX(gridX) - drone.scriptOrigin.x()
-                    val y = drone.grid.gridToWorldY(gridY) - drone.scriptOrigin.y()
-                    ModuleVector.Fcreate(x, y)
-                } else null
-            }
-            return scan ?: LuaValue.NIL
+            drone.scanQueue.add(ScanRequest(Vector2f(drone.position), scanRadius))
+            return LuaValue.TRUE
         }
     }
 
-    class Fon(val drone: Drone, val globals: Globals, val scriptMgr: ScriptManager) : OneArgFunction() {
-        override fun call(arg: LuaValue): LuaValue {
-            if (globals.get(TILE_DETECTED_CALLBACK) != LuaValue.NIL ||
-                globals.get(OBJECT_DETECTED_CALLBACK) != LuaValue.NIL) {
-                scriptMgr.activeScanning = this
-            } else {
-                println("Error: can't enable active scanning because there isn't a scanning function defined")
+    class Fpop_scan(private val drone: Drone) : ZeroArgFunction() {
+        override fun call(): LuaValue {
+            val result = drone.scanResultQueue.poll()
+            if (result == null) {
+                // TODO Log warning
+                return LuaValue.NIL
             }
+            return ModuleVector.Fcreate(result.x(), result.y())
+        }
+    }
+
+    class Fon(val drone: Drone, val scriptMgr: ScriptManager, val scannerModule: ModuleScanner) : OneArgFunction() {
+        override fun call(arg: LuaValue): LuaValue {
+            scriptMgr.activeScanning = true
             return LuaValue.NIL
         }
+    }
 
-        fun updateScanner(state: GameState): LuaValue? {
-            // Scan for tiles
-            val scan: Pair<Int, Int>? = doScan(drone, 3) { tile, gridX, gridY ->
-                if (tile == TileStone) Pair(gridX, gridY) else null
+    class Foff(val scriptMgr: ScriptManager) : ZeroArgFunction() { // TODO ; find a better name for this
+        override fun call(): LuaValue {
+            scriptMgr.activeScanning = false
+            return LuaValue.NIL
+        }
+    }
+
+    companion object {
+        private const val TILE_DETECTED_CALLBACK = "on_scan_detected"
+        private const val OBJECT_DETECTED_CALLBACK = "on_object_detected"
+
+        /**
+         * Processes one request from the scan queue.
+         */
+        fun processScanQueue(state: GameState, drone: Drone) {
+            val request: ScanRequest? = drone.scanQueue.poll()
+            if (request != null) {
+                val result: Vector2fc? = doScan(state, request.position, request.radius, drone.scriptOrigin)
+                result?.let(drone.scanResultQueue::add)
             }
+        }
 
-            if (scan != null) {
-                println("Kotlin Scanner: Found stuff, sending to lua")
-
-                val (gridX, gridY) = scan
-                val scriptX = drone.grid.gridToWorldX(gridX) - drone.scriptOrigin.x()
-                val scriptY = drone.grid.gridToWorldY(gridY) - drone.scriptOrigin.y()
-                return globals.load("$TILE_DETECTED_CALLBACK(vector.create($scriptX, $scriptY))")
+        fun updateActiveScanning(state: GameState, drone: Drone, globals: Globals): LuaValue? {
+            // Scan for tiles
+            if (globals.get(TILE_DETECTED_CALLBACK) != LuaValue.NIL) {
+                val scan: Vector2fc? = doScan(state, drone.position, 3, drone.scriptOrigin)
+                if (scan != null) {
+                    println("Kotlin Scanner: Found stuff, sending to lua")
+                    return globals.load("$TILE_DETECTED_CALLBACK(vector.create(${scan.x()}, ${scan.y()}))")
+                }
             }
 
             // Scan for objects
             if (globals.get(OBJECT_DETECTED_CALLBACK) != LuaValue.NIL) {
                 for (obj in state.objects) {
-                    if (obj != drone && obj != drone.carryingObject && drone.position.distance(obj.position) <= 3f) {
+                    if (obj != drone && obj != drone.carryingObject?.carrying &&
+                        drone.position.distance(obj.position) <= 3f) {
                         val objX = obj.position.x() - drone.scriptOrigin.x()
                         val objY = obj.position.y() - drone.scriptOrigin.y()
                         val isCarryable = obj is OreChunk
@@ -554,25 +582,20 @@ class ModuleScanner(private val drone: Drone, private val scriptMgr: ScriptManag
             return null
         }
 
-        companion object {
-            private const val TILE_DETECTED_CALLBACK = "on_scan_detected"
-            private const val OBJECT_DETECTED_CALLBACK = "on_object_detected"
-        }
-    }
+        private fun doScan(gameState: GameState, scanPos: Vector2fc, radius: Int, scriptOrigin: Vector2fc): Vector2fc? =
+            genericScan(gameState, scanPos, radius) { tile, gridX, gridY ->
+                if (tile == TileStone) {
+                    val x = gameState.grid.gridToWorldX(gridX) - scriptOrigin.x()
+                    val y = gameState.grid.gridToWorldY(gridY) - scriptOrigin.y()
+                    Vector2f(x, y)
+                } else null
+            }
 
-    class Foff(val scriptMgr: ScriptManager) : ZeroArgFunction() { // TODO ; find a better name for this
-        override fun call(): LuaValue {
-            scriptMgr.activeScanning = null
-            return LuaValue.NIL
-        }
-    }
+        private fun <T> genericScan(gameState: GameState, scanPos: Vector2fc, scanRadius: Int,
+                                    processTile: (tile: Tile, gridX: Int, gridY: Int) -> T?): T? {
+            val grid = gameState.grid
 
-    companion object {
-        private fun <T> doScan(drone: Drone, scanRadius: Int,
-                               processTile: (tile: Tile, gridX: Int, gridY: Int) -> T?): T? {
-            val grid = drone.grid
-
-            val tilePosition = grid.worldToGrid(drone.position)
+            val tilePosition = grid.worldToGrid(scanPos)
             val tileMin = Vector2i(tilePosition).sub(scanRadius, scanRadius)
             val tileMax = Vector2i(tilePosition).add(scanRadius, scanRadius)
 
@@ -619,6 +642,7 @@ class ModuleMiningLaser(private val drone: Drone) : DroneModule {
                 throw LuaError("mining_laser.laser_on: Can't turn the laser beam on, it was already on")
             }
             val laser = LaserBeam(drone.position, angle.toFloat(), 0.4f, 5f)
+            laser.createBehavior = CreateMiningLaserBehavior(laser)
             laser.colorR = 0.85f
             laser.colorG = 0.85f
             laser.colorB = 1.80f
@@ -684,7 +708,7 @@ class ModuleTractorBeam(private val drone: Drone, private val gameState: GameSta
                 for (result in results) {
                     val userData = result.body.userData
                     if (userData is OreChunk) {
-                        drone.carryingObject = userData
+                        drone.carryingObject = CarryingObject(userData, userData.physics.physicsBody)
                         return LuaValue.TRUE
                     }
                 }
