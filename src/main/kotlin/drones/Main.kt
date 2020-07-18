@@ -149,7 +149,9 @@ fun main(args: Array<String>) {
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 512, font.characterOffsetLut)
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1024, floatArrayOf(font.bitmapWidth.toFloat(), font.bitmapHeight.toFloat()))
     glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1032, colors)
-    glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1096, stringToBitmapArray("xxx@@a..B\\~{}%$", font))
+    // Store string data in buffer position 1096 -- first int should be the length of the string, then an array of size
+    // the string length, where each int stores both the char code, background, and foreground color.
+    // See UiTextRenderer.updateTextData for example
     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo)
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
@@ -554,21 +556,4 @@ fun mouseCallback(window: Long, button: Int, action: Int, mods: Int) {
     if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
         mouseRightClicked = true
     }
-}
-
-/**
- * Prepares a string for use by the shader
- */
-fun stringToBitmapArray(string: String, font: GameFont, backgroundColor: Int = 1, foregroundColor: Int = 14): IntArray {
-    // http://forum.lwjgl.org/index.php?topic=6546.0
-    val arr = IntArray(string.length + 1)
-    arr[0] = string.length
-
-    for (idx in string.indices)
-        arr[idx + 1] = font.characterCodeLut[string[idx]] ?: error("Font does not support character '${string[idx]}'")
-
-    for (idx in 1..arr.lastIndex)
-        arr[idx] = arr[idx] or (foregroundColor shl 16) or (backgroundColor shl 8)
-
-    return arr
 }
