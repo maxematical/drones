@@ -191,17 +191,8 @@ fun main(args: Array<String>) {
     }
     world.addBody(gridBody)
 
+    // Setup UI
     val screenDimensions = Vector2f(windowWidth.toFloat(), windowHeight.toFloat())
-//    val windowContainer = WindowContainer(screenDimensions)
-
-    // Init Fps counter
-//    val fpsCounter = UiText(Ui.Params(windowContainer,
-//        { dims, _ -> dims.set(120f, 38f) },
-//        { anchor, _ -> anchor.set(1f, 1f) },
-//        { pos, c -> pos.set(c.width - 14f, c.height - 10f) }))
-//    fpsCounter.textAlign = Ui.TextAlign.RIGHT
-//    fpsCounter.textFgColor = 10
-//    fpsCounter.renderer = UiTextRenderer(fpsCounter, uiTextShaderProgram, ssbo, font)
 
     val fpsCounter = UiTextElement(font, minDimensions = Vector2f(9f * 2f * 5f, 0f))
     fpsCounter.textFgColor = 10
@@ -213,41 +204,6 @@ fun main(args: Array<String>) {
     var lastFps: Int = 0
     var fpsCountStart = System.currentTimeMillis()
     var fpsFramesCount = 0
-
-    // Init paused text
-//    val pausedLabel = UiText(Ui.Params(windowContainer,
-//        { dims, _ -> dims.set(180f, 30f) },
-//        { anchor, _ -> anchor.set(0f, -1f) },
-//        { pos, c -> pos.set(c.width * 0.5f, 40f) }))
-//    pausedLabel.transparentTextBg = true
-//    pausedLabel.textAlign = Ui.TextAlign.CENTER
-//    pausedLabel.renderer = UiTextRenderer(pausedLabel, uiTextShaderProgram, ssbo, font)
-
-    // Init info box
-//    val infoBox = UiBox(Ui.Params(windowContainer,
-//        { dims, _ -> dims.set(300f, 0f) },
-//        { anchor, _ -> anchor.set(1f, 0f) },
-//        { pos, c -> pos.set(c.width - 10f, c.height * 0.5f) },
-//        { pad, _ -> pad.set(0f, 10f, 100f, 10f) },
-//        allowOverflow = false))
-//    infoBox.renderer = UiBoxRenderer(infoBox, uiBoxShaderProgram)
-//
-//    val infoBoxText = UiText(Ui.Params(infoBox,
-//        { dims, _ -> dims.set(150f, 30f) },
-//        { anchor, _ -> anchor.set(-1f, -1f) },
-//        { pos, c -> pos.set(0f, 0f) }))
-//    infoBoxText.requestedString = "In Box"
-//    infoBoxText.textBgColor = 12
-//    infoBoxText.renderer = UiTextRenderer(infoBoxText, uiTextShaderProgram, ssbo, font)
-
-    /*
-
-    UiGrid.rows(nRows = 2)
-            .add(UiText("Hello:"), width = CellSize.Auto)
-            .add(UiText("56%"), width = CellSize.Auto)
-
-     */
-
 
     val sideBox = UiBoxElement(Vector2f(240f, 240f))
     sideBox.setChild(UiVerticalLayout().apply {
@@ -278,7 +234,6 @@ fun main(args: Array<String>) {
     var showBaseInfo = false
     var baseInfoTransition = 0f
 
-
     val tooltipBox = UiBoxElement()
     tooltipBox.padding = 3f
     tooltipBox.centerChild = false
@@ -291,6 +246,12 @@ fun main(args: Array<String>) {
     tooltipBox.setChild(tooltipText)
     val tooltipBoxPosition = Vector2f(0f, 0f) // Will be updated and used as an argument in rootUpdatePosition()
 
+    val pausedText = UiTextElement(font, "Paused")
+    pausedText.transparentBg = true
+    pausedText.textAlign = UiTextElement.TextAlign.CENTER_ALIGN
+    pausedText.fontScale = 2.0f
+    pausedText.renderer = UiTextRenderer(pausedText, uiTextShaderProgram, ssbo)
+    pausedText.rootComputeMeasurements(screenDimensions, Vector2f(screenDimensions.x() * 0.5f, 10f), Vector2f(0.5f, 0f))
 
     var debugDot: DebugDotRenderer? = null
     //debugDot = DebugDotRenderer(debugDotShaderProgram, fpsCounter.computedPosition)
@@ -516,22 +477,24 @@ fun main(args: Array<String>) {
             obj.renderer.render(screenDimensions, camera.matrixArr, gameTime)
         }
 
-        // Render framerate counter
+        // Render UI
+        // Render FPS counter
         fpsCounter.string = lastFps.toString()
         fpsCounter.render(screenDimensions)
-//        fpsCounter.requestedString = lastFps.toString()
-//        fpsCounter.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
 
-        // Render paused reminder
-//        pausedLabel.requestedString = if (paused) "Paused" else ""
-//        pausedLabel.renderer?.render(screenDimensions, camera.matrixArr, gameTime)
-
+        // Render tooltip
         if (drawTooltip) {
             tooltipBoxPosition.set(mouseX, screenDimensions.y() - mouseY)
             tooltipBox.rootUpdatePosition(screenDimensions, tooltipBoxPosition)
             tooltipBox.render(screenDimensions)
         }
 
+        // Render paused text
+        if (paused) {
+            pausedText.render(screenDimensions)
+        }
+
+        // Render base info box
         val desiredBaseInfoTransition: Float = if (showBaseInfo) 1f else 0f
         val prevTransition = baseInfoTransition
         baseInfoTransition = Math.clamp(0f, 1f,
