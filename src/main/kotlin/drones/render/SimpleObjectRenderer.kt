@@ -20,7 +20,11 @@ class SimpleObjectRenderer(obj: GameObject, shaderProgram: Int, private val font
         locationBitmapDimensions = glGetUniformLocation(shaderProgram, "BitmapDimensions")
         locationNumberPatterns = glGetUniformLocation(shaderProgram, "NumberPatterns")
         locationSwitchPatterns = glGetUniformLocation(shaderProgram, "SwitchPatterns")
-        packedCharacterUv = font.characterCoordinatesLut[font.characterCodeLut.getValue(character)]
+
+        val packed = font.characterCoordinatesLut[font.characterCodeLut.getValue(character)]
+        val uvWidth = (packed shr 7) and 127
+        val uvHeight = packed and 127
+        packedCharacterUv = (packed and (16383.inv())) or ((uvWidth - 4) shl 7) or (uvHeight - 4)
     }
 
     override fun setUniforms() {

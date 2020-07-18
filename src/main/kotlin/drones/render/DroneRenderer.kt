@@ -22,7 +22,12 @@ class DroneRenderer(private val drone: Drone, shaderProgram: Int,
     }
 
     override fun setUniforms() {
-        glUniform1i(locationPackedCharacterUv, font.characterCoordinatesLut[font.characterCodeLut['>']!!])
+        val packed = font.characterCoordinatesLut[font.characterCodeLut.getValue('>')]
+        val uvWidth = (packed shr 7) and 127
+        val uvHeight = packed and 127
+        val packedCharacterUv = (packed and (16383.inv())) or ((uvWidth - 4) shl 7) or (uvHeight - 4)
+
+        glUniform1i(locationPackedCharacterUv, packedCharacterUv)
         glUniform2f(locationBitmapDimensions, font.bitmapWidth.toFloat(), font.bitmapHeight.toFloat())
         glUniform1i(locationDroneColor, drone.color)
         glUniform1i(locationLedColor, drone.ledColor)
