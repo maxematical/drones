@@ -5,6 +5,7 @@ import org.dyn4j.dynamics.Body
 import org.dyn4j.dynamics.BodyFixture
 import org.dyn4j.geometry.MassType
 import org.dyn4j.geometry.Rectangle
+import org.dyn4j.geometry.Vector2
 import org.joml.Vector2f
 import org.joml.Vector2fc
 import org.joml.Vector2i
@@ -16,7 +17,6 @@ class Grid(val width: Int, val height: Int, val positionTopLeft: Vector2fc = Vec
     private val logger = LoggerFactory.getLogger(javaClass)
 
     private val tileData: Array<Array<Int>> = Array(height) { Array<Int>(width) { 0 } }
-    private val fixtureIndices: Array<Array<Int>> = Array(height) { Array<Int>(width) { -1 } }
 
     val physicsBody: Body
 
@@ -83,25 +83,16 @@ class Grid(val width: Int, val height: Int, val positionTopLeft: Vector2fc = Vec
             val fixture = BodyFixture(rectangle)
             fixture.userData = Vector2i(gridX, gridY)
 
-            val fixtureIndex = physicsBody.fixtureCount
             physicsBody.addFixture(fixture)
-            fixtureIndices[gridY][gridX] = fixtureIndex
-
-            // Double-check that the fixture index is correct
-            if (physicsBody.getFixture(fixtureIndex) != fixture)
-                throw RuntimeException("Program bug: grid fixture inserted was not at the expected index")
         }
         if (currentTile.isCollidable && !newTile.isCollidable) {
             // Remove a fixture for this tile
             logger.info("Tile at grid position ($gridX, $gridY) changed from $currentTile to $newTile. Removing " +
                     "collision fixture here.")
 
-            val fixtureIndex = fixtureIndices[gridY][gridX]
-            if (fixtureIndex == -1)
-                throw RuntimeException("Couldn't remove fixture at grid pos ($gridX, $gridY), fixture index not exist")
-
-            physicsBody.removeFixture(fixtureIndex)
-            fixtureIndices[gridY][gridX] = -1
+            // TODO Find a more efficient way to remove fixtures (this is O(n)). Simply storing the fixture index for
+            // each tile won't work, since the indices shift whenever an element is removed.
+            physicsBody.removeFixture(Vector2(gridToWorldX(gridX) + 0.5, gridToWorldY(gridY) - 0.5))
         }
     }
 
