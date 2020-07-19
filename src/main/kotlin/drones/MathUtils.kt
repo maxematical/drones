@@ -15,6 +15,10 @@ object MathUtils {
         else 1
     }
 
+    fun clamp(a: Int, b: Int, x: Int): Int = Math.min(b, Math.max(a, x))
+    fun clamp(a: Float, b: Float, x: Float): Float = Math.min(b, Math.max(a, x))
+    fun clamp(a: Double, b: Double, x: Double): Double = Math.min(b, Math.max(a, x))
+
     fun clampRotation(degrees: Float): Float {
         var result = degrees
         result %= 360
@@ -24,7 +28,7 @@ object MathUtils {
     }
 
     fun lerp(a: Float, b: Float, x: Float): Float {
-        val x2 = org.joml.Math.clamp(0f, 1f, x)
+        val x2 = MathUtils.clamp(0f, 1f, x)
         return a * (1f - x2) + b * x2
     }
 

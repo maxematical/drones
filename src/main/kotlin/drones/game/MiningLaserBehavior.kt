@@ -34,16 +34,15 @@ class MiningLaserBehavior(private val state: GameState, private val laser: Laser
             val hit = raycastResult.getOrNull(0)
             if (hit?.body == state.gridBody) {
                 val hitGridCoordinates = hit.fixture.userData as Vector2ic
-                val hitTile = state.grid.tiles[hitGridCoordinates.y()][hitGridCoordinates.x()]
+                val hitX = hitGridCoordinates.x()
+                val hitY = hitGridCoordinates.y()
+                val hitTile = state.grid.getTile(hitX, hitY)
+                val hitMeta = state.grid.getMeta(hitX, hitY)
 
-                if (hitTile == TileStone)
-                    depositToInventory.changeMaterial(Materials.ORE,
-                        MINING_LASER_ORE_PER_SECOND * MINING_LASER_RAYCAST_INTERVAL)
-
-                if (timeUntilTileBreak <= 0f) {
-                    state.grid.tiles[hitGridCoordinates.y()][hitGridCoordinates.x()] = TileAir
-                    hit.body.removeFixture(hit.fixture)
-                    timeUntilTileBreak = 2f
+                if (hitTile == TileOre) {
+                    val (newData, kgExtracted) = TileOre.mineTile(hitMeta)
+                    depositToInventory.changeMaterial(Materials.ORE, kgExtracted)
+                    state.grid.setData(hitX, hitY, newData)
                 }
             }
         }

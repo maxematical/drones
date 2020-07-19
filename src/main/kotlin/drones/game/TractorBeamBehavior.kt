@@ -33,7 +33,7 @@ class TractorBeamBehavior(private val gameState: GameState, private val beam: La
         }
 
         val distance = desiredTargetVelocity.set(ownerPosition).subtract(targetPosition).normalize()
-        val desiredSpeed = org.joml.Math.clamp(0.0, 1.5, (distance - 1.5) / 3.0)
+        val desiredSpeed = MathUtils.clamp(0.0, 1.5, (distance - 1.5) / 3.0)
         desiredTargetVelocity.multiply(desiredSpeed)
 
         targetForceVec.set(desiredTargetVelocity).subtract(targetBody.linearVelocity).multiply(0.2)

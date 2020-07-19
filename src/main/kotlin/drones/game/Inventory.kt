@@ -1,5 +1,6 @@
 package drones.game
 
+import drones.MathUtils
 import kotlin.math.floor
 
 class Inventory(val capacity: Double) {
@@ -29,7 +30,7 @@ class Inventory(val capacity: Double) {
         // Calculate how much mass of material we can add without going over (or under) volume restrictions
         val volumeLeft = capacity - currentVolume
         val massLeft = volumeLeft * material.density
-        val addMass = org.joml.Math.clamp(-currentAmount, massLeft, material.fixAmount(amount))
+        val addMass = MathUtils.clamp(-currentAmount, massLeft, material.fixAmount(amount))
         val nextAmount = currentAmount + addMass
 
         // Update whether this material is stored in the inventory

@@ -584,7 +584,7 @@ class ModuleScanner(private val drone: Drone,
 
         private fun doScan(gameState: GameState, scanPos: Vector2fc, radius: Int, scriptOrigin: Vector2fc): Vector2fc? =
             genericScan(gameState, scanPos, radius) { tile, gridX, gridY ->
-                if (tile == TileStone) {
+                if (tile == TileOre) {
                     val x = gameState.grid.gridToWorldX(gridX) - scriptOrigin.x()
                     val y = gameState.grid.gridToWorldY(gridY) - scriptOrigin.y()
                     Vector2f(x, y)
@@ -603,7 +603,7 @@ class ModuleScanner(private val drone: Drone,
 
             for (gridY in Math.max(0, tileMin.y)..Math.min(grid.height - 1, tileMax.y)) {
                 for (gridX in Math.max(0, tileMin.x)..Math.min(grid.width - 1, tileMax.x)) {
-                    val tile = grid.tiles[gridY][gridX]
+                    val tile = grid.getTile(gridX, gridY)
                     val result = processTile(tile, gridX, gridY)
 
                     if (result != null)

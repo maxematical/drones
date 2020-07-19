@@ -156,15 +156,17 @@ fun main(args: Array<String>) {
     glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
 
     // Setup game
+    TileManager.registerTiles()
+
     // Setup camera
     val camera = Camera()
 
     // Setup grid
     val grid = Grid(24, 24)
-    grid.tiles[3][3] = TileStone
-    grid.tiles[3][4] = TileStone
-    grid.tiles[4][3] = TileStone
-    grid.tiles[4][4] = TileStone
+    grid.setTile(3, 3, TileOre)
+    grid.setTile(3, 4, TileOre)
+    grid.setTile(4, 3, TileOre)
+    grid.setTile(4, 4, TileOre)
 
     // Setup drones
     val baseLocation = Vector2f(3f, -3f)
@@ -179,19 +181,7 @@ fun main(args: Array<String>) {
     val world = World()
     world.gravity.set(0.0, 0.0)
 
-    val gridBody = Body(4)
-    for (y in 0 until grid.height) {
-        for (x in 0 until grid.width) {
-            if (grid.tiles[y][x] != TileAir) {
-                val rectangle = Rectangle(1.0, 1.0)
-                rectangle.translate(grid.gridToWorldX(x).toDouble() + 0.5, grid.gridToWorldY(y).toDouble() - 0.5)
-                val fixture = BodyFixture(rectangle)
-                fixture.userData = Vector2i(x, y)
-                gridBody.addFixture(fixture)
-            }
-        }
-    }
-    world.addBody(gridBody)
+    world.addBody(grid.physicsBody)
 
     // Setup UI
     val screenDimensions = Vector2f(windowWidth.toFloat(), windowHeight.toFloat())
@@ -268,7 +258,7 @@ fun main(args: Array<String>) {
 
     val gameObjects = mutableListOf<GameObject>()
 
-    val gameState = GameState(world, grid, gridBody, LinkedList(), LinkedList(), gameObjects)
+    val gameState = GameState(world, grid, grid.physicsBody, LinkedList(), LinkedList(), gameObjects)
 
     val installScripts: (Drone) -> ScriptManager.(Globals) -> Unit = { drone -> { globals ->
         ModuleVector.install(globals)
