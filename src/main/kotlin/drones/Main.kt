@@ -4,14 +4,8 @@ import drones.game.*
 import drones.render.*
 import drones.scripting.*
 import drones.ui.*
-import org.dyn4j.dynamics.Body
-import org.dyn4j.dynamics.BodyFixture
 import org.dyn4j.dynamics.World
-import org.dyn4j.geometry.Rectangle
-import org.joml.Math
-import org.joml.Vector2f
-import org.joml.Vector2i
-import org.joml.Vector4f
+import org.joml.*
 import org.luaj.vm2.Globals
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
@@ -244,6 +238,8 @@ fun main(args: Array<String>) {
     pausedText.fontScale = 2.0f
     pausedText.renderer = UiTextRenderer(pausedText, uiTextShaderProgram, ssbo)
     pausedText.rootComputeMeasurements(screenDimensions, Vector2f(screenDimensions.x() * 0.5f, 10f), Vector2f(0.5f, 0f))
+
+    val droneInfoUi = DroneInfoUi(screenDimensions, font, ssbo, uiBoxShaderProgram, uiTextShaderProgram)
 
     var debugDot: DebugDotRenderer? = null
     //debugDot = DebugDotRenderer(debugDotShaderProgram, fpsCounter.computedPosition)
@@ -507,6 +503,11 @@ fun main(args: Array<String>) {
             sideBox.render(screenDimensions)
         }
 
+        // Render drone info
+        if (selectedDrones.isNotEmpty())
+            droneInfoUi.updateUi(selectedDrones[0])
+        droneInfoUi.render(selectedDrones.isNotEmpty(), deltaTime)
+
         debugDot?.debugPosition = tooltipBox.computedPosition
         debugDot?.render(screenDimensions, camera.matrixArr, gameTime)
 
@@ -547,5 +548,83 @@ fun mouseCallback(window: Long, button: Int, action: Int, mods: Int) {
     }
     if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
         mouseRightClicked = true
+    }
+}
+
+private class DroneInfoUi(private val screenDimensions: Vector2fc,
+                          font: GameFont,
+                          ssbo: Int,
+                          boxShaderProgram: Int,
+                          textShaderProgram: Int) {
+    val box: UiBoxElement
+    val droneName: UiTextElement
+    val inventoryText: UiTextElement
+    val inventoryContentsBox: UiBoxElement
+    val inventoryContentsText1: UiTextElement
+
+    private var transition: Float = 0.0f
+    private val rootPosition = Vector2f()
+    private val rootAnchor = Vector2f(0f, 0.5f)
+
+    init {
+        box = UiBoxElement(Vector2f(240f, screenDimensions.y() - 100f))
+        box.renderer = UiBoxRenderer(box, boxShaderProgram)
+        box.backgroundColor = 1
+        box.borderColor = 0x000000
+        box.borderWidth = 5
+        box.padding = 5f
+        box.centerChild = false
+
+        val vertical = UiVerticalLayout()
+        box.setChild(vertical)
+
+        droneName = UiTextElement(font, "Drone XYZ")
+        droneName.renderer = UiTextRenderer(droneName, textShaderProgram, ssbo)
+        //droneName.fontSize = 28
+        droneName.fontScale = 2.0f
+        droneName.transparentBg = true
+        vertical.addChild(droneName)
+
+        inventoryText = UiTextElement(font, "Inventory")
+        inventoryText.renderer = UiTextRenderer(inventoryText, textShaderProgram, ssbo)
+        //inventoryText.fontScale = 14
+        inventoryText.transparentBg = false
+        vertical.addChild(inventoryText)
+
+        // TODO Allow auto width relative to parent size (e.g. 80%)
+        inventoryContentsBox = UiBoxElement(Vector2f(240 - box.padding * 2f, 10f))
+        inventoryContentsBox.renderer = UiBoxRenderer(inventoryContentsBox, boxShaderProgram)
+        inventoryContentsBox.borderWidth = 1
+        inventoryContentsBox.backgroundColor = 0x000000
+        vertical.addChild(inventoryContentsBox)
+
+        inventoryContentsText1 = UiTextElement(font, "(Capacity goes here)")
+        inventoryContentsText1.renderer = UiTextRenderer(inventoryContentsText1, textShaderProgram, ssbo)
+        inventoryContentsText1.transparentBg = true
+        inventoryContentsBox.setChild(inventoryContentsText1)
+
+        box.rootComputeMeasurements(screenDimensions, Vector2f(screenDimensions.x(), screenDimensions.y() * 0.5f),
+            Vector2f(1f, 0.5f))
+    }
+
+    fun updateUi(drone: Drone) {
+        inventoryContentsText1.string = "${drone.inventory.currentVolume}/${drone.inventory.capacity}L"
+    }
+
+    fun render(isShown: Boolean, deltaTime: Float) {
+        val transitionTarget = if (isShown) 1f else 0f
+        transition = MathUtils.clamp(0f, 1f,
+            transition + MathUtils.sign(transitionTarget - 0.5f) * TRANSITION_SPEED * deltaTime)
+
+        val boxPosX = MathUtils.lerp(screenDimensions.x(), screenDimensions.x() - box.computedDimensions.x() - 20,
+            MathUtils.smoothstep(transition))
+        rootPosition.set(boxPosX, screenDimensions.y() * 0.5f)
+        box.rootUpdatePosition(screenDimensions, rootPosition, rootAnchor)
+
+        box.render(screenDimensions)
+    }
+
+    private companion object {
+        const val TRANSITION_SPEED: Float = 6f
     }
 }
