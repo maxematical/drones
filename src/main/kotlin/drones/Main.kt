@@ -562,6 +562,7 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
     val inventoryContentsText1: UiTextElement
 
     val scriptInfoText: UiTextElement
+    val scriptFunctionText: UiTextElement
     val scriptTextArea: UiTextArea
 
     private var transition: Float = 0.0f
@@ -615,7 +616,13 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
         scriptInfoText.transparentBg = true
         vertical.addChild(scriptInfoText)
 
-        scriptTextArea = UiTextArea(font, Vector2f(240 - box.padding * 2f, 0f))
+        scriptFunctionText = UiTextElement(font, minDimensions = Vector2f(240 - box.padding * 2f, 0f)).apply {
+            renderer = UiTextRenderer(this, textShaderProgram, ssbo)
+            transparentBg = true
+        }
+        vertical.addChild(scriptFunctionText)
+
+        scriptTextArea = UiTextArea(font, Vector2f(240 - box.padding * 2f, 0f), 6)
         scriptTextArea.string = "Hello World!!!\nWe can have\nMultiple lines!!\n  isnt that neat abcdefghijklmnop"
         scriptTextArea.renderer = UiTextAreaRenderer(scriptTextArea, ssbo, boxShaderProgram, textShaderProgram)
         vertical.addChild(scriptTextArea)
@@ -625,14 +632,17 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
     }
 
     fun updateUi(drone: Drone) {
+        val l = drone.scriptManager?.currentLine
+
         inventoryContentsText1.string = "${drone.inventory.currentVolume}/${drone.inventory.capacity}L"
-        scriptInfoText.string = drone.scriptManager?.currentLine?.sourceFile ?: "(???)"
+        scriptInfoText.string = l?.sourceFile ?: "(Not running script)"
+        scriptFunctionText.string = l?.insideFunction?.let { "In $it()" } ?: ""
 
         val lines = drone.scriptManager?.luaSourceLines ?: emptyList()
-        val startLine = drone.scriptManager?.currentLine?.lineNumber ?: 0
+        val startLine = l?.lineNumber ?: 3
 
-        var concat = StringBuilder()
-        for (lineIndex in (startLine - 2)..(startLine + 2)) {
+        val concat = StringBuilder()
+        for (lineIndex in (startLine - 3)..(startLine + 2)) {
             if (lineIndex in lines.indices) {
                 var formattedLineNumber: String = (lineIndex + 1).toString()
                 if (formattedLineNumber.length == 1)
@@ -643,8 +653,13 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
         }
 
         scriptTextArea.string = concat.toString()
-        scriptTextArea.textFgColor = intArrayOf(15, 11, 15, 15)
-        scriptTextArea.textBgColor = intArrayOf(0, 6, 0, 0)
+        if (l?.lineNumber != null) {
+            scriptTextArea.textFgColor = intArrayOf(15, 15, 14, 15, 15, 15)
+            scriptTextArea.textBgColor = intArrayOf(0, 0, 3, 0, 0, 0)
+        } else {
+            scriptTextArea.textFgColor = intArrayOf(15)
+            scriptTextArea.textBgColor = intArrayOf(0)
+        }
         scriptTextArea.transparentBg = false
     }
 

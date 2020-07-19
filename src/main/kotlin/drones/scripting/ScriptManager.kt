@@ -144,9 +144,15 @@ class ScriptManager(filename: String, instructionLimit: Int = 20,
 
         //println(debug.get("getinfo").call(thread))
 
-        if (isLuaFinished() && onComplete != null) {
-            onComplete?.invoke()
-            onComplete = null
+        if (isLuaFinished()) {
+            currentLine.lineNumber = null
+            currentLine.sourceFile = null
+            currentLine.insideFunction = null
+
+            if (onComplete != null) {
+                onComplete?.invoke()
+                onComplete = null
+            }
         }
     }
 

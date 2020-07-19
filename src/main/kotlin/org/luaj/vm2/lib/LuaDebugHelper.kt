@@ -25,19 +25,19 @@ object LuaDebugHelper {
             // Give result and return
             out.sourceFile = source
             out.lineNumber = line
-            out.valid = true
+            out.insideFunction = callstack.getCallFrame(i)?.let(DebugLib::getfuncname)?.name
             return
         }
 
         out.sourceFile = null
         out.lineNumber = null
-        out.valid = false
+        out.insideFunction = null
         return
     }
 
     class CurrentLine {
         var sourceFile: String? = null
         var lineNumber: Int? = null
-        var valid: Boolean = false
+        var insideFunction: String? = null
     }
 }
