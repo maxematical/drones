@@ -84,7 +84,7 @@ class UiTextAreaRenderer(private val element: UiTextArea,
         // Load text uniforms
         GL43.glBindBuffer(GL43.GL_SHADER_STORAGE_BUFFER, ssbo)
         GL43.glBufferSubData(GL43.GL_SHADER_STORAGE_BUFFER, 1096, intArrayOf(line.length))
-        GL43.glBufferSubData(GL43.GL_SHADER_STORAGE_BUFFER, 1100, charDataArray(line))
+        GL43.glBufferSubData(GL43.GL_SHADER_STORAGE_BUFFER, 1100, charDataArray(line, lineIndex))
 
         GL43.glUniform1f(locationFontScale, element.fontScale)
         GL43.glUniform1f(locationLetterSpacing, (element.font.characterWidthLut[0].toFloat() + 1) * element.fontScale)
@@ -103,13 +103,16 @@ class UiTextAreaRenderer(private val element: UiTextArea,
         GL43.glUniform1i(locationBackgroundColor, element.backgroundColor)
     }
 
-    private fun charDataArray(string: String): IntArray {
+    private fun charDataArray(string: String, lineIndex: Int): IntArray {
         val arr = IntArray(string.length)
 
         var index = 0
         for (char: Char in string) {
+            val bgColor = element.textBgColor[lineIndex % element.textBgColor.size]
+            val fgColor = element.textFgColor[lineIndex % element.textFgColor.size]
+
             val charCode: Int = element.font.characterCodeLut[char] ?: error("Font does not have character '$char'")
-            val data = (charCode and 255) or (element.textBgColor shl 8) or (element.textFgColor shl 16)
+            val data = (charCode and 255) or (bgColor shl 8) or (fgColor shl 16)
             arr[index++] = data
         }
 

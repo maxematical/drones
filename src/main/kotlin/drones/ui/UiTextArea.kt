@@ -24,8 +24,8 @@ class UiTextArea(val font: GameFont, private val baseDimensions: Vector2fc = Vec
         get() = 1.0f * fontSize / font.size
         set(value) { fontSize = (font.size * value).toInt() }
 
-    var textFgColor: Int = 15
-    var textBgColor: Int = 0
+    var textFgColor: IntArray = intArrayOf(15)
+    var textBgColor: IntArray = intArrayOf(0)
     var transparentBg: Boolean = true
     var lineSpacing: Float = 1.0f
 

@@ -15,6 +15,8 @@ import org.luaj.vm2.lib.*
 import org.luaj.vm2.lib.jse.JseBaseLib
 import org.luaj.vm2.lib.jse.JseIoLib
 import org.luaj.vm2.lib.jse.JseMathLib
+import java.io.BufferedReader
+import java.io.InputStreamReader
 
 class ScriptManager(filename: String, instructionLimit: Int = 20,
                     addLibs: ScriptManager.(Globals) -> Unit) {
@@ -24,9 +26,12 @@ class ScriptManager(filename: String, instructionLimit: Int = 20,
 
     val debug: LuaValue
 
-    var activeScanning: Boolean = false
-
     var nextCallback: LuaValue? = null
+
+    val currentLine = LuaDebugHelper.CurrentLine()
+
+    val luaSourceLines: List<String>
+    val luaSource: String
 
     var isRunningCallback = false
         private set
@@ -38,6 +43,12 @@ class ScriptManager(filename: String, instructionLimit: Int = 20,
     }
 
     init {
+        val instr = ScriptManager::class.java.getResourceAsStream("/scripts/$filename")
+        val reader = BufferedReader(InputStreamReader(instr))
+        luaSourceLines = reader.readLines()
+        luaSource = luaSourceLines.fold("") { acc, str -> acc + str + '\n' }
+        reader.close()
+
         globals = Globals()
 
         val baseLib = JseBaseLib()
@@ -74,7 +85,7 @@ class ScriptManager(filename: String, instructionLimit: Int = 20,
         // Limit the instruction count per script execution
         // We have to do this using the debug lib, but we don't want scripts accessing it, so we'll remove the debug
         // table directly afterwards
-        globals.load(object : DebugLib() {
+        val debugLib = object : DebugLib() {
             override fun onInstruction(pc: Int, v: Varargs?, top: Int) {
                 super.onInstruction(pc, v, top)
 
@@ -82,13 +93,22 @@ class ScriptManager(filename: String, instructionLimit: Int = 20,
                     prepareCallbackFunction().call()
                 }
             }
-        })
+        }
+        globals.load(debugLib)
         debug = globals.get("debug")
-        val sethook = globals.get("debug").get("sethook")
-        val getinfo = globals.get("debug").get("getinfo") as VarArgFunction
-        val info = globals.load("debug.getinfo(move.to)").call()
-//        println("Current line: " + getinfo.call(LuaValue.valueOf(1), LuaValue.valueOf("l")).get("currentline"))
-        //globals.set("debug", LuaValue.NIL)
+
+        val luaYield = globals.get("coroutine").get("yield")
+        globals.get("coroutine").set("yield", object : VarArgFunction() {
+            override fun invoke(args: Varargs): Varargs {
+                try {
+                    LuaDebugHelper.getCurrentLine(debugLib, thread, currentLine)
+                } catch (ex: Exception) {
+                    ex.printStackTrace()
+                    throw ex
+                }
+                return luaYield.invoke(args)
+            }
+        })
 
         val onInstructionLimit = object : ZeroArgFunction() {
             override fun call(): LuaValue {
@@ -121,6 +141,8 @@ class ScriptManager(filename: String, instructionLimit: Int = 20,
         if (!isRunningCallback && runCallback != null) {
             nextCallback = runCallback
         }
+
+        //println(debug.get("getinfo").call(thread))
 
         if (isLuaFinished() && onComplete != null) {
             onComplete?.invoke()
@@ -450,10 +472,7 @@ class ModuleCore(drone: Drone) : DroneModule {
     }
 }
 
-class ModuleScanner(private val drone: Drone,
-                    private val scriptMgr: ScriptManager, private val globals: Globals) : DroneModule {
-    // TODO Refactor messy control flow between scriptmgr and modulescanner
-
+class ModuleScanner(private val drone: Drone) : DroneModule {
     private val pushScan = Fpush_scan(drone)
     private val popScan = Fpop_scan(drone)
 
@@ -461,8 +480,8 @@ class ModuleScanner(private val drone: Drone,
         val module = LuaTable()
         module.set("push_scan", pushScan)
         module.set("pop_scan", popScan)
-        module.set("on", Fon(drone, scriptMgr, this))
-        module.set("off", Foff(scriptMgr))
+        module.set("on", Fon(drone))
+        module.set("off", Foff(drone))
         return module
     }
 
@@ -493,16 +512,16 @@ class ModuleScanner(private val drone: Drone,
         }
     }
 
-    class Fon(val drone: Drone, val scriptMgr: ScriptManager, val scannerModule: ModuleScanner) : OneArgFunction() {
+    class Fon(val drone: Drone) : OneArgFunction() {
         override fun call(arg: LuaValue): LuaValue {
-            scriptMgr.activeScanning = true
+            drone.activeScanning = true
             return LuaValue.NIL
         }
     }
 
-    class Foff(val scriptMgr: ScriptManager) : ZeroArgFunction() { // TODO ; find a better name for this
+    class Foff(val drone: Drone) : ZeroArgFunction() { // TODO ; find a better name for this
         override fun call(): LuaValue {
-            scriptMgr.activeScanning = false
+            drone.activeScanning = false
             return LuaValue.NIL
         }
     }

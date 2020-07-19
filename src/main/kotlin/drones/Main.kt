@@ -13,6 +13,7 @@ import org.lwjgl.opengl.GL30.*
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.MemoryUtil.NULL
 import org.slf4j.LoggerFactory
+import java.lang.StringBuilder
 import java.util.*
 import kotlin.math.floor
 
@@ -259,7 +260,7 @@ fun main(args: Array<String>) {
     val installScripts: (Drone) -> ScriptManager.(Globals) -> Unit = { drone -> { globals ->
         ModuleVector.install(globals)
         ModuleCore(drone).install(globals)
-        ModuleScanner(drone, this, globals).install(globals)
+        ModuleScanner(drone).install(globals)
         ModuleMiningLaser(drone).install(globals)
         ModuleTractorBeam(drone, gameState).install(globals)
         globals.set("move", globals.loadfile("libmove.lua").call())
@@ -560,6 +561,9 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
     val inventoryContentsBox: UiBoxElement
     val inventoryContentsText1: UiTextElement
 
+    val scriptInfoText: UiTextElement
+    val scriptTextArea: UiTextArea
+
     private var transition: Float = 0.0f
     private val rootPosition = Vector2f()
     private val rootAnchor = Vector2f(0f, 0.5f)
@@ -601,10 +605,20 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
         inventoryContentsText1.transparentBg = true
         inventoryContentsBox.setChild(inventoryContentsText1)
 
-        val textarea = UiTextArea(font, Vector2f(240 - box.padding * 2f, 0f))
-        textarea.string = "Hello World!!!\nWe can have\nMultiple lines!!\n  isnt that neat abcdefghijklmnop"
-        textarea.renderer = UiTextAreaRenderer(textarea, ssbo, boxShaderProgram, textShaderProgram)
-        vertical.addChild(textarea)
+        vertical.addChild(UiTextElement(font, "Running Script:").apply {
+            renderer = UiTextRenderer(this, textShaderProgram, ssbo)
+            transparentBg = true
+        })
+
+        scriptInfoText = UiTextElement(font, minDimensions = Vector2f(240 - box.padding * 2f, 0f))
+        scriptInfoText.renderer = UiTextRenderer(scriptInfoText, textShaderProgram, ssbo)
+        scriptInfoText.transparentBg = true
+        vertical.addChild(scriptInfoText)
+
+        scriptTextArea = UiTextArea(font, Vector2f(240 - box.padding * 2f, 0f))
+        scriptTextArea.string = "Hello World!!!\nWe can have\nMultiple lines!!\n  isnt that neat abcdefghijklmnop"
+        scriptTextArea.renderer = UiTextAreaRenderer(scriptTextArea, ssbo, boxShaderProgram, textShaderProgram)
+        vertical.addChild(scriptTextArea)
 
         box.rootComputeMeasurements(screenDimensions, Vector2f(screenDimensions.x(), screenDimensions.y() * 0.5f),
             Vector2f(1f, 0.5f))
@@ -612,6 +626,26 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
 
     fun updateUi(drone: Drone) {
         inventoryContentsText1.string = "${drone.inventory.currentVolume}/${drone.inventory.capacity}L"
+        scriptInfoText.string = drone.scriptManager?.currentLine?.sourceFile ?: "(???)"
+
+        val lines = drone.scriptManager?.luaSourceLines ?: emptyList()
+        val startLine = drone.scriptManager?.currentLine?.lineNumber ?: 0
+
+        var concat = StringBuilder()
+        for (lineIndex in (startLine - 2)..(startLine + 2)) {
+            if (lineIndex in lines.indices) {
+                var formattedLineNumber: String = (lineIndex + 1).toString()
+                if (formattedLineNumber.length == 1)
+                    formattedLineNumber = ' ' + formattedLineNumber
+
+                concat.append(formattedLineNumber).append(' ').append(lines[lineIndex]).append('\n')
+            }
+        }
+
+        scriptTextArea.string = concat.toString()
+        scriptTextArea.textFgColor = intArrayOf(15, 11, 15, 15)
+        scriptTextArea.textBgColor = intArrayOf(0, 6, 0, 0)
+        scriptTextArea.transparentBg = false
     }
 
     fun render(isShown: Boolean, deltaTime: Float) {
