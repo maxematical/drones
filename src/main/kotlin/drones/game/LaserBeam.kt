@@ -11,8 +11,6 @@ class LaserBeam(override val position: Vector2f,
 
     var actualLength: Float = unobstructedLength
 
-    var lifetime: Float = 0f
-
     var colorR: Float = 1.5f
     var colorG: Float = 1.5f
     var colorB: Float = 1.5f

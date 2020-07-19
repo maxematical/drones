@@ -5,7 +5,7 @@ import drones.game.Material
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
-class TestMaterial {
+class TestInventory {
     @Test
     fun testMaterialBasic() {
         val mat = Material("Test", 1.0, 0.001)

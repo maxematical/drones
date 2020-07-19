@@ -32,6 +32,8 @@ class Drone(override val position: Vector2f,
     val scanQueue: Queue<ScanRequest> = LinkedList()
     val scanResultQueue: Queue<Vector2fc> = LinkedList()
 
+    val inventory = Inventory(10.0)
+
     override val physics: PhysicsBehavior
 
     init {

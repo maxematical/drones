@@ -642,7 +642,7 @@ class ModuleMiningLaser(private val drone: Drone) : DroneModule {
                 throw LuaError("mining_laser.laser_on: Can't turn the laser beam on, it was already on")
             }
             val laser = LaserBeam(drone.position, angle.toFloat(), 0.4f, 5f)
-            laser.createBehavior = CreateMiningLaserBehavior(laser)
+            laser.createBehavior = CreateMiningLaserBehavior(laser, drone.inventory)
             laser.colorR = 0.85f
             laser.colorG = 0.85f
             laser.colorB = 1.80f

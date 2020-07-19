@@ -385,7 +385,9 @@ fun main(args: Array<String>) {
             if (obj.hoverable.isHover(transformedMousePos)) {
                 drawTooltip = true
 
-                val newText = "`_{ | } " + obj.toString()
+                var newText = obj.toString()
+                if (obj is Drone)
+                    newText = "Drone (${obj.inventory.currentVolume}/${obj.inventory.capacity}L)"
                 if (tooltipText.string != newText) {
                     tooltipText.string = newText
                     tooltipBox.rootComputeMeasurements(screenDimensions)
