@@ -33,7 +33,7 @@ class UiTextRenderer(private val element: UiTextElement, shaderProgram: Int,
         glUniform1f(locationLetterSpacing, (element.font.characterWidthLut[0].toFloat()+1) * element.fontScale)
         glUniform1i(locationTextAlign, element.textAlign.id)
         glUniform1i(locationTransparentBg, if (element.transparentBg) GL_TRUE else GL_FALSE)
-        glUniform1i(locationLineHeight, element.fontSize)
+        glUniform1i(locationLineHeight, element.font.height)
 
         glBindTexture(GL_TEXTURE_2D, element.font.glBitmap)
     }

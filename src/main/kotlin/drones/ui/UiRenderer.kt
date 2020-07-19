@@ -4,7 +4,7 @@ import org.joml.Vector2fc
 import org.lwjgl.opengl.GL43.*
 
 abstract class UiRenderer(private val element: UiElement, private val shaderProgram: Int) {
-    private val vao: Int
+    protected val vao: Int
 
     private val locationQuadMatrix: Int
     private val locationScreenDimensions: Int
@@ -28,7 +28,7 @@ abstract class UiRenderer(private val element: UiElement, private val shaderProg
         glEnableVertexAttribArray(1)
     }
 
-    fun render(screenDimensions: Vector2fc) {
+    open fun render(screenDimensions: Vector2fc) {
         element.recomputeMatrices(screenDimensions)
 
         glUseProgram(shaderProgram)

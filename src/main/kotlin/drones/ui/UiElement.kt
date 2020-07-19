@@ -12,14 +12,12 @@ abstract class UiElement : UiLayout() {
     val invQuadMatrixArr: FloatArray = FloatArray(16)
 
     fun recomputeMatrices(screenDimensions: Vector2fc) {
-        val mulX = 2f / screenDimensions.x()
-        val mulY = 2f / screenDimensions.y()
-
         quadMatrix
             .identity()
             .translate(-1f, -1f, 0f)
-            .translate(computedPosition.x() * mulX, computedPosition.y() * mulY, 0f)
-            .scale(computedDimensions.x() * mulX, computedDimensions.y() * mulY, 0f)
+            .scale(2f / screenDimensions.x(), 2f / screenDimensions.y(), 0f)
+            .translate(computedPosition.x(), computedPosition.y(), 0f)
+            .scale(computedDimensions.x(), computedDimensions.y(), 0f)
         quadMatrix.invert(invQuadMatrix)
 
         quadMatrix.get(quadMatrixArr)

@@ -393,13 +393,13 @@ fun main(args: Array<String>) {
 
                     if (obj is Drone && hover) {
                         clickedDrone = true
-                        if (obj in selectedDrones) {
-                            selectedDrones.remove(obj)
-                            obj.selected = false
-                        } else {
-                            selectedDrones.add(obj)
-                            obj.selected = true
-                        }
+
+                        for (drone in selectedDrones)
+                            drone.selected = false
+                        selectedDrones.clear()
+
+                        selectedDrones.add(obj)
+                        obj.selected = true
                     }
 
                     if (obj is Base && hover) {
@@ -602,6 +602,11 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
         inventoryContentsText1.renderer = UiTextRenderer(inventoryContentsText1, textShaderProgram, ssbo)
         inventoryContentsText1.transparentBg = true
         inventoryContentsBox.setChild(inventoryContentsText1)
+
+        val textarea = UiTextArea(font)
+        textarea.string = "Hello World!!!\nWe can have\nMultiple lines!!\n  isnt that neat"
+        textarea.renderer = UiTextAreaRenderer(textarea, ssbo, boxShaderProgram, textShaderProgram)
+        vertical.addChild(textarea)
 
         box.rootComputeMeasurements(screenDimensions, Vector2f(screenDimensions.x(), screenDimensions.y() * 0.5f),
             Vector2f(1f, 0.5f))

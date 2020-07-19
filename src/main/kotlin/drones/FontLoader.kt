@@ -99,7 +99,7 @@ fun loadFont(family: String, style: String, size: Int): GameFont {
     glGenerateMipmap(GL_TEXTURE_2D)
 
     return GameFont(family.toLowerCase().capitalize(),
-        glBitmap, bitmapData, bitmapWidth, bitmapHeight, font.height,
+        glBitmap, bitmapData, bitmapWidth, bitmapHeight, size, font.height,
         characterLut, characterCodeLut, characterCoordinatesLut, characterOffsetLut, characterWidthLut)
 }
 
@@ -167,7 +167,8 @@ class GameFont(val name: String,
                val bitmapTexture: ByteBuffer,
                val bitmapWidth: Int,
                val bitmapHeight: Int,
-               val lineHeight: Int,
+               val size: Int,
+               val height: Int,
                /** Look up character by Glyph ID */
                val characterLut: CharArray,
                /** Look up Glyph ID by character */

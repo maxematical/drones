@@ -7,10 +7,10 @@ import org.joml.Vector2fc
 class UiTextElement(val font: GameFont, var string: String = "",
                     private val minDimensions: Vector2fc = Vector2f(0f, 0f)) : UiElement() {
 
-    var fontSize: Int = font.lineHeight
+    var fontSize: Int = font.size
     var fontScale: Float
-        get() = 1.0f * fontSize / font.lineHeight
-        set(value) { fontSize = (font.lineHeight * value).toInt() }
+        get() = 1.0f * fontSize / font.size
+        set(value) { fontSize = (font.size * value).toInt() }
 
     var textFgColor: Int = 15
     var textBgColor: Int = 0
@@ -36,7 +36,7 @@ class UiTextElement(val font: GameFont, var string: String = "",
             width += (charWidth + 1) * fontScale
         }
 
-        mutableDimensions.set(width, fontSize * lineSpacing)
+        mutableDimensions.set(width, fontScale * font.height * lineSpacing)
         mutableDimensions.max(minDimensions)
     }
 
