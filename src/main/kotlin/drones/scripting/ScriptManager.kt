@@ -1,6 +1,5 @@
 package drones.scripting
 
-import drones.*
 import drones.game.*
 import drones.scripting.ModuleCore.Fchecktype
 import drones.scripting.ModuleCore.Fclamparg
@@ -16,9 +15,8 @@ import org.luaj.vm2.lib.*
 import org.luaj.vm2.lib.jse.JseBaseLib
 import org.luaj.vm2.lib.jse.JseIoLib
 import org.luaj.vm2.lib.jse.JseMathLib
-import java.lang.Float.min
 
-class ScriptManager(drone: Drone, filename: String, instructionLimit: Int = 20,
+class ScriptManager(filename: String, instructionLimit: Int = 20,
                     addLibs: ScriptManager.(Globals) -> Unit) {
     val globals: Globals
     var thread: LuaThread
@@ -26,13 +24,12 @@ class ScriptManager(drone: Drone, filename: String, instructionLimit: Int = 20,
 
     val debug: LuaValue
 
-    val navigator: DroneNavigator
-
     var activeScanning: Boolean = false
 
     var nextCallback: LuaValue? = null
 
-    private var isRunningCallback = false
+    var isRunningCallback = false
+        private set
     private var unsetRunningCallback = object : ZeroArgFunction() {
         override fun call(): LuaValue {
             isRunningCallback = false
@@ -41,8 +38,6 @@ class ScriptManager(drone: Drone, filename: String, instructionLimit: Int = 20,
     }
 
     init {
-        navigator = DroneNavigator(drone)
-
         globals = Globals()
 
         val baseLib = JseBaseLib()
@@ -111,7 +106,7 @@ class ScriptManager(drone: Drone, filename: String, instructionLimit: Int = 20,
         // Might require DebugLib to be installed
     }
 
-    fun update(state: GameState, drone: Drone) {
+    fun update(runCallback: LuaValue?) {
         // Update Lua script
         if (!isLuaFinished()) {
             val result: Varargs = thread.resume(LuaValue.varargsOf(emptyArray()))
@@ -123,18 +118,9 @@ class ScriptManager(drone: Drone, filename: String, instructionLimit: Int = 20,
             thread = createCoroutine(prepareCallbackFunction())
         }
 
-        // Update enabled modules
-        if (!isRunningCallback) {
-            ModuleScanner.processScanQueue(state, drone)
-
-            if (activeScanning) {
-                if (nextCallback == null)
-                    nextCallback = ModuleScanner.updateActiveScanning(state, drone, globals)
-            }
+        if (!isRunningCallback && runCallback != null) {
+            nextCallback = runCallback
         }
-
-        // Update navigation
-        navigator.updateNavigation()
 
         if (isLuaFinished() && onComplete != null) {
             onComplete?.invoke()
@@ -153,26 +139,6 @@ class ScriptManager(drone: Drone, filename: String, instructionLimit: Int = 20,
         globals.set("_cb", nextCallback)
         nextCallback = null
         return globals.load("_cb(); _cb = nil; _unsetcb()")
-    }
-}
-
-class DroneNavigator(val drone: Drone) {
-    private val delta = Vector2f()
-
-    fun updateNavigation() {
-        if (drone.hasDestination) {
-            delta.set(drone.destination).sub(drone.position)
-
-            val thrustX = MathUtils.sign(drone.destination.x - drone.position.x) * min(1f, Math.abs(delta.x) / 1.25f)
-            val thrustY = MathUtils.sign(drone.destination.y - drone.position.y) * min(1f, Math.abs(delta.y) / 1.25f)
-
-            drone.desiredVelocity.set(thrustX, thrustY)
-
-            if (delta.lengthSquared() <= (drone.destinationTargetDistance * drone.destinationTargetDistance)) {
-                drone.hasDestination = false
-                drone.desiredVelocity.set(0f, 0f)
-            }
-        }
     }
 }
 

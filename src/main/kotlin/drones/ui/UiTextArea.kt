@@ -4,7 +4,7 @@ import drones.GameFont
 import org.joml.Vector2f
 import org.joml.Vector2fc
 
-class UiTextArea(val font: GameFont, private val minDimensions: Vector2fc = Vector2f()) : UiElement() {
+class UiTextArea(val font: GameFont, private val baseDimensions: Vector2fc = Vector2f()) : UiElement() {
     override var renderer: UiTextAreaRenderer? = null
 
     private val mutAutoDimensions = Vector2f()
@@ -34,6 +34,9 @@ class UiTextArea(val font: GameFont, private val minDimensions: Vector2fc = Vect
     var backgroundColor: Int = 0x000000
     val textPadding: Padding = Padding(3f)
 
+    var allowOverflowX: Boolean = false
+    var allowOverflowY: Boolean = true
+
     override fun computeChildMeasurements() {
         val lines = string.split('\n')
         val numberLines = lines.size
@@ -42,7 +45,11 @@ class UiTextArea(val font: GameFont, private val minDimensions: Vector2fc = Vect
         val width = maxLineLength * fontScale * (font.characterWidthLut[0] + 1) + textPadding.totalHorizontal
         val height = numberLines * fontScale * font.height * lineSpacing + textPadding.totalVertical
 
-        mutAutoDimensions.set(width, height)
-        mutAutoDimensions.max(minDimensions)
+        mutAutoDimensions.set(baseDimensions)
+        if (allowOverflowX)
+            mutAutoDimensions.x = Math.max(width, mutAutoDimensions.x)
+
+        if (allowOverflowY)
+            mutAutoDimensions.y = Math.max(height, mutAutoDimensions.y)
     }
 }

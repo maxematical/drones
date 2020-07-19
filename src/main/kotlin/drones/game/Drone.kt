@@ -1,5 +1,6 @@
 package drones.game
 
+import drones.scripting.ScriptManager
 import org.dyn4j.dynamics.Body
 import org.dyn4j.geometry.Circle
 import org.dyn4j.geometry.Mass
@@ -33,6 +34,10 @@ class Drone(override val position: Vector2f,
     val scanResultQueue: Queue<Vector2fc> = LinkedList()
 
     val inventory = Inventory(10.0)
+
+    var activeScanning: Boolean = false
+
+    var scriptManager: ScriptManager? = null
 
     override val physics: PhysicsBehavior
 

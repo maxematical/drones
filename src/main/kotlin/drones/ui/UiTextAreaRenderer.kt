@@ -61,6 +61,11 @@ class UiTextAreaRenderer(private val element: UiTextArea,
         val posX = element.computedPosition.x() + element.textPadding.left
         val posY = element.computedPosition.y() - element.textPadding.top - lineIndex * scaledLineSpacing
 
+        // Don't show lines after the cutoff -- TODO use proper masking here
+        if (element.computedPosition.y() - (posY - textHeight) > element.computedDimensions.y()) {
+            return
+        }
+
         textMatrix
             .identity()
             .translate(-1f, -1f, 0f)

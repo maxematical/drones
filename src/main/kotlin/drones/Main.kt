@@ -265,10 +265,12 @@ fun main(args: Array<String>) {
         globals.set("move", globals.loadfile("libmove.lua").call())
         globals.loadfile("libscanner.lua").call()
     } }
-    val scriptMgr1 = ScriptManager(drone1, "drone_ore_search.lua", Int.MAX_VALUE, installScripts(drone1))
+    val scriptMgr1 = ScriptManager("drone_ore_search.lua", Int.MAX_VALUE, installScripts(drone1))
     scriptMgr1.onComplete = { drone1.desiredVelocity.set(0f, 0f) }
-    val scriptMgr2 = ScriptManager(drone2, "drone_manual_miner.lua", Int.MAX_VALUE, installScripts(drone2))
+    drone1.scriptManager = scriptMgr1
+    val scriptMgr2 = ScriptManager("drone_manual_miner.lua", Int.MAX_VALUE, installScripts(drone2))
     scriptMgr2.onComplete = { drone2.desiredVelocity.set(0f, 0f) }
+    drone2.scriptManager = scriptMgr2
 
     // Spawn the objects
     val spawnObject: (GameObject) -> Unit = { gameObject ->
@@ -340,10 +342,6 @@ fun main(args: Array<String>) {
             }
             gameState.spawnQueue.clear()
             gameState.despawnQueue.clear()
-
-            // Update scripts
-            scriptMgr1.update(gameState, drone1)
-            scriptMgr2.update(gameState, drone2)
 
             // Update physics
             world.update(deltaTime.toDouble())
@@ -603,8 +601,8 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
         inventoryContentsText1.transparentBg = true
         inventoryContentsBox.setChild(inventoryContentsText1)
 
-        val textarea = UiTextArea(font)
-        textarea.string = "Hello World!!!\nWe can have\nMultiple lines!!\n  isnt that neat"
+        val textarea = UiTextArea(font, Vector2f(240 - box.padding * 2f, 0f))
+        textarea.string = "Hello World!!!\nWe can have\nMultiple lines!!\n  isnt that neat abcdefghijklmnop"
         textarea.renderer = UiTextAreaRenderer(textarea, ssbo, boxShaderProgram, textShaderProgram)
         vertical.addChild(textarea)
 
