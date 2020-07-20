@@ -24,7 +24,7 @@ class UiTextElement(val font: GameFont, var string: String = "",
     override var renderer: UiTextRenderer? = null
     override val children: List<UiLayout> = emptyList()
 
-    override fun computeChildMeasurements() {
+    override fun computeAutoMeasurements() {
         updateDimensions()
     }
 

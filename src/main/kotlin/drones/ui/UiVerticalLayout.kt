@@ -14,11 +14,11 @@ class UiVerticalLayout : UiLayout() {
         mutableChildren.add(element)
     }
 
-    override fun computeChildMeasurements() {
+    override fun computeAutoMeasurements() {
         var maxWidth = 0f
         var totalHeight = 0f
         for (child in children) {
-            child.computeChildMeasurements()
+            child.computeAutoMeasurements()
             child.computedDimensions.set(child.autoDimensions)
             child.computedRelativePosition.set(0f, -totalHeight)
             child.onMeasurementsComputed()

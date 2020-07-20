@@ -38,7 +38,7 @@ class UiTextArea(val font: GameFont, private val baseDimensions: Vector2fc = Vec
     var allowOverflowX: Boolean = false
     var allowOverflowY: Boolean = true
 
-    override fun computeChildMeasurements() {
+    override fun computeAutoMeasurements() {
         val lines = string.split('\n')
         val numberLines = lines.size
         val maxLineLength = lines.maxBy { it.length }!!.length

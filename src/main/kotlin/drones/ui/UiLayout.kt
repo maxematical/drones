@@ -5,7 +5,8 @@ import org.joml.Vector2f
 import org.joml.Vector2fc
 
 abstract class UiLayout {
-    abstract val autoDimensions: Vector2fc
+    abstract val autoDimensions: LayoutVectorc
+    abstract val minDimensions: Vector2fc
     abstract val children: List<UiLayout>
 
     val computedDimensions: Vector2f = Vector2f()
@@ -23,26 +24,63 @@ abstract class UiLayout {
     val computedPosition: Vector2f = Vector2f()
 
     /**
-     * Called when the layout should a) compute the measurements of its children (i.e. `computedRelativePosition` and
-     * `computedPosition`) and b) compute its own `autoDimensions`.
+     * Called when the layout should a) FIRST call computeAutoMeasurements on each of its children, b) compute its own
+     * autoDimensions and minDimensions. (Children should be called first, because minDimensions often depends on what
+     * children dimensions are)
      */
-    abstract fun computeChildMeasurements()
-    open fun onMeasurementsComputed() {}
+    abstract fun computeAutoMeasurements()
+    //open fun onMeasurementsComputed() {}
+
+    /**
+     * Called when the layout should compute the [computedDimensions] and [computedRelativePosition] for each child.
+     * Afterwards, call this function on each child.
+     *
+     * (This layout's dimensions and relative position have already been computed.)
+     *
+     * You do not need to compute the absolute [computedPosition], this will be done automatically.
+     *
+     * It is recommended to use [doComputeChildDimensions], then set the child's relative position manually.
+     */
+    abstract fun computeFinalMeasurements()
+
+    /**
+     * Helper function. This is the recommended way to calculate child dimensions while respecting minimum-dimensions
+     * and relative-dimensions.
+     */
+    protected fun doComputeChildDimensions(childAutoDimensions: LayoutVectorc, childMinDimensions: Vector2fc,
+                                           parentDimensions: Vector2fc,
+                                           out: Vector2f) {
+        out.set(childAutoDimensions, parentDimensions)
+        out.max(childMinDimensions)
+    }
+
+    /**
+     * @see doComputeChildDimensions
+     */
+    protected fun doComputeChildDimensions(child: UiLayout) {
+        doComputeChildDimensions(child.autoDimensions, child.minDimensions,
+            this.computedDimensions, child.computedDimensions)
+    }
 
     fun rootComputeMeasurements(screenDimensions: Vector2fc,
                                 rootPosition: Vector2fc = Vector2f(0f, 0f),
                                 rootAnchor: Vector2fc = Vector2f(0f, 0f)) {
-        computeChildMeasurements()
-        computedDimensions.set(autoDimensions)
-        computedRelativePosition.set(-rootAnchor.x(), 1f - rootAnchor.y()).mul(autoDimensions).add(rootPosition)
-        onMeasurementsComputed()
+        computeAutoMeasurements()
+//        computedDimensions.set(autoDimensions.getPixelsX(screenDimensions.x()),
+//            autoDimensions.getPixelsY(screenDimensions.y()))
+//        computedRelativePosition.set(-rootAnchor.x(), 1f - rootAnchor.y()).mul(computedDimensions).add(rootPosition)
+
+        doComputeChildDimensions(this.autoDimensions, this.minDimensions, screenDimensions, computedDimensions)
+        this.computedPosition.set(-rootAnchor.x(), 1f - rootAnchor.y()).mul(computedDimensions).add(rootPosition)
+
+        computeFinalMeasurements()
         computeAbsolutePosition(Vector2f(0f, screenDimensions.y()), screenDimensions)
     }
 
     fun rootUpdatePosition(screenDimensions: Vector2fc,
                            newRootPosition: Vector2fc,
                            rootAnchor: Vector2fc = Vector2f(0f, 0f)) {
-        computedRelativePosition.set(-rootAnchor.x(), 1f - rootAnchor.y()).mul(autoDimensions).add(newRootPosition)
+        computedRelativePosition.set(-rootAnchor.x(), 1f - rootAnchor.y()).mul(computedDimensions).add(newRootPosition)
         onMeasurementsComputed()
         computeAbsolutePosition(Vector2f(0f, screenDimensions.y()), screenDimensions)
     }
