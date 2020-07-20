@@ -1,6 +1,8 @@
 package drones.test.ui
 
 import drones.ui.LayoutVector
+import drones.ui.LayoutVector.Units.PERCENT
+import drones.ui.LayoutVector.Units.PIXELS
 import drones.ui.UiBoxElement
 import drones.ui.UiVerticalLayout
 import org.joml.Vector2f
@@ -48,6 +50,41 @@ class UiTest {
 
         assertEquals(Vector2f(40f, 12f), centeredBox.computedDimensions)
         assertEquals(Vector2f(0.5f * (100f - 40f), 100f - 0.5f * (100f - 12f)), centeredBox.computedPosition)
+    }
+
+    @Test
+    fun testPaddedBox() {
+        val box = UiBoxElement(LayoutVector(0f, 0f))
+        val child = UiBoxElement(LayoutVector(10f, 10f))
+        box.setChild(child)
+        box.centerChild = false
+        box.padding.set(4f, 1f)
+        box.rootComputeMeasurements(Vector2f(300f, 300f))
+
+        assertEquals(Vector2f(12f, 18f), box.minDimensions) // box should be at least (child size + padding)
+        assertEquals(Vector2f(12f, 18f), box.computedDimensions)
+        assertEquals(Vector2f(0f, 18f), box.computedPosition)
+
+        assertEquals(Vector2f(1f, 14f), child.computedPosition)
+    }
+
+    @Test
+    fun testFullWidthBox() {
+        val parent = UiBoxElement(LayoutVector(200f, 0f))
+        val fullWidth = UiBoxElement(LayoutVector(100f, PERCENT, 20f, PIXELS))
+        parent.setChild(fullWidth)
+        parent.centerChild = false
+        parent.rootComputeMeasurements(Vector2f(300f, 300f))
+
+        assertEquals(LayoutVector(200f, 0f), parent.autoDimensions)
+        assertEquals(Vector2f(0f, 20f), parent.minDimensions)
+        assertEquals(Vector2f(200f, 20f), parent.computedDimensions)
+        assertEquals(Vector2f(0f, 20f), parent.computedPosition)
+
+        assertEquals(Vector2f(0f, 20f), fullWidth.autoDimensions.getPixelsVector())
+        assertEquals(Vector2f(0f, 0f), fullWidth.minDimensions)
+        assertEquals(Vector2f(200f, 20f), fullWidth.computedDimensions)
+        assertEquals(Vector2f(0f, 20f), fullWidth.computedPosition)
     }
 
     @Test
