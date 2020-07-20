@@ -5,7 +5,12 @@ import org.joml.Vector2f
 import org.joml.Vector2fc
 
 class UiTextElement(val font: GameFont, var string: String = "",
-                    private val minDimensions: Vector2fc = Vector2f(0f, 0f)) : UiElement() {
+                    override val autoDimensions: LayoutVectorc = LayoutVector()) : UiElement() {
+    private val mMinDimensions = Vector2f()
+    override val minDimensions: Vector2fc = mMinDimensions
+
+    override var renderer: UiTextRenderer? = null
+    override val children: List<UiLayout> = emptyList()
 
     var fontSize: Int = font.size
     var fontScale: Float
@@ -18,17 +23,7 @@ class UiTextElement(val font: GameFont, var string: String = "",
     var transparentBg: Boolean = false
     var lineSpacing: Float = 1.0f
 
-    private val mutableDimensions = Vector2f(0f, 1.0f * fontSize)
-    override val autoDimensions: Vector2fc = mutableDimensions
-
-    override var renderer: UiTextRenderer? = null
-    override val children: List<UiLayout> = emptyList()
-
     override fun computeAutoMeasurements() {
-        updateDimensions()
-    }
-
-    private fun updateDimensions() {
         var width = 0f
         for (ch: Char in string) {
             val charCode: Int = font.characterCodeLut[ch] ?: error("Font does not suppor character '$ch'")
@@ -36,9 +31,11 @@ class UiTextElement(val font: GameFont, var string: String = "",
             width += (charWidth + 1) * fontScale
         }
 
-        mutableDimensions.set(width, fontScale * font.height * lineSpacing)
-        mutableDimensions.max(minDimensions)
+        mMinDimensions.set(width, fontScale * font.height * lineSpacing)
+        mMinDimensions.max(minDimensions)
     }
+
+    override fun computeFinalMeasurements() { /* nothing to do, no children */ }
 
     enum class TextAlign(val id: Int) {
         LEFT_ALIGN(0),

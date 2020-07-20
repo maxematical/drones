@@ -3,10 +3,7 @@ package drones.ui
 import org.joml.Vector2f
 import org.joml.Vector2fc
 
-class UiBoxElement(private val baseDimensions: LayoutVector = LayoutVector()) : UiElement() {
-    private val mAutoDimensions = LayoutVector()
-    override val autoDimensions: LayoutVector = mAutoDimensions
-
+class UiBoxElement(override val autoDimensions: LayoutVectorc = LayoutVector()) : UiElement() {
     private val mMinDimensions = Vector2f()
     override val minDimensions: Vector2fc = mMinDimensions
 
@@ -42,38 +39,29 @@ class UiBoxElement(private val baseDimensions: LayoutVector = LayoutVector()) : 
             mMinDimensions.set(child.autoDimensions)
             mMinDimensions.max(child.minDimensions)
         }
+        // Expand to accommodate for padding
+        mMinDimensions.add(padding.totalHorizontal, padding.totalVertical)
 
-        // Determine our dimensions
-        mAutoDimensions.set(baseDimensions)
+        // Auto dimensions don't need to be computed (they are set via constructor parameter)
     }
 
     override fun computeFinalMeasurements() {
         val child = this.child
         if (child != null) {
+            // Compute child final dimensions
             doComputeChildDimensions(child)
-        }
-    }
 
-    override fun onMeasurementsComputed() {
-        val child = this.child
+            // Compute child relative position
+            if (centerChild) {
+                // Centering formula: (ParentDimensions - ChildDimensions) / 2
+                child.computedRelativePosition.set(this.computedDimensions).sub(child.computedDimensions).mul(0.5f)
+                child.computedRelativePosition.y *= -1
+            } else {
+                child.computedRelativePosition.set(padding.left, -padding.top)
+            }
 
-        if (child != null) {
-            // Compute final child width/height
-            child.computedDimensions.set(Vector2f(computedDimensions).sub(padding.totalHorizontal, padding.totalVertical))
-            child.computedRelativePosition.set(padding.left, -padding.top)
-            child.onMeasurementsComputed()
-        }
-
-
-
-        if (child != null && centerChild) {
-            // Formula: ChildPos = (BoxDimensions - ChildDimensions) / 2
-            child.computedRelativePosition.set(computedDimensions).sub(child.computedDimensions).mul(0.5f)
-            child.computedRelativePosition.y *= -1
-        }
-
-        if (child != null) {
-            child.computedDimensions
+            // Pass to child
+            child.computeFinalMeasurements()
         }
     }
 }

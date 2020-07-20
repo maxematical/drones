@@ -1,14 +1,13 @@
 package drones.ui
 
-import drones.ui.LayoutVector.Units.PERCENT
 import drones.ui.LayoutVector.Units.PIXELS
 import org.joml.Vector2f
 import org.joml.Vector2fc
 
 class LayoutVector(override var x: Float, override var xUnits: Units,
                    override var y: Float, override var yUnits: Units) : LayoutVectorc {
-    constructor(x: Float, y: Float) : this(x, PIXELS, y, PIXELS)
-    constructor(vec: Vector2fc) : this(vec.x(), vec.y())
+    constructor(xPx: Float, yPx: Float) : this(xPx, PIXELS, yPx, PIXELS)
+    constructor(vPx: Vector2fc) : this(vPx.x(), vPx.y())
     constructor() : this(0f, 0f)
     constructor(vec: LayoutVectorc) : this(vec.x, vec.xUnits, vec.y, vec.yUnits)
 
@@ -79,7 +78,21 @@ class LayoutVector(override var x: Float, override var xUnits: Units,
     override fun toString(): String {
         val xu = if (xUnits == PIXELS) "px" else "%"
         val yu = if (yUnits == PIXELS) "px" else "%"
-        return "($x$xu, $y$yu${/* min ${minPxX}px, ${minPxY}px)*/""}"
+        return "($x$xu, $y$yu)"
+    }
+
+    override fun equals(other: Any?): Boolean {
+        if (other === this)
+            return true
+
+        if (other is LayoutVectorc) {
+            return other.x == this.x &&
+                    other.xUnits == this.xUnits &&
+                    other.y == this.y &&
+                    other.yUnits == this.yUnits
+        }
+
+        return false
     }
 
     enum class Units {

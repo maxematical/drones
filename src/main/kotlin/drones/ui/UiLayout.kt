@@ -29,11 +29,10 @@ abstract class UiLayout {
      * children dimensions are)
      */
     abstract fun computeAutoMeasurements()
-    //open fun onMeasurementsComputed() {}
 
     /**
-     * Called when the layout should compute the [computedDimensions] and [computedRelativePosition] for each child.
-     * Afterwards, call this function on each child.
+     * Called when the layout should a) compute the [computedDimensions] and [computedRelativePosition] for each child,
+     * then b) call this function on each child.
      *
      * (This layout's dimensions and relative position have already been computed.)
      *
@@ -71,7 +70,8 @@ abstract class UiLayout {
 //        computedRelativePosition.set(-rootAnchor.x(), 1f - rootAnchor.y()).mul(computedDimensions).add(rootPosition)
 
         doComputeChildDimensions(this.autoDimensions, this.minDimensions, screenDimensions, computedDimensions)
-        this.computedPosition.set(-rootAnchor.x(), 1f - rootAnchor.y()).mul(computedDimensions).add(rootPosition)
+        this.computedRelativePosition.set(-rootAnchor.x(), 1f - rootAnchor.y())
+            .mul(computedDimensions).add(rootPosition)
 
         computeFinalMeasurements()
         computeAbsolutePosition(Vector2f(0f, screenDimensions.y()), screenDimensions)
@@ -80,8 +80,10 @@ abstract class UiLayout {
     fun rootUpdatePosition(screenDimensions: Vector2fc,
                            newRootPosition: Vector2fc,
                            rootAnchor: Vector2fc = Vector2f(0f, 0f)) {
+        // No need to compute auto measurements or change any dimensions here -- we are simply translating the UI around
+        // We also don't need to call computeFinalMeasurements again, relative positions should stay the same, only the
+        // root layout is moving around
         computedRelativePosition.set(-rootAnchor.x(), 1f - rootAnchor.y()).mul(computedDimensions).add(newRootPosition)
-        onMeasurementsComputed()
         computeAbsolutePosition(Vector2f(0f, screenDimensions.y()), screenDimensions)
     }
 

@@ -4,8 +4,13 @@ import drones.game.*
 import drones.render.*
 import drones.scripting.*
 import drones.ui.*
+import drones.ui.LayoutVector.Units.PERCENT
+import drones.ui.LayoutVector.Units.PIXELS
 import org.dyn4j.dynamics.World
-import org.joml.*
+import org.joml.Math
+import org.joml.Vector2f
+import org.joml.Vector2fc
+import org.joml.Vector4f
 import org.luaj.vm2.Globals
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.opengl.GL
@@ -13,7 +18,6 @@ import org.lwjgl.opengl.GL30.*
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.MemoryUtil.NULL
 import org.slf4j.LoggerFactory
-import java.lang.StringBuilder
 import java.util.*
 import kotlin.math.floor
 
@@ -181,7 +185,7 @@ fun main(args: Array<String>) {
     // Setup UI
     val screenDimensions = Vector2f(windowWidth.toFloat(), windowHeight.toFloat())
 
-    val fpsCounter = UiTextElement(font, minDimensions = Vector2f(9f * 2f * 5f, 0f))
+    val fpsCounter = UiTextElement(font, autoDimensions = LayoutVector(9f * 2f * 5f, 0f))
     fpsCounter.textFgColor = 10
     fpsCounter.fontScale = 2.0f
     fpsCounter.textAlign = UiTextElement.TextAlign.RIGHT_ALIGN
@@ -192,7 +196,7 @@ fun main(args: Array<String>) {
     var fpsCountStart = System.currentTimeMillis()
     var fpsFramesCount = 0
 
-    val sideBox = UiBoxElement(Vector2f(240f, 240f))
+    val sideBox = UiBoxElement(LayoutVector(240f, 240f))
     sideBox.setChild(UiVerticalLayout().apply {
         addChild(UiTextElement(font, "Hello").apply {
             renderer = UiTextRenderer(this, uiTextShaderProgram, ssbo)
@@ -214,7 +218,7 @@ fun main(args: Array<String>) {
     })
     sideBox.centerChild = false
     sideBox.borderWidth = 3
-    sideBox.padding = 6f
+    sideBox.padding.set(6f)
     sideBox.renderer = UiBoxRenderer(sideBox, uiBoxShaderProgram)
     sideBox.rootComputeMeasurements(screenDimensions,
         Vector2f(screenDimensions.x() - 8f, screenDimensions.y() * 0.5f), Vector2f(1f, 0.5f))
@@ -222,7 +226,7 @@ fun main(args: Array<String>) {
     var baseInfoTransition = 0f
 
     val tooltipBox = UiBoxElement()
-    tooltipBox.padding = 3f
+    tooltipBox.padding.set(3f)
     tooltipBox.centerChild = false
     tooltipBox.borderWidth = 2
     tooltipBox.renderer = UiBoxRenderer(tooltipBox, uiBoxShaderProgram)
@@ -570,12 +574,12 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
     private val rootAnchor = Vector2f(0f, 0.5f)
 
     init {
-        box = UiBoxElement(Vector2f(240f, screenDimensions.y() - 100f))
+        box = UiBoxElement(LayoutVector(240f, screenDimensions.y() - 100f))
         box.renderer = UiBoxRenderer(box, boxShaderProgram)
         box.backgroundColor = 1
         box.borderColor = 0x000000
         box.borderWidth = 5
-        box.padding = 5f
+        box.padding.set(5f)
         box.centerChild = false
 
         val vertical = UiVerticalLayout()
@@ -594,8 +598,7 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
         inventoryText.transparentBg = false
         vertical.addChild(inventoryText)
 
-        // TODO Allow auto width relative to parent size (e.g. 80%)
-        inventoryContentsBox = UiBoxElement(Vector2f(240 - box.padding * 2f, 10f))
+        inventoryContentsBox = UiBoxElement(LayoutVector(100f, PERCENT, 0f, PERCENT))
         inventoryContentsBox.renderer = UiBoxRenderer(inventoryContentsBox, boxShaderProgram)
         inventoryContentsBox.borderWidth = 1
         inventoryContentsBox.backgroundColor = 0x000000
@@ -611,18 +614,18 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
             transparentBg = true
         })
 
-        scriptInfoText = UiTextElement(font, minDimensions = Vector2f(240 - box.padding * 2f, 0f))
+        scriptInfoText = UiTextElement(font, autoDimensions = LayoutVector(100f, PERCENT, 0f, PERCENT))
         scriptInfoText.renderer = UiTextRenderer(scriptInfoText, textShaderProgram, ssbo)
         scriptInfoText.transparentBg = true
         vertical.addChild(scriptInfoText)
 
-        scriptFunctionText = UiTextElement(font, minDimensions = Vector2f(240 - box.padding * 2f, 0f)).apply {
+        scriptFunctionText = UiTextElement(font, autoDimensions = LayoutVector(100f, PERCENT, 0f, PERCENT)).apply {
             renderer = UiTextRenderer(this, textShaderProgram, ssbo)
             transparentBg = true
         }
         vertical.addChild(scriptFunctionText)
 
-        scriptTextArea = UiTextArea(font, Vector2f(240 - box.padding * 2f, 0f), 6)
+        scriptTextArea = UiTextArea(font, LayoutVector(100f, PERCENT, 0f, PERCENT), 6)
         scriptTextArea.string = "Hello World!!!\nWe can have\nMultiple lines!!\n  isnt that neat abcdefghijklmnop"
         scriptTextArea.renderer = UiTextAreaRenderer(scriptTextArea, ssbo, boxShaderProgram, textShaderProgram)
         vertical.addChild(scriptTextArea)
