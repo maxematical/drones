@@ -11,6 +11,7 @@ abstract class Tile {
     abstract fun getAppearance(metadata: Int): Char
     open fun getBackgroundColor(metadata: Int): Int = 0
     open fun getForegroundColor(metadata: Int): Int = 8
+    open fun getTooltip(metadata: Int): String = name
 }
 
 object TileAir : Tile() {
@@ -26,6 +27,8 @@ object TileOre : Tile() {
 
     override fun getAppearance(metadata: Int): Char = 'X'
     override fun getBackgroundColor(metadata: Int): Int = metadata / 2
+
+    override fun getTooltip(metadata: Int) = "Ore ($metadata/$initialMetadata Left)"
 
     /**
      * Mines part of this tile, returns the new tile data here and the kg of ore extracted. (may change the actual tile)

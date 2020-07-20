@@ -369,6 +369,7 @@ fun main(args: Array<String>) {
         camera.matrixInvc.transform(transformedMousePos) // now is in world space
 
         // Update tooltip
+        // Check if we're hovering over a game object
         var drawTooltip: Boolean = false
         for (obj in gameObjects) {
             if (obj.hoverable.isHover(transformedMousePos)) {
@@ -380,6 +381,26 @@ fun main(args: Array<String>) {
                 if (tooltipText.string != newText) {
                     tooltipText.string = newText
                     tooltipBox.rootComputeMeasurements(screenDimensions)
+                }
+
+                break
+            }
+        }
+        // If we're not hovering over an object, check if we're hovering a non-air tile
+        if (!drawTooltip) {
+            val gridX = grid.worldToGridX(transformedMousePos.x())
+            val gridY = grid.worldToGridY(transformedMousePos.y())
+
+            if (grid.isTileAt(gridX, gridY)) {
+                val tile = grid.getTile(gridX, gridY)
+                if (tile != TileAir) {
+                    drawTooltip = true
+
+                    val newText = tile.getTooltip(grid.getMeta(gridX, gridY))
+                    if (tooltipText.string != newText) {
+                        tooltipText.string = newText
+                        tooltipBox.rootComputeMeasurements(screenDimensions)
+                    }
                 }
             }
         }

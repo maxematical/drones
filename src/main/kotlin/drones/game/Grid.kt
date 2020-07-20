@@ -30,7 +30,7 @@ class Grid(val width: Int, val height: Int, val positionTopLeft: Vector2fc = Vec
         floor(worldX - positionTopLeft.x()).toInt()
 
     fun worldToGridY(worldY: Float): Int =
-        -floor(worldY - positionTopLeft.y()).toInt()
+        -floor(worldY - positionTopLeft.y()).toInt() - 1
 
     fun worldToGrid(position: Vector2fc): Vector2ic =
         Vector2i(worldToGridX(position.x()), worldToGridY(position.y()))
@@ -40,6 +40,10 @@ class Grid(val width: Int, val height: Int, val positionTopLeft: Vector2fc = Vec
 
     fun gridToWorldY(gridY: Int): Float =
         positionTopLeft.y() - gridY
+
+    fun isTileAt(gridX: Int, gridY: Int): Boolean {
+        return gridX >= 0 && gridX < width && gridY >= 0 && gridY < height
+    }
 
     fun getTile(gridX: Int, gridY: Int): Tile {
         val data = tileData[gridY][gridX]
