@@ -23,21 +23,21 @@ object LuaDebugHelper {
             val line = frame.currentline()
 
             // Give result and return
+            out.valid = true
             out.sourceFile = source
             out.lineNumber = line
             out.insideFunction = callstack.getCallFrame(i)?.let(DebugLib::getfuncname)?.name
             return
         }
 
-        out.sourceFile = null
-        out.lineNumber = null
-        out.insideFunction = null
+        out.valid = false
         return
     }
 
     class CurrentLine {
-        var sourceFile: String? = null
-        var lineNumber: Int? = null
+        var valid: Boolean = false
+        var sourceFile: String = ""
+        var lineNumber: Int = -1
         var insideFunction: String? = null
     }
 }

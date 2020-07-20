@@ -630,7 +630,7 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
         inventoryContentsText1.transparentBg = true
         inventoryContentsBox.setChild(inventoryContentsText1)
 
-        vertical.addChild(UiTextElement(font, "Running Script:").apply {
+        vertical.addChild(UiTextElement(font, "Current Script:").apply {
             renderer = UiTextRenderer(this, textShaderProgram, ssbo)
             transparentBg = true
         })
@@ -659,8 +659,15 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
         val l = drone.scriptManager?.currentLine
 
         inventoryContentsText1.string = "${drone.inventory.currentVolume}/${drone.inventory.capacity}L"
-        scriptInfoText.string = l?.sourceFile ?: "(Not running script)"
-        scriptFunctionText.string = l?.insideFunction?.let { "In $it()" } ?: ""
+
+        if (l != null) {
+            scriptInfoText.string = l.sourceFile
+            scriptFunctionText.string = l.insideFunction?.let { "In $it" } ?: "Running"
+        } else {
+            val filename = drone.scriptManager?.scriptFilename
+            scriptInfoText.string = filename ?: "(No script)"
+            scriptFunctionText.string = if (filename != null) "Not running" else ""
+        }
 
         val lines = drone.scriptManager?.luaSourceLines ?: emptyList()
         val startLine = l?.lineNumber ?: 3

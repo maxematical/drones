@@ -18,7 +18,7 @@ import org.luaj.vm2.lib.jse.JseMathLib
 import java.io.BufferedReader
 import java.io.InputStreamReader
 
-class ScriptManager(filename: String, instructionLimit: Int = 20,
+class ScriptManager(val scriptFilename: String, instructionLimit: Int = 20,
                     addLibs: ScriptManager.(Globals) -> Unit) {
     val globals: Globals
     var thread: LuaThread
@@ -28,7 +28,8 @@ class ScriptManager(filename: String, instructionLimit: Int = 20,
 
     var nextCallback: LuaValue? = null
 
-    val currentLine = LuaDebugHelper.CurrentLine()
+    private val privateCurrentLine = LuaDebugHelper.CurrentLine()
+    val currentLine: LuaDebugHelper.CurrentLine? get() = privateCurrentLine.takeIf { it.valid }
 
     val luaSourceLines: List<String>
     val luaSource: String
@@ -43,7 +44,7 @@ class ScriptManager(filename: String, instructionLimit: Int = 20,
     }
 
     init {
-        val instr = ScriptManager::class.java.getResourceAsStream("/scripts/$filename")
+        val instr = ScriptManager::class.java.getResourceAsStream("/scripts/$scriptFilename")
         val reader = BufferedReader(InputStreamReader(instr))
         luaSourceLines = reader.readLines()
         luaSource = luaSourceLines.fold("") { acc, str -> acc + str + '\n' }
@@ -80,7 +81,7 @@ class ScriptManager(filename: String, instructionLimit: Int = 20,
             }
         })
 
-        thread = createCoroutine(globals.get("loadfile").call(filename))
+        thread = createCoroutine(globals.get("loadfile").call(scriptFilename))
 
         // Limit the instruction count per script execution
         // We have to do this using the debug lib, but we don't want scripts accessing it, so we'll remove the debug
@@ -101,7 +102,7 @@ class ScriptManager(filename: String, instructionLimit: Int = 20,
         globals.get("coroutine").set("yield", object : VarArgFunction() {
             override fun invoke(args: Varargs): Varargs {
                 try {
-                    LuaDebugHelper.getCurrentLine(debugLib, thread, currentLine)
+                    LuaDebugHelper.getCurrentLine(debugLib, thread, privateCurrentLine)
                 } catch (ex: Exception) {
                     ex.printStackTrace()
                     throw ex
@@ -145,9 +146,7 @@ class ScriptManager(filename: String, instructionLimit: Int = 20,
         //println(debug.get("getinfo").call(thread))
 
         if (isLuaFinished()) {
-            currentLine.lineNumber = null
-            currentLine.sourceFile = null
-            currentLine.insideFunction = null
+            privateCurrentLine.valid = false
 
             if (onComplete != null) {
                 onComplete?.invoke()
