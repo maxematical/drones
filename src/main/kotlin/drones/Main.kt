@@ -596,7 +596,7 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
     private val rootAnchor = Vector2f(0f, 0.5f)
 
     init {
-        box = UiBoxElement(LayoutVector(240f, screenDimensions.y() - 100f))
+        box = UiBoxElement(LayoutVector(320f, screenDimensions.y() - 100f))
         box.renderer = UiBoxRenderer(box, boxShaderProgram)
         box.backgroundColor = 1
         box.borderColor = 0x000000
@@ -604,7 +604,7 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
         box.padding.set(5f)
         box.centerChild = false
 
-        val vertical = UiVerticalLayout()
+        val vertical = UiVerticalLayout(LayoutVector(100f, PERCENT, 100f, PERCENT))
         box.setChild(vertical)
 
         droneName = UiTextElement(font, "Drone XYZ")
@@ -624,9 +624,10 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
         inventoryContentsBox.renderer = UiBoxRenderer(inventoryContentsBox, boxShaderProgram)
         inventoryContentsBox.borderWidth = 1
         inventoryContentsBox.backgroundColor = 0x000000
+        inventoryContentsBox.centerChild = false
         vertical.addChild(inventoryContentsBox)
 
-        inventoryContentsText1 = UiTextElement(font, "(Capacity goes here)")
+        inventoryContentsText1 = UiTextElement(font, autoDimensions = LayoutVector(100f, PERCENT, 0f, PERCENT))
         inventoryContentsText1.renderer = UiTextRenderer(inventoryContentsText1, textShaderProgram, ssbo)
         inventoryContentsText1.transparentBg = true
         inventoryContentsBox.setChild(inventoryContentsText1)

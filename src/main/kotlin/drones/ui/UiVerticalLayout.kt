@@ -3,12 +3,9 @@ package drones.ui
 import org.joml.Vector2f
 import org.joml.Vector2fc
 
-class UiVerticalLayout : UiLayout() {
+class UiVerticalLayout(override val autoDimensions: LayoutVectorc = LayoutVector()) : UiLayout() {
     private val mutableChildren = mutableListOf<UiLayout>()
     override val children: List<UiLayout> = mutableChildren
-
-    private val mAutoDimensions = LayoutVector()
-    override val autoDimensions: LayoutVectorc = mAutoDimensions
 
     private val mMinDimensions = Vector2f()
     override val minDimensions: Vector2fc = mMinDimensions
@@ -30,7 +27,6 @@ class UiVerticalLayout : UiLayout() {
         }
 
         mMinDimensions.set(maxWidth, totalHeight)
-        mAutoDimensions.set(0f, 0f)
     }
 
     override fun computeFinalMeasurements() {
