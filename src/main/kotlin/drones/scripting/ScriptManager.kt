@@ -1,5 +1,6 @@
 package drones.scripting
 
+import drones.LogOutputStream
 import drones.game.*
 import drones.scripting.ModuleCore.Fchecktype
 import drones.scripting.ModuleCore.Fclamparg
@@ -15,10 +16,14 @@ import org.luaj.vm2.lib.*
 import org.luaj.vm2.lib.jse.JseBaseLib
 import org.luaj.vm2.lib.jse.JseIoLib
 import org.luaj.vm2.lib.jse.JseMathLib
+import org.slf4j.LoggerFactory
+import org.slf4j.event.Level
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.io.PrintStream
 
-class ScriptManager(val scriptFilename: String, instructionLimit: Int = 20,
+class ScriptManager(val scriptFilename: String,
+                    instructionLimit: Int = 20,
                     addLibs: ScriptManager.(Globals) -> Unit) {
     val globals: Globals
     var thread: LuaThread
@@ -33,6 +38,9 @@ class ScriptManager(val scriptFilename: String, instructionLimit: Int = 20,
 
     val luaSourceLines: List<String>
     val luaSource: String
+
+    private val mutableScriptOutput = mutableListOf<String>()
+    val scriptOutput: List<String> = mutableScriptOutput
 
     var isRunningCallback = false
         private set
@@ -51,6 +59,7 @@ class ScriptManager(val scriptFilename: String, instructionLimit: Int = 20,
         reader.close()
 
         globals = Globals()
+        globals.STDOUT = PrintStream(LogOutputStream(LUA_LOGGER, Level.INFO, mutableScriptOutput), false)
 
         val baseLib = JseBaseLib()
         globals.load(baseLib)
@@ -73,13 +82,6 @@ class ScriptManager(val scriptFilename: String, instructionLimit: Int = 20,
         addLibs(globals)
 
         globals.set("_unsetcb", unsetRunningCallback)
-
-        val oldPrint = globals.get("print")
-        globals.set("print", object : VarArgFunction() {
-            override fun invoke(args: Varargs): Varargs {
-                return oldPrint.invoke(LuaValue.varargsOf(LuaValue.valueOf("LUA:"), args))
-            }
-        })
 
         thread = createCoroutine(globals.get("loadfile").call(scriptFilename))
 
@@ -166,6 +168,10 @@ class ScriptManager(val scriptFilename: String, instructionLimit: Int = 20,
         globals.set("_cb", nextCallback)
         nextCallback = null
         return globals.load("_cb(); _cb = nil; _unsetcb()")
+    }
+
+    companion object {
+        private val LUA_LOGGER = LoggerFactory.getLogger("lua")
     }
 }
 
