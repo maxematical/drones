@@ -113,6 +113,54 @@ class ScriptManager(val scriptFilename: String,
             }
         })
 
+        val luaPrint = globals.get("print")
+        globals.set("print", object : VarArgFunction() {
+            override fun invoke(args: Varargs): Varargs {
+                val newArgs: Varargs = when (args.narg()) {
+                    0 -> args
+                    1 -> fixArg(args.arg1())
+                    else -> {
+                        val arr = Array<LuaValue>(args.narg()) { LuaValue.NIL }
+                        for (i in arr.indices)
+                            arr[i] = fixArg(args.arg(i + 1))
+
+                        LuaValue.varargsOf(arr)
+                    }
+                }
+                return luaPrint.invoke(newArgs)
+            }
+
+            /**
+             * Calls tostring on the given argument and checks that its string value contains only allowed characters.
+             * Any instances of unallowed characters are replaced with '?'.
+             */
+            private fun fixArg(luaValue: LuaValue): LuaValue {
+                val tostring = globals.get("tostring")
+                val stringified = tostring.call(luaValue)
+
+                val str = stringified.tojstring()
+                var newStr: StringBuilder? = null
+                for (idx in str.indices) {
+                    val char = str[idx]
+                    if (!isCharAllowed(char)) {
+                        // This character is not allowed
+
+                        // Create the new (replacement) string if necessary
+                        if (newStr == null) {
+                            newStr = StringBuilder(str)
+                        }
+
+                        // Replace the character in the new string
+                        newStr[idx] = '?'
+                    }
+                }
+
+                // If there were invalid characters, return the new string
+                // Otherwise, return the old string
+                return if (newStr != null) LuaValue.valueOf(newStr.toString()) else stringified
+            }
+        })
+
         val onInstructionLimit = object : ZeroArgFunction() {
             override fun call(): LuaValue {
                 throw RuntimeException("Instruction limit exceeded")
@@ -172,6 +220,26 @@ class ScriptManager(val scriptFilename: String,
 
     companion object {
         private val LUA_LOGGER = LoggerFactory.getLogger("lua")
+        private val ALLOWED_CHARS = " !\"#\$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`" +
+                "abcdefghijklmnopqrstuvwxyz{|}~"
+        private val ALLOWED_CHARS_LUT = BooleanArray(255)
+
+        init {
+            for (char in ALLOWED_CHARS) {
+                val intValue = char.toInt()
+                if (intValue in ALLOWED_CHARS_LUT.indices) {
+                    ALLOWED_CHARS_LUT[intValue] = true
+                }
+            }
+        }
+
+        fun isCharAllowed(char: Char): Boolean {
+            val intValue = char.toInt()
+            if (intValue in ALLOWED_CHARS_LUT.indices)
+                return ALLOWED_CHARS_LUT[intValue]
+            else
+                return ALLOWED_CHARS.indexOf(char) >= 0
+        }
     }
 }
 

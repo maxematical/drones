@@ -13,13 +13,7 @@ class UiTextArea(val font: GameFont, override val autoDimensions: LayoutVectorc 
 
     override val children: List<UiLayout> = emptyList()
 
-    var string: String = ""
-        set(value) {
-            field = value
-            this.lines = value.split('\n')
-        }
-    var lines: List<String> = listOf()
-        private set
+    val lines: MutableList<String> = mutableListOf()
 
     var fontSize: Int = font.size
     var fontScale: Float
@@ -40,17 +34,23 @@ class UiTextArea(val font: GameFont, override val autoDimensions: LayoutVectorc 
     var allowOverflowY: Boolean = true
 
     override fun computeAutoMeasurements() {
-        val lines = string.split('\n')
         val numberLines = lines.size
-        val maxLineLength = lines.maxBy { it.length }!!.length
+        val maxLineLength = lines.maxBy { it.length }?.length ?: 0
+
+        val numberVisibleLines = if (allowOverflowY) Math.max(numberLines, minLines) else minLines
 
         val width = maxLineLength * fontScale * (font.characterWidthLut[0] + 1) + textPadding.totalHorizontal
-        val height = Math.max(numberLines, minLines) * fontScale * font.height * lineSpacing + textPadding.totalVertical
+        val height = numberVisibleLines * fontScale * font.height * lineSpacing + textPadding.totalVertical
 
-        mMinDimensions.set(if (allowOverflowX) width else 0f, if (allowOverflowY) height else 0f)
+        mMinDimensions.set(if (allowOverflowX) width else 0f, height)
     }
 
     override fun computeFinalMeasurements() {
         // No children, no need to do anything
+    }
+
+    fun setLines(string: String) {
+        lines.clear()
+        lines.addAll(string.split('\n'))
     }
 }

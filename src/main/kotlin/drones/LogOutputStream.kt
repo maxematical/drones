@@ -12,11 +12,19 @@ class LogOutputStream(private val logger: Logger, private val logLevel: Level,
     private var bufferModified = false
 
     override fun write(b: Int) {
+        // Ignore carriage returns
         if (b.toChar() == '\r')
             return
 
-        bufferModified = true
+        // Replace tab characters with two spaces
+        if (b.toChar() == '\t') {
+            write(' '.toInt())
+            write(' '.toInt())
+            return
+        }
 
+        // Process the character
+        bufferModified = true
         if (b.toChar() == '\n') {
             flush()
         } else {

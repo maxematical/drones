@@ -5,7 +5,6 @@ import drones.render.*
 import drones.scripting.*
 import drones.ui.*
 import drones.ui.LayoutVector.Units.PERCENT
-import drones.ui.LayoutVector.Units.PIXELS
 import org.dyn4j.dynamics.World
 import org.joml.Math
 import org.joml.Vector2f
@@ -19,6 +18,7 @@ import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.MemoryUtil.NULL
 import org.slf4j.LoggerFactory
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.math.floor
 
 class Main
@@ -588,7 +588,8 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
 
     val scriptInfoText: UiTextElement
     val scriptFunctionText: UiTextElement
-    val scriptTextArea: UiTextArea
+    val scriptCodeTextArea: UiTextArea
+    val scriptOutputTextArea: UiTextArea
 
     private var transition: Float = 0.0f
     private val rootPosition = Vector2f()
@@ -646,10 +647,19 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
         }
         vertical.addChild(scriptFunctionText)
 
-        scriptTextArea = UiTextArea(font, LayoutVector(100f, PERCENT, 0f, PERCENT), 6)
-        scriptTextArea.string = "Hello World!!!\nWe can have\nMultiple lines!!\n  isnt that neat abcdefghijklmnop"
-        scriptTextArea.renderer = UiTextAreaRenderer(scriptTextArea, ssbo, boxShaderProgram, textShaderProgram)
-        vertical.addChild(scriptTextArea)
+        scriptCodeTextArea = UiTextArea(font, LayoutVector(100f, PERCENT, 0f, PERCENT), 6)
+        scriptCodeTextArea.renderer = UiTextAreaRenderer(scriptCodeTextArea, ssbo, boxShaderProgram, textShaderProgram)
+        vertical.addChild(scriptCodeTextArea)
+
+        vertical.addChild(UiTextElement(font, "Script Output").apply {
+            renderer = UiTextRenderer(this, textShaderProgram, ssbo)
+            transparentBg = true
+        })
+        vertical.addChild(UiTextArea(font, LayoutVector(100f, PERCENT, 0f, PERCENT), 9).apply {
+            scriptOutputTextArea = this
+            renderer = UiTextAreaRenderer(this, ssbo, boxShaderProgram, textShaderProgram)
+            allowOverflowY = false
+        })
 
         box.rootComputeMeasurements(screenDimensions, Vector2f(screenDimensions.x(), screenDimensions.y() * 0.5f),
             Vector2f(1f, 0.5f))
@@ -669,29 +679,34 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
             scriptFunctionText.string = if (filename != null) "Not running" else ""
         }
 
+        // Update script code text
         val lines = drone.scriptManager?.luaSourceLines ?: emptyList()
         val startLine = l?.lineNumber ?: 3
 
-        val concat = StringBuilder()
+        scriptCodeTextArea.lines.clear()
         for (lineIndex in (startLine - 3)..(startLine + 2)) {
             if (lineIndex in lines.indices) {
                 var formattedLineNumber: String = (lineIndex + 1).toString()
                 if (formattedLineNumber.length == 1)
                     formattedLineNumber = ' ' + formattedLineNumber
 
-                concat.append(formattedLineNumber).append(' ').append(lines[lineIndex]).append('\n')
+                scriptCodeTextArea.lines.add("$formattedLineNumber ${lines[lineIndex]}")
             }
         }
 
-        scriptTextArea.string = concat.toString()
+        // Update script code colors
         if (l?.lineNumber != null) {
-            scriptTextArea.textFgColor = intArrayOf(15, 15, 14, 15, 15, 15)
-            scriptTextArea.textBgColor = intArrayOf(0, 0, 3, 0, 0, 0)
+            scriptCodeTextArea.textFgColor = intArrayOf(15, 15, 14, 15, 15, 15)
+            scriptCodeTextArea.textBgColor = intArrayOf(0, 0, 3, 0, 0, 0)
         } else {
-            scriptTextArea.textFgColor = intArrayOf(15)
-            scriptTextArea.textBgColor = intArrayOf(0)
+            scriptCodeTextArea.textFgColor = intArrayOf(15)
+            scriptCodeTextArea.textBgColor = intArrayOf(0)
         }
-        scriptTextArea.transparentBg = false
+        scriptCodeTextArea.transparentBg = false
+
+        // Update script output text
+        scriptOutputTextArea.lines.clear()
+        drone.scriptManager?.scriptOutput?.let(scriptOutputTextArea.lines::addAll)
     }
 
     fun render(isShown: Boolean, deltaTime: Float) {
