@@ -476,16 +476,19 @@ fun main(args: Array<String>) {
         }
 
         // Render side box
+        var recompSideBoxMeasurements = false
         var shouldRenderSideBox = false
         if (selectedDrones.isNotEmpty()) {
-            droneInfoUi.updateUi(selectedDrones[0])
+            recompSideBoxMeasurements = droneInfoUi.updateUi(selectedDrones[0])
             sideBoxUi.setContents(droneInfoUi.contents)
             shouldRenderSideBox = true
         } else if (selectedBase != null) {
-            baseInfoUi.updateUi(selectedBase)
+            recompSideBoxMeasurements = baseInfoUi.updateUi(selectedBase)
             sideBoxUi.setContents(baseInfoUi.contents)
             shouldRenderSideBox = true
         }
+        if (recompSideBoxMeasurements)
+            sideBoxUi.recomputeMeasurements()
         sideBoxUi.render(shouldRenderSideBox, deltaTime, uiGraphicsManager)
 
         debugDot?.debugPosition = tooltipBox.computedPosition
@@ -570,7 +573,7 @@ private class SideBoxUi(private val screenDimensions: Vector2fc) {
         root.render(screenDimensions, uiGraphicsManager)
     }
 
-    private fun recomputeMeasurements() {
+    fun recomputeMeasurements() {
         root.rootComputeMeasurements(screenDimensions, Vector2f(screenDimensions.x(), screenDimensions.y() * 0.5f),
             Vector2f(1f, 0.5f))
     }
@@ -616,9 +619,9 @@ private class DroneInfoUi(font: GameFont) {
         }
     }
 
-    fun updateUi(drone: Drone) {
+    fun updateUi(drone: Drone): Boolean {
         // Update inventory
-        inventoryList.updateUi(drone.inventory)
+        val shouldRecomputeMeasurements = inventoryList.updateUi(drone.inventory)
 
         // Update script current status text
         val l = drone.scriptManager?.currentLine
@@ -660,6 +663,8 @@ private class DroneInfoUi(font: GameFont) {
         // Update script output text
         scriptOutputTextArea.lines.clear()
         drone.scriptManager?.scriptOutput?.let(scriptOutputTextArea.lines::addAll)
+
+        return shouldRecomputeMeasurements
     }
 }
 
@@ -677,8 +682,8 @@ private class BaseInfoUi(private val screenDimensions: Vector2fc, private val fo
         }
     }
 
-    fun updateUi(base: Base) {
-        inventoryList.updateUi(base.inventory)
+    fun updateUi(base: Base): Boolean {
+        return inventoryList.updateUi(base.inventory)
     }
 }
 
@@ -695,7 +700,9 @@ class InventoryListUi(private val font: GameFont) {
         }
     }
 
-    fun updateUi(inventory: Inventory) {
+    fun updateUi(inventory: Inventory): Boolean {
+        var shouldRecomputeMeasurements = false
+
         // Update base description
         val formatStr = "%.1f"
         val inventoryCurrent = String.format(formatStr, inventory.currentVolume)
@@ -709,6 +716,7 @@ class InventoryListUi(private val font: GameFont) {
             for (mat in inventory.storedMaterials) {
                 inventoryList.addChild(UiTextElement(font, "", LayoutVector.FULL_WIDTH))
             }
+            shouldRecomputeMeasurements = true
         }
 
         // Update UI contents with actual inventory contents
@@ -722,5 +730,7 @@ class InventoryListUi(private val font: GameFont) {
 
             text.string = "${mat.name}: ${materialVolume}L, ${materialMass}kg (${materialDensity}kg/L)"
         }
+
+        return shouldRecomputeMeasurements
     }
 }
