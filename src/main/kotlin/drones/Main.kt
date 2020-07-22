@@ -247,8 +247,9 @@ fun main(args: Array<String>) {
         ModuleTractorBeam(drone, gameState).install(globals)
         globals.set("move", globals.loadfile("libmove.lua").call())
         globals.loadfile("libscanner.lua").call()
+        ModuleInventory(drone).install(globals)
     } }
-    val scriptMgr1 = ScriptManager("drone_ore_search.lua", Int.MAX_VALUE, installScripts(drone1))
+    val scriptMgr1 = ScriptManager("drone_advanced_miner.lua", Int.MAX_VALUE, installScripts(drone1))
     scriptMgr1.onComplete = { drone1.desiredVelocity.set(0f, 0f) }
     drone1.scriptManager = scriptMgr1
     val scriptMgr2 = ScriptManager("drone_manual_miner.lua", Int.MAX_VALUE, installScripts(drone2))

@@ -266,6 +266,7 @@ object ModuleVector : DroneModule {
         module.set("sub", Fsub)
         module.set("mul", Fmul)
         module.set("length", Flength)
+        module.set("xy", Fxy)
         module.set("tostring", Ftostring)
         return module
     }
@@ -355,6 +356,13 @@ object ModuleVector : DroneModule {
             val x = vector.get("x").todouble()
             val y = vector.get("y").todouble()
             return LuaValue.valueOf(Math.sqrt(x * x + y * y))
+        }
+    }
+
+    object Fxy : VarArgFunction() {
+        override fun invoke(args: Varargs): Varargs {
+            val vector = args.checktable(1)
+            return LuaValue.varargsOf(vector.get("x"), vector.get("y"))
         }
     }
 
@@ -625,7 +633,6 @@ class ModuleScanner(private val drone: Drone) : DroneModule {
             if (globals.get(TILE_DETECTED_CALLBACK) != LuaValue.NIL) {
                 val scan: Vector2fc? = doScan(state, drone.position, 3, drone.scriptOrigin)
                 if (scan != null) {
-                    println("Kotlin Scanner: Found stuff, sending to lua")
                     return globals.load("$TILE_DETECTED_CALLBACK(vector.create(${scan.x()}, ${scan.y()}))")
                 }
             }
@@ -780,5 +787,32 @@ class ModuleTractorBeam(private val drone: Drone, private val gameState: GameSta
 
             return LuaValue.FALSE
         }
+    }
+}
+
+class ModuleInventory(private val drone: Drone) : DroneModule {
+    private val capacity = Fcapacity(drone)
+    private val currentVolume = Fcurrent_volume(drone)
+
+    override fun buildModule(): LuaValue {
+        val table = LuaValue.tableOf()
+        table.set("capacity", capacity)
+        table.set("current_volume", currentVolume)
+        return table
+    }
+
+    override fun install(globals: Globals) {
+        globals.set("inventory", buildModule())
+        globals.loadfile("libinventory.lua").call()
+    }
+
+    private class Fcapacity(private val drone: Drone) : ZeroArgFunction() {
+        override fun call(): LuaValue =
+            LuaValue.valueOf(drone.inventory.capacity)
+    }
+
+    private class Fcurrent_volume(private val drone: Drone) : ZeroArgFunction() {
+        override fun call(): LuaValue =
+            LuaValue.valueOf(drone.inventory.currentVolume)
     }
 }

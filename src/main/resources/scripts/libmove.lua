@@ -22,6 +22,10 @@ function move.to(target, target_distance)
     move.wait_until_arrived()
 end
 
+function move.near(target)
+    move.to(target, 2.5)
+end
+
 function move.units(units_x, units_y)
     checktype(units_x, "number", [[move.units: First argument should be a number, the number of horizontal units to
         move, e.g. move.units(-1, 2)]])
