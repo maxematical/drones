@@ -3,12 +3,13 @@ package drones.ui
 import org.joml.Matrix4f
 import org.joml.Vector2fc
 
-abstract class UiElement : UiLayout() {
-    abstract val renderer: UiRenderer?
+abstract class UiElement : UiLayout(), UiBaseParams {
+    abstract val provideRenderer: (UiGraphicsManager) -> UiElementRenderer
+    private var renderer: UiElementRenderer? = null
 
     private val quadMatrix: Matrix4f = Matrix4f()
     private val invQuadMatrix: Matrix4f = Matrix4f()
-    val quadMatrixArr: FloatArray = FloatArray(16)
+    override val quadMatrixArr: FloatArray = FloatArray(16)
     val invQuadMatrixArr: FloatArray = FloatArray(16)
 
     fun recomputeMatrices(screenDimensions: Vector2fc) {
@@ -24,8 +25,12 @@ abstract class UiElement : UiLayout() {
         invQuadMatrix.get(invQuadMatrixArr)
     }
 
-    override fun render(screenDimensions: Vector2fc) {
-        this.renderer?.render(screenDimensions)
-        super.render(screenDimensions)
+    override fun render(screenDimensions: Vector2fc, graphicsManager: UiGraphicsManager) {
+        val renderer: UiElementRenderer = this.renderer ?: this.provideRenderer(graphicsManager)
+        this.renderer = renderer
+
+        this.recomputeMatrices(screenDimensions)
+        renderer.render(this, screenDimensions)
+        super.render(screenDimensions, graphicsManager)
     }
 }

@@ -3,7 +3,9 @@ package drones.ui
 import org.joml.Vector2f
 import org.joml.Vector2fc
 
-class UiBoxElement(override val autoDimensions: LayoutVectorc = LayoutVector.ZERO) : UiElement() {
+class UiBoxElement(override val autoDimensions: LayoutVectorc = LayoutVector.ZERO) : UiElement(), UiBoxParams {
+    override val provideRenderer = UiGraphicsManager::boxRenderer
+
     private val mMinDimensions = Vector2f()
     override val minDimensions: Vector2fc = mMinDimensions
 
@@ -11,13 +13,11 @@ class UiBoxElement(override val autoDimensions: LayoutVectorc = LayoutVector.ZER
     private val childList = mutableListOf<UiLayout>()
     override val children: List<UiLayout> = childList
 
-    override var renderer: UiBoxRenderer? = null
-
     var centerChild = true
-    var borderWidth: Int = 0
-    var borderColor: Int = 0xFFFFFF
-    var backgroundColor: Int = 0x000067
-    val padding: Padding = Padding(0f)
+    override var borderWidth: Int = 0
+    override var borderColor: Int = 0xFFFFFF
+    override var backgroundColor: Int = 0x000067
+    override val padding: Padding = Padding(0f)
 
     fun setChild(newChild: UiLayout?) {
         child = newChild

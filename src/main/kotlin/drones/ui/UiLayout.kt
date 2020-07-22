@@ -106,9 +106,9 @@ abstract class UiLayout {
         }
     }
 
-    open fun render(screenDimensions: Vector2fc) {
+    open fun render(screenDimensions: Vector2fc, graphicsManager: UiGraphicsManager) {
         for (child in children) {
-            child.render(screenDimensions)
+            child.render(screenDimensions, graphicsManager)
         }
     }
 }
