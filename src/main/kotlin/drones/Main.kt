@@ -5,7 +5,6 @@ import drones.render.*
 import drones.scripting.*
 import drones.ui.*
 import org.dyn4j.dynamics.World
-import org.joml.Math
 import org.joml.Vector2f
 import org.joml.Vector2fc
 import org.joml.Vector4f
@@ -206,22 +205,6 @@ fun main(args: Array<String>) {
     var fpsCountStart = System.currentTimeMillis()
     var fpsFramesCount = 0
 
-    val sideBox = UiBoxElement(LayoutVector(240f, 240f))
-    sideBox.setChild(UiVerticalLayout().apply {
-        addChild(UiTextElement(font, "Hello").apply {
-            fontScale = 1.5f
-        })
-        addChild(UiTextElement(font, "XX/XX HP"))
-        addChild(UiTextElement(font, "XX/XX Stored Power"))
-    })
-    sideBox.centerChild = false
-    sideBox.borderWidth = 3
-    sideBox.padding.set(6f)
-    sideBox.rootComputeMeasurements(screenDimensions,
-        Vector2f(screenDimensions.x() - 8f, screenDimensions.y() * 0.5f), Vector2f(1f, 0.5f))
-    var showBaseInfo = false
-    var baseInfoTransition = 0f
-
     val tooltipBox = UiBoxElement()
     tooltipBox.padding.set(3f)
     tooltipBox.centerChild = false
@@ -237,7 +220,9 @@ fun main(args: Array<String>) {
     pausedText.fontScale = 2.0f
     pausedText.rootComputeMeasurements(screenDimensions, Vector2f(screenDimensions.x() * 0.5f, 10f), Vector2f(0.5f, 0f))
 
-    val droneInfoUi = DroneInfoUi(screenDimensions, font, ssbo, uiBoxShaderProgram, uiTextShaderProgram)
+    val sideBoxUi = SideBoxUi(screenDimensions)
+    val droneInfoUi = DroneInfoUi(font)
+    val baseInfoUi = BaseInfoUi(screenDimensions, font)
 
     var debugDot: DebugDotRenderer? = null
     //debugDot = DebugDotRenderer(debugDotShaderProgram, fpsCounter.computedPosition)
@@ -247,6 +232,7 @@ fun main(args: Array<String>) {
     val mouseXArr = DoubleArray(1)
     val mouseYArr = DoubleArray(1)
     val selectedDrones = mutableListOf<Drone>()
+    var selectedBase: Base? = null
     var lastTime = System.currentTimeMillis()
     var gameTime = 0f
 
@@ -398,53 +384,41 @@ fun main(args: Array<String>) {
             }
         }
 
-        // Handle mouse click
-        if (mouseLeftClicked || mouseRightClicked) {
-            if (mouseLeftClicked) {
-                // Check if we're clicking on any drones or the base
-                var clickedDrone = false
-                var clickedBase = false
-
-                for (obj in gameObjects) {
-                    val hover = obj.hoverable.isHover(transformedMousePos)
-
-                    if (obj is Drone && hover) {
-                        clickedDrone = true
-
-                        for (drone in selectedDrones)
-                            drone.selected = false
-                        selectedDrones.clear()
-
-                        selectedDrones.add(obj)
-                        obj.selected = true
-                    }
-
-                    if (obj is Base && hover) {
-                        clickedBase = true
-                    }
-                }
-
-                // Deselect all drones if didn't click on anything
-                if (!clickedDrone) {
-                    for (drone in selectedDrones) {
-                        drone.selected = false
-                    }
-                    selectedDrones.clear()
-                }
-
-                // Only show base info if we clicked on it
-                showBaseInfo = clickedBase
-            }
-            if (mouseRightClicked) {
-                for (selectedDrone in selectedDrones) {
-                    selectedDrone.destination.set(transformedMousePos.x, transformedMousePos.y)
-                    selectedDrone.destinationTargetDistance = 0.5f
-                    selectedDrone.hasDestination = true
-                }
-            }
-
+        // Handle left-click -- possibly select an object
+        if (mouseLeftClicked) {
             mouseLeftClicked = false
+
+            // Clear selected drones / selected base
+            for (drone in selectedDrones) drone.selected = false
+            selectedDrones.clear()
+            selectedBase = null
+
+            // Check if we're clicking on any drones or the base
+            for (obj in gameObjects) {
+                val hover = obj.hoverable.isHover(transformedMousePos)
+
+                if (obj is Drone && hover) {
+                    selectedDrones.add(obj)
+                    obj.selected = true
+                    break
+                }
+
+                if (obj is Base && hover) {
+                    selectedBase = obj
+                    break
+                }
+            }
+        }
+
+        // Handle right-click -- order selected drone(s) to mouse position
+        if (mouseRightClicked) {
             mouseRightClicked = false
+
+            for (selectedDrone in selectedDrones) {
+                selectedDrone.destination.set(transformedMousePos.x, transformedMousePos.y)
+                selectedDrone.destinationTargetDistance = 0.5f
+                selectedDrone.hasDestination = true
+            }
         }
 
         // Update framerate counter
@@ -501,29 +475,18 @@ fun main(args: Array<String>) {
             pausedText.render(screenDimensions, uiGraphicsManager)
         }
 
-        // Render base info box
-        val desiredBaseInfoTransition: Float = if (showBaseInfo) 1f else 0f
-        val prevTransition = baseInfoTransition
-        baseInfoTransition = Math.clamp(0f, 1f,
-            baseInfoTransition + java.lang.Math.signum(desiredBaseInfoTransition - 0.5f) * 6f * deltaTime)
-
-        if (baseInfoTransition > 0) {
-            if (baseInfoTransition != prevTransition) {
-                val finalX = screenDimensions.x() - sideBox.computedDimensions.x() - 8f
-                val sideBoxX = MathUtils.lerp(screenDimensions.x(), finalX, MathUtils.smoothstep(baseInfoTransition))
-
-                sideBox.rootUpdatePosition(screenDimensions,
-                    Vector2f(sideBoxX, screenDimensions.y() * 0.5f),
-                    Vector2f(0f, 0.5f))
-            }
-
-            sideBox.render(screenDimensions, uiGraphicsManager)
-        }
-
-        // Render drone info
-        if (selectedDrones.isNotEmpty())
+        // Render side box
+        var shouldRenderSideBox = false
+        if (selectedDrones.isNotEmpty()) {
             droneInfoUi.updateUi(selectedDrones[0])
-        droneInfoUi.render(selectedDrones.isNotEmpty(), deltaTime, uiGraphicsManager)
+            sideBoxUi.setContents(droneInfoUi.contents)
+            shouldRenderSideBox = true
+        } else if (selectedBase != null) {
+            baseInfoUi.updateUi(selectedBase)
+            sideBoxUi.setContents(baseInfoUi.contents)
+            shouldRenderSideBox = true
+        }
+        sideBoxUi.render(shouldRenderSideBox, deltaTime, uiGraphicsManager)
 
         debugDot?.debugPosition = tooltipBox.computedPosition
         debugDot?.render(screenDimensions, camera.matrixArr, gameTime)
@@ -568,70 +531,87 @@ fun mouseCallback(window: Long, button: Int, action: Int, mods: Int) {
     }
 }
 
-private class DroneInfoUi(private val screenDimensions: Vector2fc,
-                          font: GameFont,
-                          ssbo: Int,
-                          boxShaderProgram: Int,
-                          textShaderProgram: Int) {
-    val root: UiBoxElement
-    val inventoryContentsBox: UiBoxElement
-    val inventoryContentsText1: UiTextElement
-
-    val scriptInfoText: UiTextElement
-    val scriptFunctionText: UiTextElement
-    val scriptCodeTextArea: UiTextArea
-    val scriptOutputTextArea: UiTextArea
+private class SideBoxUi(private val screenDimensions: Vector2fc) {
+    private val root: UiBoxElement
 
     private var transition: Float = 0.0f
     private val rootPosition = Vector2f()
     private val rootAnchor = Vector2f(0f, 0.5f)
 
     init {
-        UiBoxElement(LayoutVector(320f, screenDimensions.y() - 100f)).apply {
-            root = this
+        root = UiBoxElement(LayoutVector(320f, screenDimensions.y() - 100f)).apply {
             backgroundColor = 1
             borderColor = 0x000000
             borderWidth = 5
             padding.set(5f)
             centerChild = false
-
-            setChild(UiVerticalLayout(LayoutVector.FILL_PARENT).apply {
-                addChild(UiTextElement(font, "Drone XYZ").apply {
-                    fontScale = 2.0f
-                })
-                addChild(UiTextElement(font, "Inventory").apply {
-                    transparentBg = false
-                })
-                addChild(UiBoxElement(LayoutVector.FULL_WIDTH).apply {
-                    inventoryContentsBox = this
-                    borderWidth = 1
-                    backgroundColor = 0x000000
-                    centerChild = false
-
-                    setChild(UiTextElement(font, autoDimensions = LayoutVector.FULL_WIDTH).apply {
-                        inventoryContentsText1 = this
-                    })
-                })
-                addChild(UiTextElement(font, "Current Script:"))
-                addChild(UiTextElement(font, "", LayoutVector.FULL_WIDTH).apply {
-                    scriptInfoText = this
-                })
-                addChild(UiTextElement(font, "", LayoutVector.FULL_WIDTH).apply {
-                    scriptFunctionText = this
-                })
-                addChild(UiTextArea(font, LayoutVector.FULL_WIDTH, 6).apply {
-                    scriptCodeTextArea = this
-                })
-                addChild(UiTextElement(font, "Script Output"))
-                addChild(UiTextArea(font, LayoutVector.FULL_WIDTH, 9).apply {
-                    scriptOutputTextArea = this
-                    allowOverflowY = false
-                })
-            })
         }
 
+        recomputeMeasurements()
+    }
+
+    fun setContents(newContents: UiLayout) {
+        if (newContents != root.child) {
+            root.setChild(newContents)
+            recomputeMeasurements()
+        }
+    }
+
+    fun render(isShown: Boolean, deltaTime: Float, uiGraphicsManager: UiGraphicsManager) {
+        val transitionTarget = if (isShown) 1f else 0f
+        transition = MathUtils.clamp(0f, 1f,
+            transition + MathUtils.sign(transitionTarget - 0.5f) * TRANSITION_SPEED * deltaTime)
+
+        val boxPosX = MathUtils.lerp(screenDimensions.x(), screenDimensions.x() - root.computedDimensions.x() - 20,
+            MathUtils.smoothstep(transition))
+        rootPosition.set(boxPosX, screenDimensions.y() * 0.5f)
+        root.rootUpdatePosition(screenDimensions, rootPosition, rootAnchor)
+
+        root.render(screenDimensions, uiGraphicsManager)
+    }
+
+    private fun recomputeMeasurements() {
         root.rootComputeMeasurements(screenDimensions, Vector2f(screenDimensions.x(), screenDimensions.y() * 0.5f),
             Vector2f(1f, 0.5f))
+    }
+
+    private companion object {
+        const val TRANSITION_SPEED: Float = 6f
+    }
+}
+
+private class DroneInfoUi(font: GameFont) {
+    val contents: UiLayout
+
+    val inventoryContentsText1: UiTextElement
+    val scriptInfoText: UiTextElement
+    val scriptFunctionText: UiTextElement
+    val scriptCodeTextArea: UiTextArea
+    val scriptOutputTextArea: UiTextArea
+
+    init {
+        contents = UiVerticalLayout(LayoutVector.FILL_PARENT).apply {
+            addChild(UiTextElement(font, "Drone XYZ").apply { fontScale = 2.0f })
+            addChild(UiTextElement(font, "Inventory").apply { transparentBg = false })
+            addChild(UiBoxElement(LayoutVector.FULL_WIDTH).apply {
+                borderWidth = 1
+                backgroundColor = 0x000000
+                centerChild = false
+                setChild(UiTextElement(font, autoDimensions = LayoutVector.FULL_WIDTH).apply {
+                    inventoryContentsText1 = this
+                })
+            })
+
+            addChild(UiTextElement(font, "Current Script:"))
+            scriptInfoText = addChild(UiTextElement(font, "", LayoutVector.FULL_WIDTH))
+            scriptFunctionText = addChild(UiTextElement(font, "", LayoutVector.FULL_WIDTH))
+            scriptCodeTextArea = addChild(UiTextArea(font, LayoutVector.FULL_WIDTH, 6))
+
+            addChild(UiTextElement(font, "Script Output"))
+            scriptOutputTextArea = addChild(UiTextArea(font, LayoutVector.FULL_WIDTH, 9).apply {
+                allowOverflowY = false
+            })
+        }
     }
 
     fun updateUi(drone: Drone) {
@@ -677,21 +657,22 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
         scriptOutputTextArea.lines.clear()
         drone.scriptManager?.scriptOutput?.let(scriptOutputTextArea.lines::addAll)
     }
+}
 
-    fun render(isShown: Boolean, deltaTime: Float, uiGraphicsManager: UiGraphicsManager) {
-        val transitionTarget = if (isShown) 1f else 0f
-        transition = MathUtils.clamp(0f, 1f,
-            transition + MathUtils.sign(transitionTarget - 0.5f) * TRANSITION_SPEED * deltaTime)
+private class BaseInfoUi(private val screenDimensions: Vector2fc, font: GameFont) {
+    val contents: UiLayout
+    private val inventoryText: UiTextElement
 
-        val boxPosX = MathUtils.lerp(screenDimensions.x(), screenDimensions.x() - root.computedDimensions.x() - 20,
-            MathUtils.smoothstep(transition))
-        rootPosition.set(boxPosX, screenDimensions.y() * 0.5f)
-        root.rootUpdatePosition(screenDimensions, rootPosition, rootAnchor)
-
-        root.render(screenDimensions, uiGraphicsManager)
+    init {
+        UiVerticalLayout(LayoutVector.FULL_WIDTH).apply {
+            contents = this
+            addChild(UiTextElement(font, "Base").apply { this.fontScale = 2.0f })
+            addChild(UiTextElement(font, "XX/XX HP"))
+            inventoryText = addChild(UiTextElement(font, "", LayoutVector.FULL_WIDTH))
+        }
     }
 
-    private companion object {
-        const val TRANSITION_SPEED: Float = 6f
+    fun updateUi(base: Base) {
+        inventoryText.string = "${base.inventory.currentVolume}/${base.inventory.capacity}L"
     }
 }

@@ -9,7 +9,8 @@ class UiBoxElement(override val autoDimensions: LayoutVectorc = LayoutVector.ZER
     private val mMinDimensions = Vector2f()
     override val minDimensions: Vector2fc = mMinDimensions
 
-    private var child: UiLayout? = null
+    var child: UiLayout? = null
+        private set
     private val childList = mutableListOf<UiLayout>()
     override val children: List<UiLayout> = childList
 
@@ -19,13 +20,15 @@ class UiBoxElement(override val autoDimensions: LayoutVectorc = LayoutVector.ZER
     override var backgroundColor: Int = 0x000067
     override val padding: Padding = Padding(0f)
 
-    fun setChild(newChild: UiLayout?) {
+    fun <T : UiLayout> setChild(newChild: T?): T? {
         child = newChild
 
         childList.clear()
         if (newChild != null) {
             childList.add(newChild)
         }
+
+        return newChild
     }
 
     override fun computeAutoMeasurements() {

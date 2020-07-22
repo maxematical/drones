@@ -10,8 +10,9 @@ class UiVerticalLayout(override val autoDimensions: LayoutVectorc = LayoutVector
     private val mMinDimensions = Vector2f()
     override val minDimensions: Vector2fc = mMinDimensions
 
-    fun addChild(element: UiLayout) {
+    fun <T : UiLayout> addChild(element: T): T {
         mutableChildren.add(element)
+        return element
     }
 
     override fun computeAutoMeasurements() {
