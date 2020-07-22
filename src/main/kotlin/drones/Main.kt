@@ -583,23 +583,25 @@ private class SideBoxUi(private val screenDimensions: Vector2fc) {
 private class DroneInfoUi(font: GameFont) {
     val contents: UiLayout
 
-    val inventoryContentsText1: UiTextElement
-    val scriptInfoText: UiTextElement
-    val scriptFunctionText: UiTextElement
-    val scriptCodeTextArea: UiTextArea
-    val scriptOutputTextArea: UiTextArea
+    private val inventoryContentsBox: UiBoxElement
+    private val scriptInfoText: UiTextElement
+    private val scriptFunctionText: UiTextElement
+    private val scriptCodeTextArea: UiTextArea
+    private val scriptOutputTextArea: UiTextArea
+
+    private val inventoryList: InventoryListUi
 
     init {
+        inventoryList = InventoryListUi(font)
+
         contents = UiVerticalLayout(LayoutVector.FILL_PARENT).apply {
             addChild(UiTextElement(font, "Drone XYZ").apply { fontScale = 2.0f })
             addChild(UiTextElement(font, "Inventory").apply { transparentBg = false })
-            addChild(UiBoxElement(LayoutVector.FULL_WIDTH).apply {
+            inventoryContentsBox = addChild(UiBoxElement(LayoutVector.FULL_WIDTH).apply {
                 borderWidth = 1
                 backgroundColor = 0x000000
                 centerChild = false
-                setChild(UiTextElement(font, autoDimensions = LayoutVector.FULL_WIDTH).apply {
-                    inventoryContentsText1 = this
-                })
+                setChild(inventoryList.contents)
             })
 
             addChild(UiTextElement(font, "Current Script:"))
@@ -615,12 +617,11 @@ private class DroneInfoUi(font: GameFont) {
     }
 
     fun updateUi(drone: Drone) {
-        val l = drone.scriptManager?.currentLine
+        // Update inventory
+        inventoryList.updateUi(drone.inventory)
 
-        val formatStr = "%.1f"
-        val inventoryCurrent = String.format(formatStr, drone.inventory.currentVolume)
-        val inventoryMax = String.format(formatStr, drone.inventory.capacity)
-        inventoryContentsText1.string = "${inventoryCurrent}/${inventoryMax}L"
+        // Update script current status text
+        val l = drone.scriptManager?.currentLine
 
         if (l != null) {
             scriptInfoText.string = l.sourceFile
@@ -631,7 +632,7 @@ private class DroneInfoUi(font: GameFont) {
             scriptFunctionText.string = if (filename != null) "Not running" else ""
         }
 
-        // Update script code text
+        // Update source code textarea
         val lines = drone.scriptManager?.luaSourceLines ?: emptyList()
         val startLine = l?.lineNumber ?: 3
 
@@ -662,23 +663,64 @@ private class DroneInfoUi(font: GameFont) {
     }
 }
 
-private class BaseInfoUi(private val screenDimensions: Vector2fc, font: GameFont) {
+private class BaseInfoUi(private val screenDimensions: Vector2fc, private val font: GameFont) {
     val contents: UiLayout
-    private val inventoryText: UiTextElement
+    private val inventoryList: InventoryListUi
 
     init {
-        UiVerticalLayout(LayoutVector.FULL_WIDTH).apply {
-            contents = this
+        inventoryList = InventoryListUi(font)
+
+        contents = UiVerticalLayout(LayoutVector.FULL_WIDTH).apply {
             addChild(UiTextElement(font, "Base").apply { this.fontScale = 2.0f })
             addChild(UiTextElement(font, "XX/XX HP"))
-            inventoryText = addChild(UiTextElement(font, "", LayoutVector.FULL_WIDTH))
+            addChild(inventoryList.contents)
         }
     }
 
     fun updateUi(base: Base) {
+        inventoryList.updateUi(base.inventory)
+    }
+}
+
+class InventoryListUi(private val font: GameFont) {
+    val contents: UiVerticalLayout
+
+    private val inventoryText: UiTextElement
+    private val inventoryList: UiVerticalLayout
+
+    init {
+        contents = UiVerticalLayout(LayoutVector.FULL_WIDTH).apply {
+            inventoryText = addChild(UiTextElement(font, "", LayoutVector.FULL_WIDTH))
+            inventoryList = addChild(UiVerticalLayout(LayoutVector.FULL_WIDTH))
+        }
+    }
+
+    fun updateUi(inventory: Inventory) {
+        // Update base description
         val formatStr = "%.1f"
-        val inventoryCurrent = String.format(formatStr, base.inventory.currentVolume)
-        val inventoryMax = String.format(formatStr, base.inventory.capacity)
-        inventoryText.string = "Inventory: ${inventoryCurrent}/${inventoryMax}L"
+        val inventoryCurrent = String.format(formatStr, inventory.currentVolume)
+        val inventoryMax = String.format(formatStr, inventory.capacity)
+        inventoryText.string = "${inventoryCurrent}/${inventoryMax}L"
+
+        // If there are more or less inventory elements than before, we need to resize the UI list to match the
+        // inventory
+        if (inventoryList.children.size != inventory.storedMaterials.size) {
+            inventoryList.clearChildren()
+            for (mat in inventory.storedMaterials) {
+                inventoryList.addChild(UiTextElement(font, "", LayoutVector.FULL_WIDTH))
+            }
+        }
+
+        // Update UI contents with actual inventory contents
+        for (i in inventory.storedMaterials.indices) {
+            val text = inventoryList.children[i] as UiTextElement
+            val mat = inventory.storedMaterials[i]
+
+            val materialVolume = String.format("%.1f", inventory.getVolume(mat))
+            val materialMass = String.format("%.1f", inventory.getMass(mat))
+            val materialDensity = String.format("%.2f", mat.density)
+
+            text.string = "${mat.name}: ${materialVolume}L, ${materialMass}kg (${materialDensity}kg/L)"
+        }
     }
 }

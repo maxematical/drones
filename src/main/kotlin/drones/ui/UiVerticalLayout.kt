@@ -15,6 +15,10 @@ class UiVerticalLayout(override val autoDimensions: LayoutVectorc = LayoutVector
         return element
     }
 
+    fun clearChildren() {
+        mutableChildren.clear()
+    }
+
     override fun computeAutoMeasurements() {
         var maxWidth = 0f
         var totalHeight = 0f
