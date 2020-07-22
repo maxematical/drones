@@ -78,9 +78,10 @@ class DroneBehavior(private val gameState: GameState, private val drone: Drone) 
             gameState.spawnQueue.add(laser)
             carryingBeam = laser
         }
-        if (carrying == null && carryingBeam != null) {
+        if ((carrying == null || !carrying.carrying.spawned) && carryingBeam != null) {
             gameState.despawnQueue.add(carryingBeam)
             carryingBeam = null
+            drone.carryingObject = null
         }
     }
 

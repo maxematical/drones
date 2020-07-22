@@ -35,6 +35,9 @@ object MathUtils {
     fun smoothstep(a: Float): Float =
         3f * (a * a) - 2f * (a * a * a)
 
+    fun randomBetween(min: Double, max: Double): Double =
+        min + (max - min) * Math.random()
+
     /**
      * Returns whether a number is negative. Unlike the check "a >= 0", this will return true even if a is negative
      * zero.

@@ -617,7 +617,10 @@ private class DroneInfoUi(font: GameFont) {
     fun updateUi(drone: Drone) {
         val l = drone.scriptManager?.currentLine
 
-        inventoryContentsText1.string = "${drone.inventory.currentVolume}/${drone.inventory.capacity}L"
+        val formatStr = "%.1f"
+        val inventoryCurrent = String.format(formatStr, drone.inventory.currentVolume)
+        val inventoryMax = String.format(formatStr, drone.inventory.capacity)
+        inventoryContentsText1.string = "${inventoryCurrent}/${inventoryMax}L"
 
         if (l != null) {
             scriptInfoText.string = l.sourceFile
@@ -673,6 +676,9 @@ private class BaseInfoUi(private val screenDimensions: Vector2fc, font: GameFont
     }
 
     fun updateUi(base: Base) {
-        inventoryText.string = "${base.inventory.currentVolume}/${base.inventory.capacity}L"
+        val formatStr = "%.1f"
+        val inventoryCurrent = String.format(formatStr, base.inventory.currentVolume)
+        val inventoryMax = String.format(formatStr, base.inventory.capacity)
+        inventoryText.string = "Inventory: ${inventoryCurrent}/${inventoryMax}L"
     }
 }

@@ -1,5 +1,7 @@
 package drones.game
 
+import drones.MathUtils
+
 class BaseBehavior(private val base: Base, private val state: GameState) : Behavior {
     private val nearbyObjectsList = mutableListOf<GameObject>()
 
@@ -17,6 +19,16 @@ class BaseBehavior(private val base: Base, private val state: GameState) : Behav
                 val material = nearbyObject.inventory.storedMaterials[0]
                 nearbyObject.inventory.changeMaterial(material, -TRANSFER_LITERS_PER_SECOND * deltaTime)
                 base.inventory.changeMaterial(material, TRANSFER_LITERS_PER_SECOND * deltaTime)
+            }
+        }
+
+        // Consume nearby ore chunks
+        for (nearbyObject in nearbyObjectsList) {
+            if (nearbyObject is OreChunk) {
+                nearbyObject.requestDespawn = true
+
+                val oreToAdd: Double = MathUtils.randomBetween(6.0, 12.0)
+                base.inventory.changeMaterial(Materials.ORE, oreToAdd)
             }
         }
     }
