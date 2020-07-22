@@ -49,7 +49,11 @@ class UiBoxElement(override val autoDimensions: LayoutVectorc = LayoutVector()) 
         val child = this.child
         if (child != null) {
             // Compute child final dimensions
-            doComputeChildDimensions(child)
+            val innerDimensions = Vector2f(this.computedDimensions)
+            innerDimensions.sub(padding.totalHorizontal, padding.totalVertical)
+
+            doComputeChildDimensions(child.autoDimensions, child.minDimensions,
+                innerDimensions, child.computedDimensions)
 
             // Compute child relative position
             if (centerChild) {
