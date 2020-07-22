@@ -12,6 +12,8 @@ class Inventory(val capacity: Double) {
     var currentVolume: Double = 0.0
         private set
 
+    val isEmpty get() = storedMaterials.isEmpty()
+
     fun getMass(material: Material): Double =
         stacks.getOrDefault(material, 0.0)
 

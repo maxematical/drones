@@ -15,6 +15,8 @@ class Base(override val position: Vector2f) : GameObject() {
     val inventory = Inventory(1000.0)
 
     init {
+        createBehavior = CreateBaseBehavior(this)
+
         val body = Body(1)
         body.addFixture(Geometry.createRectangle(size.toDouble(), size.toDouble()))
         body.setMass(MassType.INFINITE)
