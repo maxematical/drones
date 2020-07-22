@@ -14,13 +14,13 @@ class UiBoxElement(override val autoDimensions: LayoutVectorc = LayoutVector.ZER
     private val childList = mutableListOf<UiLayout>()
     override val children: List<UiLayout> = childList
 
-    var centerChild = true
+    var centerChild = false
     override var borderWidth: Int = 0
     override var borderColor: Int = 0xFFFFFF
     override var backgroundColor: Int = 0x000067
     override val padding: Padding = Padding(0f)
 
-    fun <T : UiLayout> setChild(newChild: T?): T? {
+    fun <T : UiLayout?> setChild(newChild: T): T {
         child = newChild
 
         childList.clear()

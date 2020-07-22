@@ -207,7 +207,6 @@ fun main(args: Array<String>) {
 
     val tooltipBox = UiBoxElement()
     tooltipBox.padding.set(3f)
-    tooltipBox.centerChild = false
     tooltipBox.borderWidth = 2
     tooltipBox.backgroundColor = 0x000000
     val tooltipText = UiTextElement(font)
@@ -547,7 +546,6 @@ private class SideBoxUi(private val screenDimensions: Vector2fc) {
             borderColor = 0x000000
             borderWidth = 5
             padding.set(5f)
-            centerChild = false
         }
 
         recomputeMeasurements()
@@ -586,7 +584,6 @@ private class SideBoxUi(private val screenDimensions: Vector2fc) {
 private class DroneInfoUi(font: GameFont) {
     val contents: UiLayout
 
-    private val inventoryContentsBox: UiBoxElement
     private val scriptInfoText: UiTextElement
     private val scriptFunctionText: UiTextElement
     private val scriptCodeTextArea: UiTextArea
@@ -599,13 +596,8 @@ private class DroneInfoUi(font: GameFont) {
 
         contents = UiVerticalLayout(LayoutVector.FILL_PARENT).apply {
             addChild(UiTextElement(font, "Drone XYZ").apply { fontScale = 2.0f })
-            addChild(UiTextElement(font, "Inventory").apply { transparentBg = false })
-            inventoryContentsBox = addChild(UiBoxElement(LayoutVector.FULL_WIDTH).apply {
-                borderWidth = 1
-                backgroundColor = 0x000000
-                centerChild = false
-                setChild(inventoryList.contents)
-            })
+
+            addChild(inventoryList.contents)
 
             addChild(UiTextElement(font, "Current Script:"))
             scriptInfoText = addChild(UiTextElement(font, "", LayoutVector.FULL_WIDTH))
@@ -695,8 +687,17 @@ class InventoryListUi(private val font: GameFont) {
 
     init {
         contents = UiVerticalLayout(LayoutVector.FULL_WIDTH).apply {
-            inventoryText = addChild(UiTextElement(font, "", LayoutVector.FULL_WIDTH))
-            inventoryList = addChild(UiVerticalLayout(LayoutVector.FULL_WIDTH))
+            addChild(UiBoxElement(LayoutVector.FULL_WIDTH).apply {
+                borderWidth = 1
+                padding.set(1f, 3f)
+                backgroundColor = 0x000000
+                inventoryText = setChild(UiTextElement(font, "", LayoutVector.FULL_WIDTH))
+            })
+            addChild(UiBoxElement(LayoutVector.FULL_WIDTH).apply {
+                borderWidth = 1
+                padding.set(3f)
+                inventoryList = setChild(UiVerticalLayout(LayoutVector.FULL_WIDTH))
+            })
         }
     }
 
@@ -707,7 +708,7 @@ class InventoryListUi(private val font: GameFont) {
         val formatStr = "%.1f"
         val inventoryCurrent = String.format(formatStr, inventory.currentVolume)
         val inventoryMax = String.format(formatStr, inventory.capacity)
-        inventoryText.string = "${inventoryCurrent}/${inventoryMax}L"
+        inventoryText.string = "Inventory: ${inventoryCurrent}/${inventoryMax}L"
 
         // If there are more or less inventory elements than before, we need to resize the UI list to match the
         // inventory

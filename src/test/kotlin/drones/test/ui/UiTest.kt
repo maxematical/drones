@@ -112,6 +112,7 @@ class UiTest {
 
         val child3 = UiBoxElement(LayoutVector(40f, 40f))
         val centered = UiBoxElement(LayoutVector(2f, 2f))
+        child3.centerChild = true
         child3.setChild(centered)
         root.addChild(child3)
 
