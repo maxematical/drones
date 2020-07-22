@@ -18,7 +18,6 @@ import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.MemoryUtil.NULL
 import org.slf4j.LoggerFactory
 import java.util.*
-import kotlin.collections.ArrayList
 import kotlin.math.floor
 
 class Main
@@ -189,6 +188,7 @@ fun main(args: Array<String>) {
     fpsCounter.textFgColor = 10
     fpsCounter.fontScale = 2.0f
     fpsCounter.textAlign = UiTextElement.TextAlign.RIGHT_ALIGN
+    fpsCounter.transparentBg = false
     fpsCounter.renderer = UiTextRenderer(fpsCounter, uiTextShaderProgram, ssbo)
     fpsCounter.rootComputeMeasurements(screenDimensions, screenDimensions, Vector2f(1f, 1f))
 
@@ -229,6 +229,7 @@ fun main(args: Array<String>) {
     tooltipBox.padding.set(3f)
     tooltipBox.centerChild = false
     tooltipBox.borderWidth = 2
+    tooltipBox.backgroundColor = 0x000000
     tooltipBox.renderer = UiBoxRenderer(tooltipBox, uiBoxShaderProgram)
     val tooltipText = UiTextElement(font).apply {
         renderer = UiTextRenderer(this, uiTextShaderProgram, ssbo)
@@ -580,9 +581,7 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
                           ssbo: Int,
                           boxShaderProgram: Int,
                           textShaderProgram: Int) {
-    val box: UiBoxElement
-    val droneName: UiTextElement
-    val inventoryText: UiTextElement
+    val root: UiBoxElement
     val inventoryContentsBox: UiBoxElement
     val inventoryContentsText1: UiTextElement
 
@@ -596,73 +595,64 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
     private val rootAnchor = Vector2f(0f, 0.5f)
 
     init {
-        box = UiBoxElement(LayoutVector(320f, screenDimensions.y() - 100f))
-        box.renderer = UiBoxRenderer(box, boxShaderProgram)
-        box.backgroundColor = 1
-        box.borderColor = 0x000000
-        box.borderWidth = 5
-        box.padding.set(5f)
-        box.centerChild = false
+        UiBoxElement(LayoutVector(320f, screenDimensions.y() - 100f)).apply {
+            root = this
+            renderer = UiBoxRenderer(this, boxShaderProgram)
+            backgroundColor = 1
+            borderColor = 0x000000
+            borderWidth = 5
+            padding.set(5f)
+            centerChild = false
 
-        val vertical = UiVerticalLayout(LayoutVector(100f, PERCENT, 100f, PERCENT))
-        box.setChild(vertical)
+            setChild(UiVerticalLayout(LayoutVector.FILL_PARENT).apply {
+                addChild(UiTextElement(font, "Drone XYZ").apply {
+                    renderer = UiTextRenderer(this, textShaderProgram, ssbo)
+                    fontScale = 2.0f
+                })
+                addChild(UiTextElement(font, "Inventory").apply {
+                    renderer = UiTextRenderer(this, textShaderProgram, ssbo)
+                    transparentBg = false
+                })
+                addChild(UiBoxElement(LayoutVector.FULL_WIDTH).apply {
+                    inventoryContentsBox = this
+                    renderer = UiBoxRenderer(inventoryContentsBox, boxShaderProgram)
+                    borderWidth = 1
+                    backgroundColor = 0x000000
+                    centerChild = false
 
-        droneName = UiTextElement(font, "Drone XYZ")
-        droneName.renderer = UiTextRenderer(droneName, textShaderProgram, ssbo)
-        //droneName.fontSize = 28
-        droneName.fontScale = 2.0f
-        droneName.transparentBg = true
-        vertical.addChild(droneName)
-
-        inventoryText = UiTextElement(font, "Inventory")
-        inventoryText.renderer = UiTextRenderer(inventoryText, textShaderProgram, ssbo)
-        //inventoryText.fontScale = 14
-        inventoryText.transparentBg = false
-        vertical.addChild(inventoryText)
-
-        inventoryContentsBox = UiBoxElement(LayoutVector(100f, PERCENT, 0f, PERCENT))
-        inventoryContentsBox.renderer = UiBoxRenderer(inventoryContentsBox, boxShaderProgram)
-        inventoryContentsBox.borderWidth = 1
-        inventoryContentsBox.backgroundColor = 0x000000
-        inventoryContentsBox.centerChild = false
-        vertical.addChild(inventoryContentsBox)
-
-        inventoryContentsText1 = UiTextElement(font, autoDimensions = LayoutVector(100f, PERCENT, 0f, PERCENT))
-        inventoryContentsText1.renderer = UiTextRenderer(inventoryContentsText1, textShaderProgram, ssbo)
-        inventoryContentsText1.transparentBg = true
-        inventoryContentsBox.setChild(inventoryContentsText1)
-
-        vertical.addChild(UiTextElement(font, "Current Script:").apply {
-            renderer = UiTextRenderer(this, textShaderProgram, ssbo)
-            transparentBg = true
-        })
-
-        scriptInfoText = UiTextElement(font, autoDimensions = LayoutVector(100f, PERCENT, 0f, PERCENT))
-        scriptInfoText.renderer = UiTextRenderer(scriptInfoText, textShaderProgram, ssbo)
-        scriptInfoText.transparentBg = true
-        vertical.addChild(scriptInfoText)
-
-        scriptFunctionText = UiTextElement(font, autoDimensions = LayoutVector(100f, PERCENT, 0f, PERCENT)).apply {
-            renderer = UiTextRenderer(this, textShaderProgram, ssbo)
-            transparentBg = true
+                    setChild(UiTextElement(font, autoDimensions = LayoutVector.FULL_WIDTH).apply {
+                        inventoryContentsText1 = this
+                        renderer = UiTextRenderer(inventoryContentsText1, textShaderProgram, ssbo)
+                        transparentBg = true
+                    })
+                })
+                addChild(UiTextElement(font, "Current Script:").apply {
+                    renderer = UiTextRenderer(this, textShaderProgram, ssbo)
+                })
+                addChild(UiTextElement(font, autoDimensions = LayoutVector.FULL_WIDTH).apply {
+                    scriptInfoText = this
+                    renderer = UiTextRenderer(scriptInfoText, textShaderProgram, ssbo)
+                })
+                addChild(UiTextElement(font, autoDimensions = LayoutVector.FULL_WIDTH).apply {
+                    scriptFunctionText = this
+                    renderer = UiTextRenderer(this, textShaderProgram, ssbo)
+                })
+                addChild(UiTextArea(font, LayoutVector.FULL_WIDTH, 6).apply {
+                    scriptCodeTextArea = this
+                    renderer = UiTextAreaRenderer(scriptCodeTextArea, ssbo, boxShaderProgram, textShaderProgram)
+                })
+                addChild(UiTextElement(font, "Script Output").apply {
+                    renderer = UiTextRenderer(this, textShaderProgram, ssbo)
+                })
+                addChild(UiTextArea(font, LayoutVector.FULL_WIDTH, 9).apply {
+                    scriptOutputTextArea = this
+                    renderer = UiTextAreaRenderer(this, ssbo, boxShaderProgram, textShaderProgram)
+                    allowOverflowY = false
+                })
+            })
         }
-        vertical.addChild(scriptFunctionText)
 
-        scriptCodeTextArea = UiTextArea(font, LayoutVector(100f, PERCENT, 0f, PERCENT), 6)
-        scriptCodeTextArea.renderer = UiTextAreaRenderer(scriptCodeTextArea, ssbo, boxShaderProgram, textShaderProgram)
-        vertical.addChild(scriptCodeTextArea)
-
-        vertical.addChild(UiTextElement(font, "Script Output").apply {
-            renderer = UiTextRenderer(this, textShaderProgram, ssbo)
-            transparentBg = true
-        })
-        vertical.addChild(UiTextArea(font, LayoutVector(100f, PERCENT, 0f, PERCENT), 9).apply {
-            scriptOutputTextArea = this
-            renderer = UiTextAreaRenderer(this, ssbo, boxShaderProgram, textShaderProgram)
-            allowOverflowY = false
-        })
-
-        box.rootComputeMeasurements(screenDimensions, Vector2f(screenDimensions.x(), screenDimensions.y() * 0.5f),
+        root.rootComputeMeasurements(screenDimensions, Vector2f(screenDimensions.x(), screenDimensions.y() * 0.5f),
             Vector2f(1f, 0.5f))
     }
 
@@ -715,12 +705,12 @@ private class DroneInfoUi(private val screenDimensions: Vector2fc,
         transition = MathUtils.clamp(0f, 1f,
             transition + MathUtils.sign(transitionTarget - 0.5f) * TRANSITION_SPEED * deltaTime)
 
-        val boxPosX = MathUtils.lerp(screenDimensions.x(), screenDimensions.x() - box.computedDimensions.x() - 20,
+        val boxPosX = MathUtils.lerp(screenDimensions.x(), screenDimensions.x() - root.computedDimensions.x() - 20,
             MathUtils.smoothstep(transition))
         rootPosition.set(boxPosX, screenDimensions.y() * 0.5f)
-        box.rootUpdatePosition(screenDimensions, rootPosition, rootAnchor)
+        root.rootUpdatePosition(screenDimensions, rootPosition, rootAnchor)
 
-        box.render(screenDimensions)
+        root.render(screenDimensions)
     }
 
     private companion object {

@@ -3,7 +3,7 @@ package drones.ui
 import org.joml.Vector2f
 import org.joml.Vector2fc
 
-class UiBoxElement(override val autoDimensions: LayoutVectorc = LayoutVector()) : UiElement() {
+class UiBoxElement(override val autoDimensions: LayoutVectorc = LayoutVector.ZERO) : UiElement() {
     private val mMinDimensions = Vector2f()
     override val minDimensions: Vector2fc = mMinDimensions
 

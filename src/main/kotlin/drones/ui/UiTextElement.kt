@@ -5,7 +5,7 @@ import org.joml.Vector2f
 import org.joml.Vector2fc
 
 class UiTextElement(val font: GameFont, var string: String = "",
-                    override val autoDimensions: LayoutVectorc = LayoutVector()) : UiElement() {
+                    override val autoDimensions: LayoutVectorc = LayoutVector.ZERO) : UiElement() {
     private val mMinDimensions = Vector2f()
     override val minDimensions: Vector2fc = mMinDimensions
 
@@ -20,7 +20,7 @@ class UiTextElement(val font: GameFont, var string: String = "",
     var textFgColor: Int = 15
     var textBgColor: Int = 0
     var textAlign: TextAlign = TextAlign.LEFT_ALIGN
-    var transparentBg: Boolean = false
+    var transparentBg: Boolean = true
     var lineSpacing: Float = 1.0f
 
     override fun computeAutoMeasurements() {

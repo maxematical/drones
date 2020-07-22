@@ -1,5 +1,6 @@
 package drones.ui
 
+import drones.ui.LayoutVector.Units.PERCENT
 import drones.ui.LayoutVector.Units.PIXELS
 import org.joml.Vector2f
 import org.joml.Vector2fc
@@ -98,6 +99,12 @@ class LayoutVector(override var x: Float, override var xUnits: Units,
     enum class Units {
         PIXELS,
         PERCENT
+    }
+
+    companion object {
+        val FULL_WIDTH: LayoutVectorc = LayoutVector(100f, PERCENT, 0f, PERCENT)
+        val FILL_PARENT: LayoutVectorc = LayoutVector(100f, PERCENT, 100f, PERCENT)
+        val ZERO: LayoutVectorc = LayoutVector()
     }
 }
 

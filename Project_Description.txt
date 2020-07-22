@@ -136,3 +136,15 @@ More ideas 7/13
 
 - It's always possible to see drones (and probably debug info about their script), but if communication is cut off from
   the base, can't manually control them
+
+More ideas 7/22
+
+- Connection component: allows drones to dock with each other (allows for more elaborate multi-drone plans)
+
+- Randomize the map so that the player can't hardcode locations into their scripts
+
+- Floating/moving targets the drones can intercept??? Detectable via signal
+
+- Mining laser should report the current block we are scanning
+
+- Expose coroutine.yield under different name so it seems more user-friendly

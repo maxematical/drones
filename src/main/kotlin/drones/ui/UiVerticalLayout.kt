@@ -3,7 +3,7 @@ package drones.ui
 import org.joml.Vector2f
 import org.joml.Vector2fc
 
-class UiVerticalLayout(override val autoDimensions: LayoutVectorc = LayoutVector()) : UiLayout() {
+class UiVerticalLayout(override val autoDimensions: LayoutVectorc = LayoutVector.ZERO) : UiLayout() {
     private val mutableChildren = mutableListOf<UiLayout>()
     override val children: List<UiLayout> = mutableChildren
 

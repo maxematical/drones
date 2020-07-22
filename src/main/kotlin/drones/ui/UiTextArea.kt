@@ -4,7 +4,7 @@ import drones.GameFont
 import org.joml.Vector2f
 import org.joml.Vector2fc
 
-class UiTextArea(val font: GameFont, override val autoDimensions: LayoutVectorc = LayoutVector(),
+class UiTextArea(val font: GameFont, override val autoDimensions: LayoutVectorc = LayoutVector.ZERO,
                  private val minLines: Int = 0) : UiElement() {
     override var renderer: UiTextAreaRenderer? = null
 
