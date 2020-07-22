@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test
 class TestInventory {
     @Test
     fun testMaterialBasic() {
-        val mat = Material("Test", 1.0, 0.001)
+        val mat = Material("Test", 1.0)
         val inv = Inventory(100.0)
 
         assertEquals(0.0, inv.getMass(mat))
@@ -24,19 +24,9 @@ class TestInventory {
     }
 
     @Test
-    fun testMaterialEpsilon() {
-        val mat = Material("TestEpsilon", 1.0, 2.0)
-        val inv = Inventory(100.0)
-
-        inv.changeMaterial(mat, 3.0)
-
-        assertEquals(2.0, inv.getMass(mat))
-    }
-
-    @Test
     fun testMaterialDensity() {
         // Create material with 0.1kg/L density
-        val mat = Material("TestDensity", 0.1, 0.001)
+        val mat = Material("TestDensity", 0.1)
         val inv = Inventory(100.0)
 
         // Add 0.5kg of material
@@ -48,7 +38,7 @@ class TestInventory {
 
     @Test
     fun testMaterialMax() {
-        val mat = Material("Test", 2.0, 0.001)
+        val mat = Material("Test", 2.0)
         val inv = Inventory(10.0)
 
         // Add 30kg of material -- equal to 15L volume
@@ -62,7 +52,7 @@ class TestInventory {
 
     @Test
     fun testMaterialRemove() {
-        val mat = Material("Test", 1.0, 0.001)
+        val mat = Material("Test", 1.0)
         val inv = Inventory(20.0)
 
         inv.changeMaterial(mat, 10.0)

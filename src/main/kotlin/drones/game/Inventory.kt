@@ -32,7 +32,7 @@ class Inventory(val capacity: Double) {
         // Calculate how much mass of material we can add without going over (or under) volume restrictions
         val volumeLeft = capacity - currentVolume
         val massLeft = volumeLeft * material.density
-        val addMass = MathUtils.clamp(-currentAmount, massLeft, material.fixAmount(amount))
+        val addMass = MathUtils.clamp(-currentAmount, massLeft, amount)
         val nextAmount = currentAmount + addMass
 
         // Update whether this material is stored in the inventory
@@ -51,13 +51,9 @@ class Inventory(val capacity: Double) {
 
 class Material(
     val name: String,
-    val density: Double,
-    val amountEpsilon: Double
-) {
-    fun fixAmount(amount: Double): Double =
-        floor(amount / amountEpsilon) * amountEpsilon
-}
+    val density: Double
+)
 
 object Materials {
-    val ORE = Material("Ore", 1.0, 0.001)
+    val ORE = Material("Ore", 1.0)
 }
