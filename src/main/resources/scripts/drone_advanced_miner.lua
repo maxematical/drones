@@ -48,7 +48,7 @@ inventory.wait_until_empty()
 
 --go back to coordinates, maybe find some more
 print('going back')
-move.to(found_coords, 1)
+move.near(found_coords)
 print('ready')
 scanner.on()
 found_coords = nil
