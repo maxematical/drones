@@ -24,12 +24,13 @@ class DroneBehavior(private val gameState: GameState, private val drone: Drone) 
         if (drone.hasDestination) {
             navDelta.set(drone.destination).sub(drone.position)
 
-            val thrustX = MathUtils.sign(drone.destination.x - drone.position.x) * min(1f, Math.abs(navDelta.x) / 1.25f)
-            val thrustY = MathUtils.sign(drone.destination.y - drone.position.y) * min(1f, Math.abs(navDelta.y) / 1.25f)
+            val thrustX = MathUtils.sign(navDelta.x) * min(1f, Math.abs(navDelta.x) / 1.25f)
+            val thrustY = MathUtils.sign(navDelta.y) * min(1f, Math.abs(navDelta.y) / 1.25f)
 
             drone.desiredVelocity.set(thrustX, thrustY)
 
             if (navDelta.lengthSquared() <= (drone.destinationTargetDistance * drone.destinationTargetDistance)) {
+                println("Reached destination")
                 drone.hasDestination = false
                 drone.desiredVelocity.set(0f, 0f)
             }
@@ -37,8 +38,8 @@ class DroneBehavior(private val gameState: GameState, private val drone: Drone) 
 
         // Update thrust forces on the physics body
         val accel: Vector2f = Vector2f(drone.desiredVelocity).sub(body.linearVelocity.toJoml())
-        if (accel.lengthSquared() > 0 && accel.lengthSquared() > (50f * 50f * deltaTime * deltaTime))
-            accel.normalize().mul(50f * deltaTime)
+        if (accel.lengthSquared() > 0 && accel.lengthSquared() > (50f * 50f))
+            accel.normalize().mul(50f)
 
         body.applyForce(accel.toDyn4j())
 

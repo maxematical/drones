@@ -11,12 +11,19 @@ import org.joml.Vector2fc
 import org.joml.Vector2i
 import org.joml.Vector2ic
 import org.slf4j.LoggerFactory
+import java.util.*
+import java.util.concurrent.ArrayBlockingQueue
+import kotlin.collections.ArrayList
 import kotlin.math.floor
 
 class Grid(val width: Int, val height: Int, val positionTopLeft: Vector2fc = Vector2f(-width / 2f, height / 2f)) {
     private val logger = LoggerFactory.getLogger(javaClass)
 
     private val tileData: Array<Array<Int>> = Array(height) { Array<Int>(width) { 0 } }
+
+    private val bitmapArray = IntArray(width * height)
+    private val bitmapArrayUpdateQueue: Queue<Int> = ArrayBlockingQueue(16)
+    private var bitmapArrayInitialized = false
 
     val physicsBody: Body
 
@@ -66,6 +73,8 @@ class Grid(val width: Int, val height: Int, val positionTopLeft: Vector2fc = Vec
     fun setData(gridX: Int, gridY: Int, data: Int) {
         updateTileFixture(gridX, gridY, data)
         tileData[gridY][gridX] = data
+        bitmapArrayUpdateQueue.add(gridX)
+        bitmapArrayUpdateQueue.add(gridY)
     }
 
     /**
@@ -100,27 +109,38 @@ class Grid(val width: Int, val height: Int, val positionTopLeft: Vector2fc = Vec
         }
     }
 
+    private fun updateBitmapArray(x: Int, y: Int, font: GameFont) {
+        val tile = getTile(x, y)
+        val meta = getMeta(x, y)
+
+        val appearance = tile.getAppearance(meta)
+        val charCode = font.characterCodeLut[appearance] ?: error("Font doesn't support appearance" +
+                "'$appearance' for tile $tile")
+        val bgColor = tile.getBackgroundColor(meta)
+        val fgColor = tile.getForegroundColor(meta)
+
+        val arrIndex = x + y * width
+        bitmapArray[arrIndex] = (charCode and 255) or
+                ((bgColor and 255) shl 8) or
+                ((fgColor and 255) shl 16)
+    }
+
     fun toBitmapArray(font: GameFont): IntArray {
-        val arr = IntArray(width * height)
-
-        for (y in tileData.indices) {
-            for (x in tileData[y].indices) {
-                val tile = getTile(x, y)
-                val meta = getMeta(x, y)
-
-                val appearance = tile.getAppearance(meta)
-                val charCode = font.characterCodeLut[appearance] ?: error("Font doesn't support appearance" +
-                        "'$appearance' for tile $tile")
-                val bgColor = tile.getBackgroundColor(meta)
-                val fgColor = tile.getForegroundColor(meta)
-
-                val arrIndex = x + y * width
-                arr[arrIndex] = (charCode and 255) or
-                        ((bgColor and 255) shl 8) or
-                        ((fgColor and 255) shl 16)
+        if (!bitmapArrayInitialized) {
+            for (y in tileData.indices) {
+                for (x in tileData[y].indices) {
+                    updateBitmapArray(x, y, font)
+                }
             }
+            bitmapArrayInitialized = true
         }
 
-        return arr
+        while (!bitmapArrayUpdateQueue.isEmpty()) {
+            val x = bitmapArrayUpdateQueue.remove()
+            val y = bitmapArrayUpdateQueue.remove()
+            updateBitmapArray(x, y, font)
+        }
+
+        return bitmapArray
     }
 }

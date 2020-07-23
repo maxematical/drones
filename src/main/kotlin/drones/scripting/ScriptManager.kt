@@ -369,13 +369,17 @@ object ModuleVector : DroneModule {
     object Ftostring : OneArgFunction() {
         override fun call(arg: LuaValue): LuaValue {
             val vector = arg.checktable()
-            val x = vector.get("x")
-            val y = vector.get("y")
-            return LuaValue.valueOf("($x, $y)")
+            val x = vector.get("x").checkdouble()
+            val y = vector.get("y").checkdouble()
+            val roundx = Math.floor(x * 1000) * 0.001
+            val roundy = Math.floor(y * 1000) * 0.001
+            return LuaValue.valueOf("($roundx, $roundy)")
         }
     }
 
     object Feq : TwoArgFunction() {
+        const val EPSILON = 0.001f
+
         override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
             val vector1 = arg1.checktable()
             val vector2 = arg2.checktable()
@@ -385,7 +389,7 @@ object ModuleVector : DroneModule {
             val v2x = vector2.get("x").checkdouble()
             val v2y = vector2.get("y").checkdouble()
 
-            return LuaValue.valueOf(v1x == v2x && v1y == v2y)
+            return LuaValue.valueOf(Math.abs(v1x - v2x) < EPSILON && Math.abs(v1y - v2y) < EPSILON)
         }
     }
 }
@@ -641,10 +645,10 @@ class ModuleScanner(private val drone: Drone) : DroneModule {
             if (globals.get(OBJECT_DETECTED_CALLBACK) != LuaValue.NIL) {
                 for (obj in state.objects) {
                     if (obj != drone && obj != drone.carryingObject?.carrying &&
-                        drone.position.distance(obj.position) <= 3f) {
+                        drone.position.distance(obj.position) <= 3f && obj is OreChunk) {
                         val objX = obj.position.x() - drone.scriptOrigin.x()
                         val objY = obj.position.y() - drone.scriptOrigin.y()
-                        val isCarryable = obj is OreChunk
+                        val isCarryable = true
                         return globals.load("$OBJECT_DETECTED_CALLBACK(vector.create($objX, $objY), $isCarryable)")
                     }
                 }

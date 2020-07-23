@@ -20,10 +20,14 @@ for i=1,4 do
     print('Patrol objective#', i)
     core.set_destination(move_to)
 
+    print(move_to, core.getpos(), core.get_destination())
+
     while core.get_destination() == move_to do
         if found_coords then goto mineit end
         coroutine.yield()
     end
+
+    print('new destination', core.get_destination())
 end
 
 coroutine.yield()

@@ -18,34 +18,36 @@ class UiTextAreaRenderer(graphicsManager: GraphicsManager) : UiRenderer<UiTextAr
     }
 
     override fun render(screenDimensions: Vector2fc, params: UiTextAreaParams) {
+        // Render box
         boxRenderer.render(screenDimensions, params)
 
-        for (i in params.lines.indices) {
-            renderLine(params, screenDimensions, i, params.lines[i])
-        }
-    }
-
-    private fun renderLine(params: UiTextAreaParams, screenDimensions: Vector2fc, lineIndex: Int, line: String) {
-        // Compute matrix to transform the quad to the desired text coordinates
+        // Render lines
         val scaledLineSpacing = params.lineSpacing * params.fontScale * params.font.height
-
-        val textWidth = params.computedDimensions.x() - params.padding.totalHorizontal
-        val textHeight = params.fontScale * params.font.height
-
-        val posX = params.computedPosition.x() + params.padding.left
-        val posY = params.computedPosition.y() - params.padding.top - lineIndex * scaledLineSpacing
-
-        // Don't show lines after the cutoff -- TODO use proper masking here
-        if (params.computedPosition.y() - (posY - textHeight) > params.computedDimensions.y()) {
-            return
-        }
+        val lineWidth = params.computedDimensions.x() - params.padding.totalHorizontal
+        val lineHeight = params.fontScale * params.font.height
+        val lineX = params.computedPosition.x() + params.padding.left
+        var lineY = params.computedPosition.y() - params.padding.top
 
         textMatrix
             .identity()
             .translate(-1f, -1f, 0f)
             .scale(2f / screenDimensions.x(), 2f / screenDimensions.y(), 0f)
-            .translate(posX, posY, 0f)
-            .scale(textWidth, textHeight, 0f)
+            .translate(lineX, lineY, 0f)
+            .scale(lineWidth, lineHeight, 0f)
+
+        for (i in params.lines.indices) {
+            renderLine(params, screenDimensions, i, params.lines[i], lineWidth, lineHeight, lineX, lineY)
+            lineY -= scaledLineSpacing
+            textMatrix.translate(0f, -scaledLineSpacing / lineHeight, 0f)
+        }
+    }
+
+    private fun renderLine(params: UiTextAreaParams, screenDimensions: Vector2fc, lineIndex: Int, line: String,
+                           width: Float, height: Float, x: Float, y: Float) {
+        // Don't show lines after the cutoff -- TODO use proper masking here
+        if (params.computedPosition.y() - (y - height) > params.computedDimensions.y()) {
+            return
+        }
 
         // Determine the fg/bg color for this line
         val fgColor = params.lineFgColors[lineIndex % params.lineFgColors.size]
@@ -65,8 +67,8 @@ class UiTextAreaRenderer(graphicsManager: GraphicsManager) : UiRenderer<UiTextAr
             textParams.textFgColor = fgColor
             textParams.textBgColor = bgColor
         }
-        textParams.computedPosition.set(posX, posY)
-        textParams.computedDimensions.set(textWidth, textHeight)
+        textParams.computedPosition.set(x, y)
+        textParams.computedDimensions.set(width, height)
         textMatrix.get(textParams.quadMatrixArr)
 
         // Render text
