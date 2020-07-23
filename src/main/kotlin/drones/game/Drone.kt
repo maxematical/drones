@@ -33,6 +33,10 @@ class Drone(override val position: Vector2f,
     val scanQueue: Queue<ScanRequest> = LinkedList()
     val scanResultQueue: Queue<Vector2fc> = LinkedList()
 
+    val outgoingCommsQueue: Queue<CommsMessage> = LinkedList()
+    val incomingCommsQueue: Queue<CommsMessage> = LinkedList()
+    var isListeningForComms: Boolean = false
+
     val inventory = Inventory(10.0)
 
     var activeScanning: Boolean = false

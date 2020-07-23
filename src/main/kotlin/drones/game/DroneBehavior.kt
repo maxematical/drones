@@ -1,6 +1,7 @@
 package drones.game
 
 import drones.*
+import drones.scripting.ModuleComms
 import drones.scripting.ModuleScanner
 import drones.scripting.ScriptManager
 import org.joml.Vector2f
@@ -92,9 +93,15 @@ class DroneBehavior(private val gameState: GameState, private val drone: Drone) 
      */
     private fun updateComponents(script: ScriptManager) : LuaValue? {
         ModuleScanner.processScanQueue(gameState, drone)
+        ModuleComms.processBroadcastQueue(gameState, drone)
 
         if (drone.activeScanning && !script.isRunningCallback) {
             val callback = ModuleScanner.updateActiveScanning(gameState, drone, script.globals)
+            if (callback != null)
+                return callback
+        }
+        if (drone.isListeningForComms && !script.isRunningCallback) {
+            val callback = ModuleComms.listenForSignals(gameState, drone, script.globals)
             if (callback != null)
                 return callback
         }

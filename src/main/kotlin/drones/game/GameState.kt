@@ -11,7 +11,9 @@ class GameState(
     val gridBody: Body,
     val spawnQueue: Queue<GameObject>,
     val despawnQueue: Queue<GameObject>,
-    val objects: List<GameObject>
+    val objects: List<GameObject>,
+    val nextSignals: MutableList<CommsMessage>,
+    val activeSignals: List<CommsMessage>
 ) {
     fun getObjectsInRange(point: Vector2fc, radius: Float, out: MutableList<GameObject>) {
         for (obj in objects) {

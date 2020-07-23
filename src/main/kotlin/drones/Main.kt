@@ -16,6 +16,7 @@ import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.MemoryUtil.NULL
 import org.slf4j.LoggerFactory
 import java.util.*
+import kotlin.collections.ArrayList
 import kotlin.math.floor
 
 class Main
@@ -237,7 +238,9 @@ fun main(args: Array<String>) {
 
     val gameObjects = mutableListOf<GameObject>()
 
-    val gameState = GameState(world, grid, grid.physicsBody, LinkedList(), LinkedList(), gameObjects)
+    val activeSignals = ArrayList<CommsMessage>(8)
+    val gameState = GameState(world, grid, grid.physicsBody, LinkedList(), LinkedList(), gameObjects,
+        ArrayList(8), activeSignals)
 
     val installScripts: (Drone) -> ScriptManager.(Globals) -> Unit = { drone -> { globals ->
         ModuleVector.install(globals)
@@ -248,11 +251,12 @@ fun main(args: Array<String>) {
         globals.set("move", globals.loadfile("libmove.lua").call())
         globals.loadfile("libscanner.lua").call()
         ModuleInventory(drone).install(globals)
+        ModuleComms(drone).install(globals)
     } }
     val scriptMgr1 = ScriptManager("drone_advanced_miner.lua", Int.MAX_VALUE, installScripts(drone1))
     scriptMgr1.onComplete = { drone1.desiredVelocity.set(0f, 0f) }
     drone1.scriptManager = scriptMgr1
-    val scriptMgr2 = ScriptManager("drone_manual_miner.lua", Int.MAX_VALUE, installScripts(drone2))
+    val scriptMgr2 = ScriptManager("drone_helper_miner.lua", Int.MAX_VALUE, installScripts(drone2))
     scriptMgr2.onComplete = { drone2.desiredVelocity.set(0f, 0f) }
     drone2.scriptManager = scriptMgr2
 
@@ -326,6 +330,11 @@ fun main(args: Array<String>) {
             }
             gameState.spawnQueue.clear()
             gameState.despawnQueue.clear()
+
+            // Update signals
+            activeSignals.clear()
+            activeSignals.addAll(gameState.nextSignals)
+            gameState.nextSignals.clear()
 
             // Update physics
             world.update(deltaTime.toDouble())

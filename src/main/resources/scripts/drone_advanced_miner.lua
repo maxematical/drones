@@ -3,9 +3,11 @@ function on_scan_detected(coords)
     found_coords = coords
     scanner.off()
     print('Found coordinates!')
+    comms.broadcast('ore', coords)
 end
 
 print('Searching for ore')
+comms.broadcast('Hello all')
 scanner.on()
 
 -- TOTALLY random coordinates that I put in, I have NO IDEA if theres gonna be ore here or not

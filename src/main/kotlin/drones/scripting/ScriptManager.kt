@@ -820,3 +820,79 @@ class ModuleInventory(private val drone: Drone) : DroneModule {
             LuaValue.valueOf(drone.inventory.currentVolume)
     }
 }
+
+class ModuleComms(private val drone: Drone) : DroneModule {
+    private val listen = Flisten(drone)
+    private val broadcast = Fbroadcast(drone)
+
+    override fun buildModule(): LuaValue {
+        val table = LuaValue.tableOf()
+        table.set("listen", listen)
+        table.set("broadcast", broadcast)
+        return table
+    }
+
+    override fun install(globals: Globals) {
+        globals.set("comms", buildModule())
+    }
+
+    class Flisten(private val drone: Drone) : ZeroArgFunction() {
+        override fun call(): LuaValue {
+            drone.isListeningForComms = true
+            return LuaValue.NIL
+        }
+    }
+
+    class Fbroadcast(private val drone: Drone) : TwoArgFunction() {
+        override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
+            Fchecktype(arg1, "string",
+                "comms.broadcast: Expected first argument to be a string, the message name. " +
+                        "E.g. comms.broadcast(\"hello everyone\")")
+
+            drone.outgoingCommsQueue.add(CommsMessage(drone, arg1.tojstring(), arg2))
+            return LuaValue.NIL
+        }
+    }
+
+    companion object {
+        const val RECEIVE_CALLBACK_NAME = "on_signal"
+
+        /**
+         * First, adds each current signal not sent by this drone to its incomingCommsQueue. Then, checks if there are
+         * any unprocessed messages in the incoming queue (either from right now, or before) and returns a function that
+         * will notify the script of the message.
+         */
+        fun listenForSignals(gameState: GameState, drone: Drone, globals: Globals): LuaValue? {
+            // Add any current signals to the drone's incoming queue
+            for (signal in gameState.activeSignals) {
+                if (signal.from != drone && globals.get(RECEIVE_CALLBACK_NAME) != LuaValue.NIL) {
+                    drone.incomingCommsQueue.add(signal)
+                }
+            }
+
+            // If there's an unprocessed signal in the incomingCommsQueue, return a callback function that to process it
+            // (by running the lua callback and removing the signal from the queue)
+            if (!drone.incomingCommsQueue.isEmpty()) {
+                val signal = drone.incomingCommsQueue.peek()
+                return object : ZeroArgFunction() {
+                    override fun call(): LuaValue {
+                        drone.incomingCommsQueue.remove(signal)
+                        return globals.get(RECEIVE_CALLBACK_NAME)
+                            .call(LuaValue.valueOf(signal.message), signal.contents)
+                    }
+                }
+            }
+
+            // There are no unprocessed received signals
+            return null
+        }
+
+        /**
+         * Finds and sends any messages in the drone's outgoingCommsQueue.
+         */
+        fun processBroadcastQueue(gameState: GameState, drone: Drone) {
+            gameState.nextSignals.addAll(drone.outgoingCommsQueue)
+            drone.outgoingCommsQueue.clear()
+        }
+    }
+}
