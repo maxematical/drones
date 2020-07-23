@@ -27,6 +27,8 @@ class UiTextAreaRenderer(graphicsManager: GraphicsManager) : UiRenderer<UiTextAr
         val lineHeight = params.fontScale * params.font.height
         val lineX = params.computedPosition.x() + params.padding.left
         var lineY = params.computedPosition.y() - params.padding.top
+        val lastLineY = params.computedPosition.y() - params.computedDimensions.y() + params.padding.bottom
+        lineY = Math.max(lastLineY + params.lines.size * scaledLineSpacing, lineY)
 
         textMatrix
             .identity()
@@ -45,7 +47,9 @@ class UiTextAreaRenderer(graphicsManager: GraphicsManager) : UiRenderer<UiTextAr
     private fun renderLine(params: UiTextAreaParams, screenDimensions: Vector2fc, lineIndex: Int, line: String,
                            width: Float, height: Float, x: Float, y: Float) {
         // Don't show lines after the cutoff -- TODO use proper masking here
-        if (params.computedPosition.y() - (y - height) > params.computedDimensions.y()) {
+        val bottomY = y - height
+        if (params.computedPosition.y() - bottomY > params.computedDimensions.y() ||
+                y > params.computedPosition.y() - params.padding.top) {
             return
         }
 
