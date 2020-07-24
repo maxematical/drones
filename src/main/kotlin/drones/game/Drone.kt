@@ -8,6 +8,7 @@ import org.dyn4j.geometry.Vector2
 import org.joml.Vector2f
 import org.joml.Vector2fc
 import java.util.*
+import kotlin.collections.HashSet
 import kotlin.properties.Delegates
 import kotlin.properties.Delegates.observable
 
@@ -32,6 +33,7 @@ class Drone(override val position: Vector2f,
 
     val scanQueue: Queue<ScanRequest> = LinkedList()
     val scanResultQueue: Queue<Vector2fc> = LinkedList()
+    val detectedTiles: MutableSet<Vector2fc> = HashSet()
 
     val outgoingCommsQueue: Queue<CommsMessage> = LinkedList()
     val incomingCommsQueue: Queue<CommsMessage> = LinkedList()

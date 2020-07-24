@@ -689,7 +689,11 @@ class ModuleScanner(private val drone: Drone) : DroneModule {
             if (globals.get(TILE_DETECTED_CALLBACK) != LuaValue.NIL) {
                 val scan: Vector2fc? = doScan(state, drone.position, 3, drone.scriptOrigin)
                 if (scan != null) {
-                    return globals.load("$TILE_DETECTED_CALLBACK(vector.create(${scan.x()}, ${scan.y()}))")
+                    val hasDetectedBefore: Boolean = scan in drone.detectedTiles
+                    if (!hasDetectedBefore) drone.detectedTiles.add(scan)
+
+                    return globals.load(TILE_DETECTED_CALLBACK +
+                            "(vector.create(${scan.x()}, ${scan.y()}), $hasDetectedBefore)")
                 }
             }
 

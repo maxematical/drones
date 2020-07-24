@@ -1,10 +1,12 @@
 local found_coords = nil
-function on_scan_detected(coords)
+function on_scan_detected(coords, has_detected_before)
     if inventory.is_empty() then
         found_coords = coords
     end
-    print('Found coordinates!')
-    comms.broadcast('ore', coords)
+    if not has_detected_before then
+        print('Found coordinates!')
+        comms.broadcast('ore', coords)
+    end
 end
 
 print('Searching for ore')
