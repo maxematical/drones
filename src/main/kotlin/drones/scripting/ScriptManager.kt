@@ -4,6 +4,7 @@ import drones.LogOutputStream
 import drones.game.*
 import drones.scripting.ModuleCore.Fchecktype
 import drones.scripting.ModuleCore.Fclamparg
+import drones.takeAs
 import org.dyn4j.collision.Filter
 import org.dyn4j.dynamics.RaycastResult
 import org.dyn4j.geometry.Vector2
@@ -31,9 +32,12 @@ class ScriptManager(val scriptFilename: String,
     var onComplete: (() -> Unit)? = null
 
     val debug: LuaValue
+    val debugLib: DebugLib
     val yieldFunction: LuaValue
 
     var nextCallback: LuaValue? = null
+    var isRunningCallback = false
+        private set
 
     private val privateCurrentLine = LuaDebugHelper.CurrentLine()
     val currentLine: LuaDebugHelper.CurrentLine? get() = privateCurrentLine.takeIf { it.valid }
@@ -43,15 +47,6 @@ class ScriptManager(val scriptFilename: String,
 
     private val mutableScriptOutput = mutableListOf<String>()
     val scriptOutput: List<String> = mutableScriptOutput
-
-    var isRunningCallback = false
-        private set
-    private var unsetRunningCallback = object : ZeroArgFunction() {
-        override fun call(): LuaValue {
-            isRunningCallback = false
-            return LuaValue.NIL
-        }
-    }
 
     val shouldwaitList = Array<LuaValue?>(16) { null }
     var nextShouldwaitIndex = 0
@@ -86,14 +81,12 @@ class ScriptManager(val scriptFilename: String,
 
         addLibs(globals)
 
-        globals.set("_unsetcb", unsetRunningCallback)
-
         thread = createCoroutine(globals.get("loadfile").call(scriptFilename))
 
         // Limit the instruction count per script execution
         // We have to do this using the debug lib, but we don't want scripts accessing it, so we'll remove the debug
         // table directly afterwards
-        val debugLib = object : DebugLib() {
+        debugLib = object : DebugLib() {
             override fun onInstruction(pc: Int, v: Varargs?, top: Int) {
                 super.onInstruction(pc, v, top)
 
@@ -221,9 +214,18 @@ class ScriptManager(val scriptFilename: String,
 
     private fun prepareCallbackFunction(): LuaValue {
         isRunningCallback = true
-        globals.set("_cb", nextCallback)
-        nextCallback = null
-        return globals.load("_cb(); _cb = nil; _unsetcb()")
+        return object : ZeroArgFunction() {
+            override fun call(): LuaValue {
+                val cb = nextCallback.takeAs<LuaFunction>() ?: throw IllegalStateException("No callback to run")
+                nextCallback = null
+
+                LuaDebugHelper.pushcall(debugLib, cb)
+                cb.call()
+                LuaDebugHelper.popcall(debugLib)
+                isRunningCallback = false
+                return LuaValue.NIL
+            }
+        }
     }
 
     companion object {
@@ -692,8 +694,18 @@ class ModuleScanner(private val drone: Drone) : DroneModule {
                     val hasDetectedBefore: Boolean = scan in drone.detectedTiles
                     if (!hasDetectedBefore) drone.detectedTiles.add(scan)
 
-                    return globals.load(TILE_DETECTED_CALLBACK +
-                            "(vector.create(${scan.x()}, ${scan.y()}), $hasDetectedBefore)")
+                    return object : ZeroArgFunction() {
+                        override fun call(): LuaValue {
+                            val func = globals.get(TILE_DETECTED_CALLBACK)
+                            val arg1 = ModuleVector.Fcreate(scan.x(), scan.y())
+                            val arg2 = LuaValue.valueOf(hasDetectedBefore)
+                            return func.call(arg1, arg2)
+                        }
+
+                        override fun classnamestub(): String {
+                            return TILE_DETECTED_CALLBACK
+                        }
+                    }
                 }
             }
 
@@ -705,7 +717,19 @@ class ModuleScanner(private val drone: Drone) : DroneModule {
                         val objX = obj.position.x() - drone.scriptOrigin.x()
                         val objY = obj.position.y() - drone.scriptOrigin.y()
                         val isCarryable = true
-                        return globals.load("$OBJECT_DETECTED_CALLBACK(vector.create($objX, $objY), $isCarryable)")
+
+                        return object : ZeroArgFunction() {
+                            override fun call(): LuaValue {
+                                val func = globals.get(OBJECT_DETECTED_CALLBACK)
+                                val arg1 = ModuleVector.Fcreate(objX, objY)
+                                val arg2 = LuaValue.valueOf(isCarryable)
+                                return func.call(arg1, arg2)
+                            }
+
+                            override fun classnamestub(): String {
+                                return OBJECT_DETECTED_CALLBACK
+                            }
+                        }
                     }
                 }
             }
@@ -935,6 +959,10 @@ class ModuleComms(private val drone: Drone) : DroneModule {
                         drone.incomingCommsQueue.remove(signal)
                         return globals.get(RECEIVE_CALLBACK_NAME)
                             .call(LuaValue.valueOf(signal.message), signal.contents)
+                    }
+
+                    override fun classnamestub(): String {
+                        return RECEIVE_CALLBACK_NAME
                     }
                 }
             }

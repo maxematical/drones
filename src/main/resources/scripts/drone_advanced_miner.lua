@@ -2,9 +2,9 @@ local found_coords = nil
 function on_scan_detected(coords, has_detected_before)
     if inventory.is_empty() then
         found_coords = coords
+        print('Found coordinates!')
     end
     if not has_detected_before then
-        print('Found coordinates!')
         comms.broadcast('ore', coords)
     end
 end
@@ -45,12 +45,14 @@ function mine()
     found_coords = nil
 end
 
-print('STARTING TO PATROL...')
-core.do_until(patrol, should_mine)
-print('FINISHED PATROL')
+while true do
+    print('STARTING TO PATROL...')
+    core.do_until(patrol, should_mine)
+    print('FINISHED PATROL')
 
-if should_mine() then
-    mine()
-else
-    patrol()
+    if should_mine() then
+        mine()
+    else
+        patrol()
+    end
 end

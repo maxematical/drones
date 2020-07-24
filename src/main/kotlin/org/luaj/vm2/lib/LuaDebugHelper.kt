@@ -1,5 +1,6 @@
 package org.luaj.vm2.lib
 
+import org.luaj.vm2.LuaFunction
 import org.luaj.vm2.LuaThread
 
 object LuaDebugHelper {
@@ -32,6 +33,14 @@ object LuaDebugHelper {
 
         out.valid = false
         return
+    }
+
+    fun pushcall(debugLib: DebugLib, function: LuaFunction) {
+        debugLib.onCall(function)
+    }
+
+    fun popcall(debugLib: DebugLib) {
+        debugLib.onReturn()
     }
 
     class CurrentLine {
