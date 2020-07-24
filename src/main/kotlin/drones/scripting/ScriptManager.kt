@@ -178,23 +178,25 @@ class ScriptManager(val scriptFilename: String,
     }
 
     fun update(runCallback: LuaValue?) {
-        // Update Lua script
+        // Update possible callback (needs to be done before updating the script to avoid double callbacks)
+        if (!isRunningCallback && runCallback != null) {
+            nextCallback = runCallback
+        }
+
+        // Run Lua script
         if (!isLuaFinished()) {
             val result: Varargs = thread.resume(LuaValue.varargsOf(emptyArray()))
             if (!result.checkboolean(1)) {
                 throw RuntimeException("Error: lua thread terminated with error. ${result.checkjstring(2)}")
             }
         }
+
+        // Restart lua if it finished but we now need it to run a callback
         if (isLuaFinished() && nextCallback != null) {
             thread = createCoroutine(prepareCallbackFunction())
         }
 
-        if (!isRunningCallback && runCallback != null) {
-            nextCallback = runCallback
-        }
-
-        //println(debug.get("getinfo").call(thread))
-
+        // Clean up if lua stopped running
         if (isLuaFinished()) {
             privateCurrentLine.valid = false
 

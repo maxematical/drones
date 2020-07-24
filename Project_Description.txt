@@ -148,3 +148,25 @@ More ideas 7/22
 - Mining laser should report the current block we are scanning
 
 - Expose coroutine.yield under different name so it seems more user-friendly
+
+7/24
+
+Mining tasks
+- simple mine ores (similar to what we have now)
+  - Needs mining laser and scanner.
+- mine minerals with rock in between them -- must switch between laser modes to extract minerals
+  - Idea: have the different laser modes be in fact two different lasers. One solution to the problem is basically the
+    same, but players can also use a team of 2 drones each with their own laser
+- extract chunks of ore from rocks and carry them back to base
+  - Needs mining laser, scanner, tractor beam, and optionally, good thrusters. Can be done with 1 drone, but more
+    efficient with 2.
+- scan moving objects and try to intercept them
+  - Needs mining laser, scanner, and some math ability on the part of the player.
+- collecting gas or other things from the atmosphere??? (Very easy task for beginners)
+  - Needs gas collector or whatever
+
+Movement tasks (completing mining tasks depends on the players ability to program these types of tasks)
+- simple movement (left, right, etc -- move.units())
+- navigating to position (implement A* for the player) -- core.set_destination()
+- navigating to base -- core.return_to_base()
+- patrol in radius and scan anything nearby -- need a new lua function to make exiting out of movement functions easier
