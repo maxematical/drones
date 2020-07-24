@@ -244,7 +244,7 @@ fun main(args: Array<String>) {
 
     val installScripts: (Drone) -> ScriptManager.(Globals) -> Unit = { drone -> { globals ->
         ModuleVector.install(globals)
-        ModuleCore(drone).install(globals)
+        ModuleCore(drone, this).install(globals)
         ModuleScanner(drone).install(globals)
         ModuleMiningLaser(drone).install(globals)
         ModuleTractorBeam(drone, gameState).install(globals)

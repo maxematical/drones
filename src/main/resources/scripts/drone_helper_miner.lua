@@ -9,3 +9,28 @@ function on_signal(message, contents)
 end
 
 comms.listen()
+
+
+
+
+
+
+
+
+
+
+--
+--function on_scan_detected(coords)
+--    --core.stop_waiting()
+--    found_coords = coords
+--end
+--
+--function patrol()
+--    move.units(0, 0)
+--    move.units(0, 0)
+--    move.units(0, 0)
+--    move.units(0, 0)
+--end
+--
+--do_until(patrol, function() return found_coords ~= nil end)
+--patrol()

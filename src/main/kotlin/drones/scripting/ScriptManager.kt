@@ -21,6 +21,7 @@ import org.slf4j.event.Level
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.PrintStream
+import kotlin.collections.ArrayList
 
 class ScriptManager(val scriptFilename: String,
                     instructionLimit: Int = 20,
@@ -30,6 +31,7 @@ class ScriptManager(val scriptFilename: String,
     var onComplete: (() -> Unit)? = null
 
     val debug: LuaValue
+    val yieldFunction: LuaValue
 
     var nextCallback: LuaValue? = null
 
@@ -50,6 +52,9 @@ class ScriptManager(val scriptFilename: String,
             return LuaValue.NIL
         }
     }
+
+    val shouldwaitList = Array<LuaValue?>(16) { null }
+    var nextShouldwaitIndex = 0
 
     init {
         val instr = ScriptManager::class.java.getResourceAsStream("/scripts/$scriptFilename")
@@ -112,6 +117,7 @@ class ScriptManager(val scriptFilename: String,
                 return luaYield.invoke(args)
             }
         })
+        this.yieldFunction = globals.get("coroutine").get("yield")
 
         val luaPrint = globals.get("print")
         globals.set("print", object : VarArgFunction() {
@@ -396,13 +402,15 @@ object ModuleVector : DroneModule {
     }
 }
 
-class ModuleCore(drone: Drone) : DroneModule {
+class ModuleCore(drone: Drone, scriptMgr: ScriptManager) : DroneModule {
     private val getPosition = Fgetpos(drone)
     private val setDesiredVelocity = Fset_thrust(drone)
     private val getTime = Fgettime(drone)
     private val setLed = Fsetled(drone)
     private val getDestination = Fget_destination(drone)
     private val setDestination = Fset_destination(drone)
+    private val waitUntil = Fwait_until(scriptMgr)
+    private val doUntil = Fdo_until(scriptMgr)
 
     override fun buildModule(): LuaValue {
         val module = LuaValue.tableOf()
@@ -412,6 +420,8 @@ class ModuleCore(drone: Drone) : DroneModule {
         module.set("setled", setLed)
         module.set("get_destination", getDestination)
         module.set("set_destination", setDestination)
+        module.set("wait_until", waitUntil)
+        module.set("do_until", doUntil)
         return module
     }
 
@@ -559,6 +569,46 @@ class ModuleCore(drone: Drone) : DroneModule {
             drone.hasDestination = true
             drone.destination.set(vector.get("x").checkdouble(), vector.get("y").checkdouble()).add(drone.scriptOrigin)
             drone.destinationTargetDistance = distance.toFloat()
+
+            return LuaValue.NIL
+        }
+    }
+
+    class Fwait_until(val scriptMgr: ScriptManager) : OneArgFunction() {
+        override fun call(arg: LuaValue): LuaValue {
+            // TODO better explanation of how wait_until works
+            Fchecktype(arg, "function", "core.wait_until: Expected first argument to be a function, which returns " +
+                    "true when it is time to stop waiting")
+
+            val shouldStopWaiting: LuaValue? =
+                if (scriptMgr.nextShouldwaitIndex > 0) scriptMgr.shouldwaitList[scriptMgr.nextShouldwaitIndex - 1]
+                else null
+
+            while (!arg.call().toboolean() && shouldStopWaiting?.call()?.toboolean() != true) {
+                scriptMgr.yieldFunction.call()
+            }
+            return LuaValue.NIL
+        }
+    }
+
+    class Fdo_until(val scriptMgr: ScriptManager) : TwoArgFunction() {
+        override fun call(arg1: LuaValue, arg2: LuaValue): LuaValue {
+            Fchecktype(arg1, "function", "core.do_until: Expected first argument to be a function, the things to do")
+            Fchecktype(arg2, "function", "core.do_until: Expected second argument to be a function, which returns " +
+                    "true if we should stop performing the first function")
+
+            // Push shouldwait
+            val shouldwaitIndex: Int = scriptMgr.nextShouldwaitIndex++
+            scriptMgr.shouldwaitList[shouldwaitIndex] = arg2
+
+            // Call the function
+            arg1.call()
+
+            // The function finished; pop shouldwait
+            if (scriptMgr.nextShouldwaitIndex != shouldwaitIndex + 1)
+                throw IllegalStateException("shouldwaitList is in invalid state, did not expect it to be pushed")
+            scriptMgr.shouldwaitList[shouldwaitIndex] = null
+            scriptMgr.nextShouldwaitIndex--
 
             return LuaValue.NIL
         }

@@ -8,8 +8,9 @@ end
 
 function move.wait_until_arrived()
     local initial_destination = core.get_destination()
+    return core.wait_until(function() return core.get_destination() ~= initial_destination end)
 
-    while core.get_destination() == initial_destination do coroutine.yield() end
+--    while core.get_destination() == initial_destination do coroutine.yield() end
 end
 
 function move.to(target, target_distance)

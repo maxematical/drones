@@ -5,7 +5,8 @@ function sleep(seconds)
     -- Wait until the current time since sleep was called (core.gettime() - start_time) is at least the number of
     -- seconds we want to wait
     local start_time = core.gettime()
-    while (core.gettime() - start_time) < seconds do
-        coroutine.yield()
-    end
+    core.wait_until(function()
+        local time_elapsed = core.gettime() - start_time
+        return time_elapsed >= seconds
+    end)
 end
