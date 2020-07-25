@@ -165,6 +165,8 @@ fun main(args: Array<String>) {
     grid.setTile(4, 3, TileOre)
     grid.setTile(4, 4, TileOre)
 
+    generateOrePatch(grid, 4, 20, 15)
+
     // Setup drones
     val baseLocation = Vector2f(3f, -3f)
     val drone1 = Drone(Vector2f(-2f, 3f), 0xEEEEEE, 90f)
@@ -540,6 +542,36 @@ fun mouseCallback(window: Long, button: Int, action: Int, mods: Int) {
     }
     if (button == GLFW_MOUSE_BUTTON_RIGHT && action == GLFW_PRESS) {
         mouseRightClicked = true
+    }
+}
+
+fun generateOrePatch(grid: Grid, radius: Int, centerX: Int, centerY: Int) {
+    for (y in (centerY - radius)..(centerY + radius)) {
+        for (x in (centerX - radius)..(centerX + radius)) {
+            if (!grid.isTileAt(x, y))
+                continue
+
+            val dx = (x + 0.5) - centerX
+            val dy = (y - 0.5) - centerY
+            val distanceFromCenter = Math.sqrt(1.0 * dx * dx + dy * dy)
+            val relativeDistance = distanceFromCenter / radius
+
+            // The probability that there is a non-air tile here
+            val probabilityOfTile = 1.0 - 0.75 * relativeDistance * relativeDistance * relativeDistance
+            //val probabilityOfTile = if(relativeDistance<1)1.0 else 0.0
+            // The probability that the tile is a ore tile
+            val probabilityOfOre = 0.85 - 0.55 * relativeDistance
+
+            val isTileHere = Math.random() < probabilityOfTile
+            val isOreHere = Math.random() < probabilityOfOre
+
+            val tile: Tile = when {
+                !isTileHere -> grid.getTile(x, y)
+                isOreHere -> TileOre
+                else -> TileStone
+            }
+            grid.setTile(x, y, tile)
+        }
     }
 }
 

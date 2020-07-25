@@ -27,6 +27,7 @@ object TileOre : Tile() {
 
     override fun getAppearance(metadata: Int): Char = 'X'
     override fun getBackgroundColor(metadata: Int): Int = metadata / 2
+    override fun getForegroundColor(metadata: Int): Int = 9
 
     override fun getTooltip(metadata: Int) = "Ore ($metadata/$initialMetadata Left)"
 
@@ -43,6 +44,13 @@ object TileOre : Tile() {
     }
 }
 
+object TileStone : Tile() {
+    override val name: String = "Stone"
+
+    override fun getAppearance(metadata: Int): Char = ' '
+    override fun getBackgroundColor(metadata: Int): Int = 8
+}
+
 object TileManager {
     private val tileMap = mutableMapOf<Int, Tile>()
     private var invTileMap: Map<Tile, Int> = emptyMap()
@@ -50,6 +58,7 @@ object TileManager {
     fun registerTiles() {
         tileMap[0] = TileAir
         tileMap[1] = TileOre
+        tileMap[2] = TileStone
         invTileMap = tileMap.entries.associateBy({ (_, v) -> v }, { (k, _) -> k })
     }
 

@@ -13,7 +13,6 @@ import org.joml.Vector2ic
 import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.concurrent.ArrayBlockingQueue
-import kotlin.collections.ArrayList
 import kotlin.math.floor
 
 class Grid(val width: Int, val height: Int, val positionTopLeft: Vector2fc = Vector2f(-width / 2f, height / 2f)) {
@@ -22,7 +21,7 @@ class Grid(val width: Int, val height: Int, val positionTopLeft: Vector2fc = Vec
     private val tileData: Array<Array<Int>> = Array(height) { Array<Int>(width) { 0 } }
 
     private val bitmapArray = IntArray(width * height)
-    private val bitmapArrayUpdateQueue: Queue<Int> = ArrayBlockingQueue(16)
+    private val bitmapArrayUpdateQueue: Queue<Int> = ArrayBlockingQueue(256)
     private var bitmapArrayInitialized = false
 
     val physicsBody: Body
