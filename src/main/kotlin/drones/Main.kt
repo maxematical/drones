@@ -165,7 +165,7 @@ fun main(args: Array<String>) {
     grid.setTile(4, 3, TileOre)
     grid.setTile(4, 4, TileOre)
 
-    generateOrePatch(grid, 4, 20, 15)
+    generateOrePatch(grid, 3, 20, 15)
 
     // Setup drones
     val baseLocation = Vector2f(3f, -3f)

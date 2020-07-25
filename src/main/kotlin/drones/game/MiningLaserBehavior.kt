@@ -1,6 +1,7 @@
 package drones.game
 
-import drones.*
+import drones.MathUtils
+import drones.toDyn4j
 import org.dyn4j.dynamics.RaycastResult
 import org.joml.Vector2ic
 
@@ -12,25 +13,45 @@ class MiningLaserBehavior(private val state: GameState, private val laser: Laser
     private var timeUntilNextRaycast: Float = 0f
     private var timeUntilTileBreak: Float = 2f
 
+    private var lastLength = laser.actualLength
+    private var nextLength = laser.actualLength
+
+    private var didRaycastYet = false
+
     override fun update(deltaTime: Float) {
+        // Update timers
         timeUntilNextRaycast -= deltaTime
         timeUntilTileBreak -= deltaTime
 
-        if (timeUntilNextRaycast <= 0) {
-            timeUntilNextRaycast  = MINING_LASER_RAYCAST_INTERVAL
+        // Interpolate length
+        if (didRaycastYet) {
+            val timeSinceLastRaycast = MINING_LASER_RAYCAST_INTERVAL - timeUntilNextRaycast
+            laser.actualLength = MathUtils.lerp(lastLength, nextLength,
+                timeSinceLastRaycast / MINING_LASER_RAYCAST_INTERVAL)
+        }
 
+        // Perform raycast if necessary
+        if (timeUntilNextRaycast <= 0) {
+            timeUntilNextRaycast = MINING_LASER_RAYCAST_INTERVAL
+
+            // Compute raycast parameters
             val rotationRad = (laser.rotation * MathUtils.DEG2RAD).toDouble()
             val laserStart = laser.position.toDyn4j()
             val laserEnd = laserStart.copy().add(Math.cos(rotationRad) * laser.unobstructedLength,
                 Math.sin(rotationRad) * laser.unobstructedLength)
 
+            // Do raycast and update laser length
+            lastLength = nextLength
             val raycastResult = mutableListOf<RaycastResult>()
             if (state.world.raycast(laserStart, laserEnd, { true }, true, false, false, raycastResult)) {
-                laser.actualLength = raycastResult[0].raycast.distance.toFloat()
+                nextLength = raycastResult[0].raycast.distance.toFloat()
             } else {
-                laser.actualLength = laser.unobstructedLength
+                nextLength = laser.unobstructedLength
             }
+            if (!didRaycastYet)
+                lastLength = nextLength
 
+            // Check if we hit an ore tile
             val hit = raycastResult.getOrNull(0)
             if (hit?.body == state.gridBody) {
                 val hitGridCoordinates = hit.fixture.userData as Vector2ic
@@ -39,12 +60,16 @@ class MiningLaserBehavior(private val state: GameState, private val laser: Laser
                 val hitTile = state.grid.getTile(hitX, hitY)
                 val hitMeta = state.grid.getMeta(hitX, hitY)
 
+                // Remove ore from world and deposit into inventory
                 if (hitTile == TileOre) {
                     val (newData, kgExtracted) = TileOre.mineTile(hitMeta)
                     depositToInventory.changeMaterial(Materials.ORE, kgExtracted)
                     state.grid.setData(hitX, hitY, newData)
                 }
             }
+
+            // Mark that we performed a raycast
+            didRaycastYet = true
         }
     }
 }
