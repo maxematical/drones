@@ -7,5 +7,5 @@ function inventory.is_empty()
 end
 
 function inventory.wait_until_empty()
-    while not inventory.is_empty() do coroutine.yield() end
+    core.wait_until(function() return inventory.is_empty() end)
 end

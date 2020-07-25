@@ -11,12 +11,13 @@ function mining_laser.mine_tile(target)
     mining_laser.laser_on(angle)
 
     local starttime = core.gettime()
-    while core.gettime() - starttime < 2.0 do
+    core.wait_until(function()
         delta = target_tile - core.getpos()
         angle = math.atan2(delta.y, delta.x) * 180 / math.pi
         mining_laser.laser_target(angle)
-        coroutine.yield()
-    end
+
+        return core.gettime() - starttime >= 2.0
+    end)
 
     mining_laser.laser_off()
     sleep(0.5)
