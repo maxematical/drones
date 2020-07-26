@@ -4,7 +4,11 @@ import org.luaj.vm2.LuaFunction
 import org.luaj.vm2.LuaThread
 
 object LuaDebugHelper {
-    fun getCurrentLine(debugLib: DebugLib, thread: LuaThread, out: CurrentLine) {
+    /**
+     * Iterates through the lua call stack and finds information about what line number, lua script, and function are
+     * currently executing. Then, stores all data stored into the given output object.
+     */
+    fun getCurrentLine(debugLib: DebugLib, thread: LuaThread, out: MutableCurrentLine) {
         val callstack = debugLib.callstack(thread)
 
         // Go through the frames until we meet the end
@@ -35,18 +39,34 @@ object LuaDebugHelper {
         return
     }
 
+    /**
+     * Pushes a call frame onto the Lua call stack. It is needed to do this manually when calling Lua functions in
+     * Kotlin, because although the call stack is automatically updated when calling these functions through Lua code,
+     * it is not automatically updated when calling these functions through Kotlin code.
+     */
     fun pushcall(debugLib: DebugLib, function: LuaFunction) {
         debugLib.onCall(function)
     }
 
+    /**
+     * Pops a call frame from the Lua call stack.
+     * @see pushcall
+     */
     fun popcall(debugLib: DebugLib) {
         debugLib.onReturn()
     }
 
-    class CurrentLine {
-        var valid: Boolean = false
-        var sourceFile: String = ""
-        var lineNumber: Int = -1
-        var insideFunction: String? = null
+    interface CurrentLine {
+        val valid: Boolean
+        val sourceFile: String
+        val lineNumber: Int
+        val insideFunction: String?
+    }
+
+    class MutableCurrentLine : CurrentLine {
+        override var valid: Boolean = false
+        override var sourceFile: String = ""
+        override var lineNumber: Int = -1
+        override var insideFunction: String? = null
     }
 }

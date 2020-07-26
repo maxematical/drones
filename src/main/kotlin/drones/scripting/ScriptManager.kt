@@ -39,8 +39,8 @@ class ScriptManager(val scriptFilename: String,
     var isRunningCallback = false
         private set
 
-    private val privateCurrentLine = LuaDebugHelper.CurrentLine()
-    val currentLine: LuaDebugHelper.CurrentLine? get() = privateCurrentLine.takeIf { it.valid }
+    private val mutableCurrentLine = LuaDebugHelper.MutableCurrentLine()
+    val currentLine: LuaDebugHelper.CurrentLine? get() = mutableCurrentLine.takeIf { it.valid }
 
     val luaSourceLines: List<String>
     val luaSource: String
@@ -52,12 +52,14 @@ class ScriptManager(val scriptFilename: String,
     var nextShouldwaitIndex = 0
 
     init {
+        // Init the lua source code string
         val instr = ScriptManager::class.java.getResourceAsStream("/scripts/$scriptFilename")
         val reader = BufferedReader(InputStreamReader(instr))
         luaSourceLines = reader.readLines()
         luaSource = luaSourceLines.fold("") { acc, str -> acc + str + '\n' }
         reader.close()
 
+        // Init globals and base libraries
         globals = Globals()
         globals.STDOUT = PrintStream(LogOutputStream(LUA_LOGGER, Level.INFO, mutableScriptOutput), false)
 
@@ -74,16 +76,14 @@ class ScriptManager(val scriptFilename: String,
         globals.load(TableLib())
         globals.load(StringLib())
         globals.load(JseMathLib())
-        globals.load(CoroutineLib())
         globals.load(JseIoLib())
         LoadState.install(globals)
         LuaC.install(globals)
 
+        // Add custom libraries and modules
         addLibs(globals)
 
-        // Limit the instruction count per script execution
-        // We have to do this using the debug lib, but we don't want scripts accessing it, so we'll remove the debug
-        // table directly afterwards
+        // Create debug library for internal use by kotlin code, then remove it from globals so lua can't access it
         debugLib = object : DebugLib() {
             override fun onInstruction(pc: Int, v: Varargs?, top: Int) {
                 super.onInstruction(pc, v, top)
@@ -95,84 +95,23 @@ class ScriptManager(val scriptFilename: String,
         }
         globals.load(debugLib)
         debug = globals.get("debug")
+        globals.set("debug", LuaValue.NIL)
 
+        // Similarly, create coroutine library for internal use, but prevent lua from accessing it
+        globals.load(CoroutineLib())
         val luaYield = globals.get("coroutine").get("yield")
-        val createYieldFunction: (LuaThread) -> LuaValue = { thread ->
-            object : VarArgFunction() {
-                override fun invoke(args: Varargs): Varargs {
-                    try {
-                        LuaDebugHelper.getCurrentLine(debugLib, thread, privateCurrentLine)
-                    } catch (ex: Exception) {
-                        ex.printStackTrace()
-                        throw ex
-                    }
-                    return luaYield.invoke(args)
-                }
-            }
-        }
         this.createCoroutineFunction = globals.get("coroutine").get("create")
         globals.set("coroutine", LuaValue.NIL)
 
+        // Install custom print function
         val luaPrint = globals.get("print")
-        globals.set("print", object : VarArgFunction() {
-            override fun invoke(args: Varargs): Varargs {
-                val newArgs: Varargs = when (args.narg()) {
-                    0 -> args
-                    1 -> fixArg(args.arg1())
-                    else -> {
-                        val arr = Array<LuaValue>(args.narg()) { LuaValue.NIL }
-                        for (i in arr.indices)
-                            arr[i] = fixArg(args.arg(i + 1))
+        globals.set("print", CustomPrint(globals, luaPrint))
 
-                        LuaValue.varargsOf(arr)
-                    }
-                }
-                return luaPrint.invoke(newArgs)
-            }
-
-            /**
-             * Calls tostring on the given argument and checks that its string value contains only allowed characters.
-             * Any instances of unallowed characters are replaced with '?'.
-             */
-            private fun fixArg(luaValue: LuaValue): LuaValue {
-                val tostring = globals.get("tostring")
-                val stringified = tostring.call(luaValue)
-
-                val str = stringified.tojstring()
-                var newStr: StringBuilder? = null
-                for (idx in str.indices) {
-                    val char = str[idx]
-                    if (!isCharAllowed(char)) {
-                        // This character is not allowed
-
-                        // Create the new (replacement) string if necessary
-                        if (newStr == null) {
-                            newStr = StringBuilder(str)
-                        }
-
-                        // Replace the character in the new string
-                        newStr[idx] = '?'
-                    }
-                }
-
-                // If there were invalid characters, return the new string
-                // Otherwise, return the old string
-                return if (newStr != null) LuaValue.valueOf(newStr.toString()) else stringified
-            }
-        })
-
-        val onInstructionLimit = object : ZeroArgFunction() {
-            override fun call(): LuaValue {
-                throw RuntimeException("Instruction limit exceeded")
-            }
-        }
-
+        // Create the thread
         thread = createCoroutine(globals.get("loadfile").call(scriptFilename))
-        yieldFunction = createYieldFunction(thread)
 
-        // TODO: For some reason, the runtime exception doesn't get logged (though it does shut down that thread)
-        //sethook.invoke(arrayOf<LuaValue>(thread, onInstructionLimit,
-        //    LuaValue.EMPTYSTRING, LuaValue.valueOf(instructionLimit)))
+        // Install custom yield function that will update the current line information every time the coroutine yields
+        yieldFunction = CustomYieldFunction(debugLib, thread, mutableCurrentLine, luaYield)
     }
 
     fun update(runCallback: LuaValue?) {
@@ -196,7 +135,7 @@ class ScriptManager(val scriptFilename: String,
 
         // Clean up if lua stopped running
         if (isLuaFinished()) {
-            privateCurrentLine.valid = false
+            mutableCurrentLine.valid = false
 
             if (onComplete != null) {
                 onComplete?.invoke()
@@ -248,6 +187,76 @@ class ScriptManager(val scriptFilename: String,
                 return ALLOWED_CHARS_LUT[intValue]
             else
                 return ALLOWED_CHARS.indexOf(char) >= 0
+        }
+    }
+
+    /**
+     * Custom version of the print function that strips arguments of any characters not allowed to be printed.
+     */
+    private class CustomPrint(globals: Globals, private val luaPrint: LuaValue) : VarArgFunction() {
+        private val tostring = globals.get("tostring")
+
+        override fun invoke(args: Varargs): Varargs {
+            val newArgs: Varargs = when (args.narg()) {
+                0 -> args
+                1 -> fixArg(args.arg1())
+                else -> {
+                    val arr = Array<LuaValue>(args.narg()) { LuaValue.NIL }
+                    for (i in arr.indices)
+                        arr[i] = fixArg(args.arg(i + 1))
+
+                    LuaValue.varargsOf(arr)
+                }
+            }
+            return luaPrint.invoke(newArgs)
+        }
+
+        /**
+         * Calls tostring on the given argument and checks that its string value contains only allowed characters.
+         * Any instances of unallowed characters are replaced with '?'.
+         */
+        private fun fixArg(luaValue: LuaValue): LuaValue {
+            val stringified = tostring.call(luaValue)
+
+            val str = stringified.tojstring()
+            var newStr: StringBuilder? = null
+            for (idx in str.indices) {
+                val char = str[idx]
+                if (!isCharAllowed(char)) {
+                    // This character is not allowed
+
+                    // Create the new (replacement) string if necessary
+                    if (newStr == null) {
+                        newStr = StringBuilder(str)
+                    }
+
+                    // Replace the character in the new string
+                    newStr[idx] = '?'
+                }
+            }
+
+            // If there were invalid characters, return the new string
+            // Otherwise, return the old string
+            return if (newStr != null) LuaValue.valueOf(newStr.toString()) else stringified
+        }
+    }
+
+    /**
+     * Custom version of `coroutine.yield` that, upon yielding, calls [LuaDebugHelper.getCurrentLine] to update the
+     * current line information and store it into the given currentLineOutput object.
+     */
+    private class CustomYieldFunction(private val debugLib: DebugLib,
+                                      private val thread: LuaThread,
+                                      private val currentLineOutput: LuaDebugHelper.MutableCurrentLine,
+                                      private val luaYield: LuaValue) : VarArgFunction() {
+        override fun invoke(args: Varargs): Varargs {
+            try {
+                LuaDebugHelper.getCurrentLine(debugLib, thread, currentLineOutput)
+            } catch (ex: Exception) {
+                ex.printStackTrace()
+                throw ex
+            }
+            return luaYield.invoke(args)
         }
     }
 }
