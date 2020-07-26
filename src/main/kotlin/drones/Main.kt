@@ -247,11 +247,10 @@ fun main(args: Array<String>) {
     val installScripts: (Drone) -> ScriptManager.(Globals) -> Unit = { drone -> { globals ->
         ModuleVector.install(globals)
         ModuleCore(drone, this).install(globals)
-        ModuleScanner(drone).install(globals)
+        ModuleScanner(drone, this).install(globals)
         ModuleMiningLaser(drone).install(globals)
         ModuleTractorBeam(drone, gameState).install(globals)
         globals.set("move", globals.loadfile("libmove.lua").call())
-        globals.loadfile("libscanner.lua").call()
         ModuleInventory(drone).install(globals)
         ModuleComms(drone).install(globals)
     } }
@@ -560,7 +559,7 @@ fun generateOrePatch(grid: Grid, radius: Int, centerX: Int, centerY: Int) {
             val probabilityOfTile = 1.0 - 0.75 * relativeDistance * relativeDistance * relativeDistance
             //val probabilityOfTile = if(relativeDistance<1)1.0 else 0.0
             // The probability that the tile is a ore tile
-            val probabilityOfOre = 0.85 - 0.55 * relativeDistance
+            val probabilityOfOre = 0.85 - 0.85 * relativeDistance
 
             val isTileHere = Math.random() < probabilityOfTile
             val isOreHere = Math.random() < probabilityOfOre

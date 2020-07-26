@@ -22,7 +22,6 @@ import org.slf4j.event.Level
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.PrintStream
-import kotlin.collections.ArrayList
 
 class ScriptManager(val scriptFilename: String,
                     instructionLimit: Int = 20,
@@ -34,6 +33,7 @@ class ScriptManager(val scriptFilename: String,
     val debug: LuaValue
     val debugLib: DebugLib
     val yieldFunction: LuaValue
+    val createCoroutineFunction: LuaValue
 
     var nextCallback: LuaValue? = null
     var isRunningCallback = false
@@ -81,8 +81,6 @@ class ScriptManager(val scriptFilename: String,
 
         addLibs(globals)
 
-        thread = createCoroutine(globals.get("loadfile").call(scriptFilename))
-
         // Limit the instruction count per script execution
         // We have to do this using the debug lib, but we don't want scripts accessing it, so we'll remove the debug
         // table directly afterwards
@@ -99,18 +97,21 @@ class ScriptManager(val scriptFilename: String,
         debug = globals.get("debug")
 
         val luaYield = globals.get("coroutine").get("yield")
-        globals.get("coroutine").set("yield", object : VarArgFunction() {
-            override fun invoke(args: Varargs): Varargs {
-                try {
-                    LuaDebugHelper.getCurrentLine(debugLib, thread, privateCurrentLine)
-                } catch (ex: Exception) {
-                    ex.printStackTrace()
-                    throw ex
+        val createYieldFunction: (LuaThread) -> LuaValue = { thread ->
+            object : VarArgFunction() {
+                override fun invoke(args: Varargs): Varargs {
+                    try {
+                        LuaDebugHelper.getCurrentLine(debugLib, thread, privateCurrentLine)
+                    } catch (ex: Exception) {
+                        ex.printStackTrace()
+                        throw ex
+                    }
+                    return luaYield.invoke(args)
                 }
-                return luaYield.invoke(args)
             }
-        })
-        this.yieldFunction = globals.get("coroutine").get("yield")
+        }
+        this.createCoroutineFunction = globals.get("coroutine").get("create")
+        globals.set("coroutine", LuaValue.NIL)
 
         val luaPrint = globals.get("print")
         globals.set("print", object : VarArgFunction() {
@@ -166,14 +167,12 @@ class ScriptManager(val scriptFilename: String,
             }
         }
 
+        thread = createCoroutine(globals.get("loadfile").call(scriptFilename))
+        yieldFunction = createYieldFunction(thread)
+
         // TODO: For some reason, the runtime exception doesn't get logged (though it does shut down that thread)
         //sethook.invoke(arrayOf<LuaValue>(thread, onInstructionLimit,
         //    LuaValue.EMPTYSTRING, LuaValue.valueOf(instructionLimit)))
-
-        // Note: To get the "lua stack trace":
-        // 1) cast thread.callstack to DebugLib.Callstack
-        // 2) call currentline() on each CallFrame
-        // Might require DebugLib to be installed
     }
 
     fun update(runCallback: LuaValue?) {
@@ -210,7 +209,7 @@ class ScriptManager(val scriptFilename: String,
         thread.status == "dead"
 
     private fun createCoroutine(func: LuaValue): LuaThread =
-        globals.get("coroutine").get("create").call(func) as LuaThread
+        createCoroutineFunction.call(func) as LuaThread
 
     private fun prepareCallbackFunction(): LuaValue {
         isRunningCallback = true
@@ -617,21 +616,26 @@ class ModuleCore(drone: Drone, scriptMgr: ScriptManager) : DroneModule {
     }
 }
 
-class ModuleScanner(private val drone: Drone) : DroneModule {
+class ModuleScanner(private val drone: Drone, scriptMgr: ScriptManager) : DroneModule {
     private val pushScan = Fpush_scan(drone)
     private val popScan = Fpop_scan(drone)
+    private val scan = Fscan(this, scriptMgr)
+    private val on = Fon(drone)
+    private val off = Foff(drone)
 
     override fun buildModule(): LuaValue {
         val module = LuaTable()
         module.set("push_scan", pushScan)
         module.set("pop_scan", popScan)
-        module.set("on", Fon(drone))
-        module.set("off", Foff(drone))
+        module.set("scan", scan)
+        module.set("on", on)
+        module.set("off", off)
         return module
     }
 
     override fun install(globals: Globals) {
-        globals.set("scanner", buildModule()) // TODO load libscanner.lua
+        globals.set("scanner", buildModule())
+        globals.loadfile("libscanner.lua").call()
     }
 
     class Fpush_scan(private val drone: Drone) : OneArgFunction() {
@@ -654,6 +658,17 @@ class ModuleScanner(private val drone: Drone) : DroneModule {
                 return LuaValue.NIL
             }
             return ModuleVector.Fcreate(result.x(), result.y())
+        }
+    }
+
+    class Fscan(private val module: ModuleScanner, private val scriptMgr: ScriptManager) : OneArgFunction() {
+        override fun call(arg: LuaValue): LuaValue {
+            Fchecktype(arg, "number", true,
+                "scanner.scan: First argument should be a number, the range to scan, e.g. scanner.scan(2)")
+
+            module.pushScan.call(arg)
+            scriptMgr.yieldFunction.call()
+            return module.popScan.call()
         }
     }
 

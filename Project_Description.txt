@@ -170,3 +170,26 @@ Movement tasks (completing mining tasks depends on the players ability to progra
 - navigating to position (implement A* for the player) -- core.set_destination()
 - navigating to base -- core.return_to_base()
 - patrol in radius and scan anything nearby -- need a new lua function to make exiting out of movement functions easier
+
+7/25
+
+Support tasks
+- Repair other drones(?)
+- Hold extra inventory capacity for other drones
+- Docking port to carry other drones
+- Carry extra power to extend operational range
+
+Components (so far)
+- core module
+- thruster module
+- storage component
+- mining laser (light and heavy variants)
+- some sort of power related modules
+- docking port
+- scanner
+- possibly other type of scanner
+- communications module
+- raycaster?
+- welder/building tool
+- bombs/mines
+- combat laser, gatling gun
