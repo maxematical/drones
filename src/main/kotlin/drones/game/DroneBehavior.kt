@@ -62,7 +62,8 @@ class DroneBehavior(private val gameState: GameState, private val drone: Drone) 
 
         // Regenerate power, if possible
         if (drone.localTime - drone.lastPowerConsumedTime >= PowerConstants.RECHARGE_DELAY) {
-            drone.currentPower += PowerConstants.RECHARGE_PER_SECOND * deltaTime
+            val addPower = PowerConstants.RECHARGE_PER_SECOND * deltaTime
+            drone.currentPower = Math.min(drone.currentPower + addPower, drone.maxPower)
         }
 
         // Update drone rotation
