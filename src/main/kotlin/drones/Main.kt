@@ -625,6 +625,7 @@ private class SideBoxUi(private val screenDimensions: Vector2fc) {
 private class DroneInfoUi(font: GameFont) {
     val contents: UiLayout
 
+    private val powerText: UiTextElement
     private val scriptInfoText: UiTextElement
     private val scriptFunctionText: UiTextElement
     private val scriptCodeTextArea: UiTextArea
@@ -637,6 +638,8 @@ private class DroneInfoUi(font: GameFont) {
 
         contents = UiVerticalLayout(LayoutVector.FILL_PARENT).apply {
             addChild(UiTextElement(font, "Drone XYZ").apply { fontScale = 2.0f })
+
+            powerText = addChild(UiTextElement(font, "", LayoutVector.FULL_WIDTH))
 
             addChild(inventoryList.contents)
 
@@ -653,6 +656,12 @@ private class DroneInfoUi(font: GameFont) {
     }
 
     fun updateUi(drone: Drone): Boolean {
+        // Update power text
+        powerText.string = "Power: ${drone.currentPower.f1()}/${drone.maxPower.f1()}"
+        drone.shutdown?.let { shutdown ->
+            powerText.string += " (Shutdown ${(PowerConstants.SHUTDOWN_LENGTH - (drone.localTime - shutdown)).f1()})"
+        }
+
         // Update inventory
         val shouldRecomputeMeasurements = inventoryList.updateUi(drone.inventory)
 

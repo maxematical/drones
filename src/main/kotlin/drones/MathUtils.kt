@@ -59,6 +59,10 @@ fun Vector2.toJoml(result: Vector2f = Vector2f()): Vector2f {
     return result
 }
 
-fun Float.f2(): String {
-    return (Math.round(this * 100f) / 100f).toString()
+fun Float.f1(): String {
+    return (Math.round(this * 10f) / 10f).toString()
+}
+
+fun Double.f1(): String {
+    return String.format("%.1f", this)
 }

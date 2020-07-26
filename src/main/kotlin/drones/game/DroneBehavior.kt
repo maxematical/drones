@@ -37,15 +37,32 @@ class DroneBehavior(private val gameState: GameState, private val drone: Drone) 
             }
         }
 
-        // Update thrust forces on the physics body
+        // Apply thrust force in the desired direction
         val accel: Vector2f = Vector2f(drone.desiredVelocity).sub(body.linearVelocity.toJoml())
-        if (accel.lengthSquared() > 0 && accel.lengthSquared() > (50f * 50f))
-            accel.normalize().mul(50f)
 
+        // Determine how much acceleration is needed to reach the desired velocity, then consume power and account for
+        // the actual amount of power we have to perform the acceleration
+        val desiredAccel: Float =
+            if (accel.lengthSquared() > (50f * 50f)) 50f
+            else if (Math.abs(accel.lengthSquared()) < 0.001f) 0f
+            else accel.length()
+        val desiredThrustPower = PowerConstants.THRUST_CONSTANT * desiredAccel * deltaTime
+        val actualThrustPower = drone.consumePower(desiredThrustPower)
+        val actualAccel = actualThrustPower / PowerConstants.THRUST_CONSTANT / deltaTime
+
+        // Apply the desired thrust force to the physics body
+        if (Math.abs(accel.lengthSquared()) > 0.001f)
+            accel.normalize().mul(actualAccel.toFloat())
         body.applyForce(accel.toDyn4j())
 
+        // Prevent the drone from moving too fast
         if (body.linearVelocity.magnitudeSquared > 1) {
             body.linearVelocity.normalize()
+        }
+
+        // Regenerate power, if possible
+        if (drone.localTime - drone.lastPowerConsumedTime >= PowerConstants.RECHARGE_DELAY) {
+            drone.currentPower += PowerConstants.RECHARGE_PER_SECOND * deltaTime
         }
 
         // Update drone rotation
@@ -59,9 +76,17 @@ class DroneBehavior(private val gameState: GameState, private val drone: Drone) 
         val deltaRotation = MathUtils.clampRotation(desiredRotation - drone.rotation)
 
         val desiredRotationSpeed = 150f * Math.min(1f, Math.abs(deltaRotation) / 60f)
-        val changeRotation = Math.signum(deltaRotation) *
+        val desiredChangeRotation = Math.signum(deltaRotation) *
                 Math.min(Math.abs(deltaRotation), deltaTime * desiredRotationSpeed)
-        drone.rotation += changeRotation
+
+        if (Math.abs(desiredChangeRotation) > 0.001f) {
+            val desiredRotationPower = Math.abs(desiredChangeRotation) * PowerConstants.ROTATION_CONSTANT
+            val actualRotationPower = drone.consumePower(desiredRotationPower)
+            val actualChangeRotation: Float = desiredChangeRotation *
+                    (actualRotationPower / desiredRotationPower).toFloat()
+
+            drone.rotation += actualChangeRotation
+        }
 
         // Update local time
         drone.localTime += deltaTime

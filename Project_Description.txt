@@ -193,3 +193,24 @@ Components (so far)
 - welder/building tool
 - bombs/mines
 - combat laser, gatling gun
+
+7/26
+- Tie power generation (and more aspects of progression in the game) to the core "Mechanic" of innovation
+- Radiation zone that requires drones to be shielded to avoid taking damage. It is possible to generate power here
+  though.
+- Newest idea for manually controlling drones: allow one drone to be manually controlled and force the rest to only use
+  scripts?
+
+More tasks
+- Escort/follow other drones
+- Carry holdable objects for other drones
+
+Example challenges
+- Mining tasks mentioned for 7/24
+- Bring back radiation crystals from radiation zone (without harming other drones from the crystals)
+  - Keep a nuclear ractor in the radiation zone (no need to move the crystals)
+  - Tell other drones to get out of the way when bringing one back to base
+  - Radiation-resistant drones can shield other drones by standing next to the crystal and absorbing all the radiation
+- Solar power - easy way to passively get energy, but it is slow and isn't enough to power a large fleet
+  - Only installable as a component on a drone. If it was buildable as a tile, the player could just build a crap ton of
+    solar panels and circumvent the need to get another power source.
