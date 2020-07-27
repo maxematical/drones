@@ -31,8 +31,8 @@ var mouseLeftClicked: Boolean = false
 var mouseRightClicked: Boolean = false
 
 fun main(args: Array<String>) {
-    val windowWidth = 1280
-    val windowHeight = 720
+    val windowWidth = 1920
+    val windowHeight = 1080
 
     println("Starting game")
 
@@ -57,6 +57,7 @@ fun main(args: Array<String>) {
     // Create the window
     glfwMakeContextCurrent(window)
     GL.createCapabilities()
+    glViewport(0, 0, windowWidth, windowHeight)
     glfwSwapInterval(1)
     glfwShowWindow(window)
 
