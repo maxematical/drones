@@ -1,7 +1,6 @@
 package drones.render
 
 import drones.game.Drone
-import drones.GameFont
 import drones.loadTexture
 import org.lwjgl.opengl.GL11
 import org.lwjgl.opengl.GL30.*

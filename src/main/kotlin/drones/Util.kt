@@ -35,7 +35,7 @@ fun loadTexture(filename: String): Triple<Int, Int, ByteBuffer> {
 
             // Extract information from image bytes
             val bytes = STBImage.stbi_load_from_memory(buffer, w, h, nchannels, 4)
-                ?: throw RuntimeException("Couldn't load image: ${STBImage.stbi_failure_reason()}")
+                ?: throw RuntimeException("Couldn't load image '$filename': ${STBImage.stbi_failure_reason()}")
             Triple(w[0], h[0], bytes)
 
             // TODO Free the image using stbi_free, after giving the texture to OpenGL
