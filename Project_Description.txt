@@ -214,3 +214,14 @@ Example challenges
 - Solar power - easy way to passively get energy, but it is slow and isn't enough to power a large fleet
   - Only installable as a component on a drone. If it was buildable as a tile, the player could just build a crap ton of
     solar panels and circumvent the need to get another power source.
+
+What ways can we motivate the player other simply than having challenges. "Collect X amount of minerals" doesn't sound
+very exciting and seems like an arbitrary goal.
+                                                  (I mean, it IS technically arbitrary that I decided that the game
+                                                  would include this task, but we are speaking from the perspective of
+                                                  the player here.)
+
+- This idea won't change things a ton, but loading ores onto transport ship instead of base makes it clear that they are
+  actually going to be used by someone else for a purpose, instead of just hoarding them in some random base.
+- what sort of "feeling" should be behind the player creating things?
+- simply using money as a motivator might not be the best,because people are not always motivated by bigger numbers

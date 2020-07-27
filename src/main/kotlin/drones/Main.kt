@@ -112,8 +112,8 @@ fun main(args: Array<String>) {
     val debugDotShaderProgram = Shader.createProgram(defaultVsh, debugDotFsh)
 
     // Set up bitmap (font) texture
-    val font = loadFont("Lemon", "medium", 14)
-    //val font = loadFont("Consolas", "regular", 14)
+    //val font = loadFont("Lemon", "medium", 14)
+    val font = loadFont("Consolas", "regular", 14)
 
     // Set up alpha blending
     glEnable(GL_BLEND)
@@ -265,7 +265,7 @@ fun main(args: Array<String>) {
     val spawnObject: (GameObject) -> Unit = { gameObject ->
         logger.info("Spawning object $gameObject")
         gameObject.renderer = when (gameObject) {
-            is Drone -> DroneRenderer(gameObject, droneShaderProgram, font)
+            is Drone -> DroneRenderer(gameObject, droneShaderProgram)
             is LaserBeam -> LaserBeamRenderer(gameObject, laserShaderProgram)
             is Base -> SimpleObjectRenderer(gameObject, simpleObjShaderProgram, font, '#', 2f, true)
             is OreChunk -> SimpleObjectRenderer(gameObject, simpleObjShaderProgram, font, 'o')

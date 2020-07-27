@@ -87,7 +87,7 @@ fun loadFont(family: String, style: String, size: Int): GameFont {
         characterOffsetLut[spaceCode] = 0
     }
 
-    val (bitmapWidth, bitmapHeight, bitmapData) = loadFontBitmap(fontpath + ".png")
+    val (bitmapWidth, bitmapHeight, bitmapData) = loadTexture(fontpath + ".png")
 
     val glBitmap = glGenTextures()
     glBindTexture(GL_TEXTURE_2D, glBitmap)
@@ -106,47 +106,6 @@ fun loadFont(family: String, style: String, size: Int): GameFont {
 private fun getFontXmlStream(filename: String): InputStream =
     Main::class.java.getResourceAsStream(filename)
         ?: throw FileNotFoundException("Could not find font '$filename'")
-
-private fun loadFontBitmap(filename: String): Triple<Int, Int, ByteBuffer> {
-    return Main::class.java.getResourceAsStream(filename).use { instr: InputStream? ->
-        if (instr == null) error("Bitmap image not found, filename: '$filename'")
-
-        MemoryStack.stackPush().use { stack ->
-            // Taken from https://git.io/JJGjz
-
-            val w = stack.mallocInt(1)
-            val h = stack.mallocInt(1)
-            val nchannels = stack.mallocInt(1)
-
-            val channel: ReadableByteChannel = Channels.newChannel(instr)
-            var buffer = ByteBuffer.allocateDirect(1024 * 8) // 8KB
-
-            // Read bytes from the channel into the buffer
-            while (channel.read(buffer) > -1) {
-                // Resize the buffer if it is full
-                if (!buffer.hasRemaining()) {
-                    buffer = resizeBuffer(buffer, buffer.capacity() * 2)
-                }
-            }
-            // Reset position of the buffer, prepare for loading into stbi
-            buffer.flip()
-
-            // Extract information from image bytes
-            val bytes = stbi_load_from_memory(buffer, w, h, nchannels, 4)
-                ?: throw RuntimeException("Couldn't load image: ${STBImage.stbi_failure_reason()}")
-            Triple(w[0], h[0], bytes)
-
-            // TODO Free the image using stbi_free, after giving the texture to OpenGL
-        }
-    }
-}
-
-private fun resizeBuffer(buffer: ByteBuffer, newCapacity: Int): ByteBuffer {
-    val new = ByteBuffer.allocateDirect(newCapacity)
-    buffer.flip()
-    new.put(buffer)
-    return new
-}
 
 @XmlRootElement(name = "Font")
 class XmlFontEntry {

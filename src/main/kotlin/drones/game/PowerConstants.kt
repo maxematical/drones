@@ -21,7 +21,7 @@ object PowerConstants {
 
     // In the future, power levels will not simply recharge after a period of time, but right now, there isn't any other
     // way to get more power if you run out.
-    const val RECHARGE_DELAY = 2.0
-    const val RECHARGE_PER_SECOND = 3.0
+    const val RECHARGE_DELAY = 0.0 // 2.0
+    const val RECHARGE_PER_SECOND = 100.0 // 3.0
     const val SHUTDOWN_LENGTH = 5.0
 }
