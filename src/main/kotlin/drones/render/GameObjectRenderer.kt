@@ -10,12 +10,14 @@ abstract class GameObjectRenderer(private val obj: GameObject, private val shade
 
     private val locationCameraMatrix: Int
     private val locationModelMatrix: Int
-    private val locationTime: Int
+    private val locationGameTime: Int
+    private val locationDrawTime: Int
 
     init {
         locationCameraMatrix = glGetUniformLocation(shaderProgram, "cameraMatrix")
         locationModelMatrix = glGetUniformLocation(shaderProgram, "modelMatrix")
-        locationTime = glGetUniformLocation(shaderProgram, "Time")
+        locationGameTime = glGetUniformLocation(shaderProgram, "GameTime")
+        locationDrawTime = glGetUniformLocation(shaderProgram, "DrawTime")
 
         val vertices: FloatArray = floatArrayOf(
             -0.5f, -0.5f, 0.0f, 0f, 1f,
@@ -39,11 +41,12 @@ abstract class GameObjectRenderer(private val obj: GameObject, private val shade
         glEnableVertexAttribArray(1)
     }
 
-    final override fun render(screenDimensions: Vector2fc, cameraMatrixArr: FloatArray, time: Float) {
+    final override fun render(screenDimensions: Vector2fc, cameraMatrixArr: FloatArray, time: Float, drawTime: Float) {
         glUseProgram(shaderProgram)
         glUniformMatrix4fv(locationCameraMatrix, false, cameraMatrixArr)
         glUniformMatrix4fv(locationModelMatrix, false, obj.modelMatrixArr)
-        glUniform1f(locationTime, time - obj.spawnedTime)
+        glUniform1f(locationGameTime, time - obj.spawnedTime)
+        glUniform1f(locationDrawTime, drawTime)
         setUniforms()
 
         glBindVertexArray(vao)

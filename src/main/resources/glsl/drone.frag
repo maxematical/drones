@@ -8,6 +8,7 @@ uniform sampler2D Texture;
 uniform int DroneColor;
 uniform int LedColor;
 uniform bool IsSelected;
+uniform float DrawTime;
 
 void main()
 {
@@ -27,8 +28,8 @@ void main()
     FragColor.rgb *= vec3(droneColorR, droneColorG, droneColorB) / 255.0;
 
     // Draw selection outline
-    float outlineScale = 0.5;
-    int range = 2;
+    float outlineScale = 1;//0.5;
+    float range = 2.0;
     bool drawOutline = false;
     for (int y = 0; y < range; y++) {
         for (int x = 0; x < range; x++) {
@@ -42,6 +43,9 @@ void main()
     }
     drawOutline = drawOutline && IsSelected;
     FragColor = mix(FragColor, vec4(1.0, 0.0, 0.0, 1.0), int(drawOutline));
+
+    // Draw scanlines
+    FragColor.rgb *= clamp(1.15 - 0.15 * mod(gl_FragCoord.y * 0.5 - DrawTime * 3, 3), 0.0, 1.0);
 
     // Draw dot (LED) at center of drone
     float dotRadius = 0.17;

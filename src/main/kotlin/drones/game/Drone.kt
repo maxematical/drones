@@ -13,7 +13,7 @@ import kotlin.collections.HashSet
 class Drone(override val position: Vector2f,
             val color: Int = 0xFFFFFF,
             override var rotation: Float = 0f,
-            override val size: Float = 0.8f,
+            override val size: Float = 0.9f,
             var ledColor: Int = 0xFF0000) : GameObject() {
     val desiredVelocity: Vector2f = Vector2f(0f, 0f)
 

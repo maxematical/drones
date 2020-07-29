@@ -3,7 +3,7 @@
 in vec2 vertexUv;
 
 uniform vec2 LaserDimensions;
-uniform float Time;
+uniform float GameTime;
 uniform vec4 LaserColor;
 
 out vec4 FragColor;
@@ -13,19 +13,19 @@ void main()
     vec2 uv = vertexUv;
 
     // Laser beam "shoots out" at the very beginning
-    uv.x *= clamp(4.0 - Time * 100, 1.0, 2.0);
+    uv.x *= clamp(4.0 - GameTime * 100, 1.0, 2.0);
 
     // Horizontal "lines" moving backwards along the laser beam
-    float light1 = 1.0 + 0.1 * cos((uv.x + Time * 0.28) * LaserDimensions.x * 60);
+    float light1 = 1.0 + 0.1 * cos((uv.x + GameTime * 0.28) * LaserDimensions.x * 60);
 
     // Make the beam less bright at its sides
     float light2 = 1.0 - abs(2 * uv.y - 1.0);
 
     // Add subtle, random-looking flicker to the beam
-    float flicker = 0.5 + 0.5 * cos(Time * 300);
+    float flicker = 0.5 + 0.5 * cos(GameTime * 300);
 
     // Add extra flicker at beginning of laser
-    float t2 = Time - sqrt(1.0/6);
+    float t2 = GameTime - sqrt(1.0/6);
     flicker += 5 * clamp(1.0 - 6 * t2 * t2, 0.0, 1.0);
 
     // Taper at the end of the laser

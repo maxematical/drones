@@ -21,7 +21,7 @@ import kotlin.math.floor
 
 class Main
 
-val initialTileSize: Float = 216f//64f
+val initialTileSize: Float = 128f//64f
 var tileSize: Float = initialTileSize
 
 var paused: Boolean = false
@@ -238,6 +238,7 @@ fun main(args: Array<String>) {
     var selectedBase: Base? = null
     var lastTime = System.currentTimeMillis()
     var gameTime = 0f
+    var drawTime = 0f
 
     val gameObjects = mutableListOf<GameObject>()
 
@@ -301,6 +302,8 @@ fun main(args: Array<String>) {
             continue
 
         lastTime = System.currentTimeMillis()
+
+        drawTime += deltaTime
 
         // Update camera
         camera.update(window, deltaTime)
@@ -469,7 +472,7 @@ fun main(args: Array<String>) {
 
         // Render game objects
         for (obj in gameObjects) {
-            obj.renderer.render(screenDimensions, camera.matrixArr, gameTime)
+            obj.renderer.render(screenDimensions, camera.matrixArr, gameTime, drawTime)
         }
 
         // Render UI
@@ -506,7 +509,7 @@ fun main(args: Array<String>) {
         sideBoxUi.render(shouldRenderSideBox, deltaTime, uiGraphicsManager)
 
         debugDot?.debugPosition = tooltipBox.computedPosition
-        debugDot?.render(screenDimensions, camera.matrixArr, gameTime)
+        debugDot?.render(screenDimensions, camera.matrixArr, gameTime, drawTime)
 
         glfwPollEvents()
         glfwSwapBuffers(window)
@@ -529,10 +532,10 @@ fun keyCallback(window: Long, key: Int, scancode: Int, action: Int, mods: Int) {
         glfwSetWindowShouldClose(window, true)
     }
     if (key == GLFW_KEY_EQUAL && action == GLFW_PRESS) {
-        tileSize += 8
+        tileSize *= 1.2f
     }
     if (key == GLFW_KEY_MINUS && action == GLFW_PRESS) {
-        tileSize -= 8
+        tileSize /= 1.2f
     }
     if (key == GLFW_KEY_SPACE && action == GLFW_PRESS) {
         paused = !paused

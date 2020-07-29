@@ -26,7 +26,7 @@ class DebugDotRenderer(private val shaderProgram: Int,
         glEnableVertexAttribArray(0)
     }
 
-    override fun render(screenDimensions: Vector2fc, cameraMatrixArr: FloatArray, time: Float) {
+    override fun render(screenDimensions: Vector2fc, cameraMatrixArr: FloatArray, time: Float, drawTime: Float) {
         glBindVertexArray(vao)
         glUseProgram(shaderProgram)
         glUniform2f(glGetUniformLocation(shaderProgram, "DebugPosition"), debugPosition.x(), debugPosition.y())

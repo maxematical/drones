@@ -14,6 +14,7 @@ class DroneRenderer(private val drone: Drone, shaderProgram: Int) : GameObjectRe
     private val locationDroneColor: Int
     private val locationLedColor: Int
     private val locationIsSelected: Int
+    private val locationTime: Int
 
     init {
         // Load texture
@@ -37,6 +38,7 @@ class DroneRenderer(private val drone: Drone, shaderProgram: Int) : GameObjectRe
         locationDroneColor = glGetUniformLocation(shaderProgram, "DroneColor")
         locationLedColor = glGetUniformLocation(shaderProgram, "LedColor")
         locationIsSelected = glGetUniformLocation(shaderProgram, "IsSelected")
+        locationTime = glGetUniformLocation(shaderProgram, "Time")
     }
 
     override fun setUniforms() {
@@ -44,6 +46,7 @@ class DroneRenderer(private val drone: Drone, shaderProgram: Int) : GameObjectRe
         glUniform1i(locationDroneColor, drone.color)
         glUniform1i(locationLedColor, drone.ledColor)
         glUniform1i(locationIsSelected, if (drone.selected) GL_TRUE else GL_FALSE)
+        //glUniform1f(locationTime, drone.localTime)
         glBindTexture(GL_TEXTURE_2D, texture)
     }
 }
