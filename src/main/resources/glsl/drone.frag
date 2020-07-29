@@ -1,4 +1,6 @@
 #version 430 core
+#include "noise/noise2D.glsl"
+
 out vec4 FragColor;
 
 in vec2 vertexUv;
@@ -66,7 +68,7 @@ void main()
 
     // Draw thruster flame
     float flameDistance = length(vertexUv - vec2(0.14, 0.5));
-    float flameFlicker = 0.7 + 0.1 * sin(DrawTime * 200.0);
+    float flameFlicker = snoise(vec2(DrawTime * 8.0)).x * 0.05 + 0.9;
     float flameness = flameFlicker * (1.0 - flameDistance * 6);
     FragColor += vec4(1.0, 0.35, 0.1, 1.0) * clamp(flameness, 0, 1);
 }
