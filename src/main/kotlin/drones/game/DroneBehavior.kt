@@ -12,6 +12,9 @@ class DroneBehavior(private val gameState: GameState, private val drone: Drone) 
     private val body get() = drone.physics.physicsBody
     private var carryingBeam: LaserBeam? = null
 
+    private var currentRotationSpeed: Float = 0f
+    private val maxRotationAccel: Float = 180f
+
     private val navDelta = Vector2f()
 
     override fun update(deltaTime: Float) {
@@ -31,7 +34,6 @@ class DroneBehavior(private val gameState: GameState, private val drone: Drone) 
             drone.desiredVelocity.set(thrustX, thrustY)
 
             if (navDelta.lengthSquared() <= (drone.destinationTargetDistance * drone.destinationTargetDistance)) {
-                println("Reached destination")
                 drone.hasDestination = false
                 drone.desiredVelocity.set(0f, 0f)
             }
@@ -67,27 +69,7 @@ class DroneBehavior(private val gameState: GameState, private val drone: Drone) 
         }
 
         // Update drone rotation
-        val desiredRotation: Float
-        if (drone.desiredVelocity.lengthSquared() > 0.0625f) {
-            desiredRotation = MathUtils.RAD2DEG *
-                    Math.atan2(drone.desiredVelocity.y.toDouble(), drone.desiredVelocity.x.toDouble()).toFloat()
-        } else {
-            desiredRotation = drone.rotation
-        }
-        val deltaRotation = MathUtils.clampRotation(desiredRotation - drone.rotation)
-
-        val desiredRotationSpeed = 150f * Math.min(1f, Math.abs(deltaRotation) / 60f)
-        val desiredChangeRotation = Math.signum(deltaRotation) *
-                Math.min(Math.abs(deltaRotation), deltaTime * desiredRotationSpeed)
-
-        if (Math.abs(desiredChangeRotation) > 0.001f) {
-            val desiredRotationPower = Math.abs(desiredChangeRotation) * PowerConstants.ROTATION_CONSTANT
-            val actualRotationPower = drone.consumePower(desiredRotationPower)
-            val actualChangeRotation: Float = desiredChangeRotation *
-                    (actualRotationPower / desiredRotationPower).toFloat()
-
-            drone.rotation += actualChangeRotation
-        }
+        updateRotation(deltaTime)
 
         // Update local time
         drone.localTime += deltaTime
@@ -133,6 +115,39 @@ class DroneBehavior(private val gameState: GameState, private val drone: Drone) 
         }
 
         return null
+    }
+
+    private fun updateRotation(deltaTime: Float) {
+        // Compute desired rotation (point in the direction of the current velocity)
+        val desiredRotation: Float
+        if (drone.desiredVelocity.lengthSquared() > 0.0625f) {
+            desiredRotation = MathUtils.RAD2DEG *
+                    Math.atan2(drone.desiredVelocity.y.toDouble(), drone.desiredVelocity.x.toDouble()).toFloat()
+        } else {
+            desiredRotation = drone.rotation
+        }
+
+        // Compute desired angular velocity
+        val deltaRotation = MathUtils.clampRotation(desiredRotation - drone.rotation)
+        val desiredRotationSpeed = 150f * Math.signum(deltaRotation) * Math.min(1f, Math.abs(deltaRotation) / 60f)
+
+        // Compute angular acceleration needed to obtain that velocity
+        val deltaRotationSpeed = MathUtils.clampRotation(desiredRotationSpeed - currentRotationSpeed)
+        val desiredRotationAccel = Math.signum(deltaRotationSpeed) *
+                Math.min(Math.abs(deltaRotationSpeed), deltaTime * maxRotationAccel)
+
+        // If there is a desired acceleration, then spend some power to perform the acceleration and modify the velocity
+        if (Math.abs(desiredRotationAccel) > 0.001f) {
+            val desiredRotationPower = Math.abs(desiredRotationAccel) * PowerConstants.ROTATION_CONSTANT
+            val actualRotationPower = drone.consumePower(desiredRotationPower)
+            val actualRotationAccel: Float = desiredRotationAccel *
+                    (actualRotationPower / desiredRotationPower).toFloat()
+
+            currentRotationSpeed += actualRotationAccel
+        }
+
+        // Change rotation by the current angular velocity
+        drone.rotation += currentRotationSpeed * deltaTime
     }
 }
 

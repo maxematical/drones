@@ -21,7 +21,7 @@ import kotlin.math.floor
 
 class Main
 
-val initialTileSize: Float = 64f
+val initialTileSize: Float = 216f//64f
 var tileSize: Float = initialTileSize
 
 var paused: Boolean = false
@@ -31,8 +31,8 @@ var mouseLeftClicked: Boolean = false
 var mouseRightClicked: Boolean = false
 
 fun main(args: Array<String>) {
-    val windowWidth = 1920
-    val windowHeight = 1080
+    val windowWidth = 1280
+    val windowHeight = 720//1080
 
     println("Starting game")
 
@@ -297,6 +297,9 @@ fun main(args: Array<String>) {
     // Loop
     while (!glfwWindowShouldClose(window)) {
         val deltaTime = (System.currentTimeMillis() - lastTime) * 0.001f
+        if (deltaTime < 0.001f)
+            continue
+
         lastTime = System.currentTimeMillis()
 
         // Update camera
