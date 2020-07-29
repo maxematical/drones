@@ -45,7 +45,8 @@ void main()
     FragColor = mix(FragColor, vec4(1.0, 0.0, 0.0, 1.0), int(drawOutline));
 
     // Draw scanlines
-    FragColor.rgb *= clamp(1.15 - 0.15 * mod(gl_FragCoord.y * 0.5 - DrawTime * 3, 3), 0.0, 1.0);
+    float t = floor(DrawTime * 8.0) / 8.0;
+    FragColor.rgb *= clamp(1.15 - 0.15 * mod(gl_FragCoord.y * 0.5 - t * 3, 3), 0.0, 1.0);
 
     // Draw dot (LED) at center of drone
     float dotRadius = 0.17;
@@ -62,4 +63,10 @@ void main()
         LedColor & 255) / vec3(255.0);
     FragColor = mix(FragColor, vec4(dotRgb, 1.0), circleness);
     FragColor = mix(FragColor, vec4(1.0), glow);
+
+    // Draw thruster flame
+    float flameDistance = length(vertexUv - vec2(0.14, 0.5));
+    float flameFlicker = 0.7 + 0.1 * sin(DrawTime * 200.0);
+    float flameness = flameFlicker * (1.0 - flameDistance * 6);
+    FragColor += vec4(1.0, 0.35, 0.1, 1.0) * clamp(flameness, 0, 1);
 }
