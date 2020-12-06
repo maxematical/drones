@@ -3,7 +3,7 @@
 A small game/technical demo I was working on back in July. You are part of a space mining operation and are tasked with
 programming and operating a fleet of automated drones to locate and mine out valuable minerals in the area.
 
-![Screenshot 1](https://user-images.githubusercontent.com/40149823/101296047-e8a40080-37e6-11eb-900c-1ec47d832919.png | width=640)
+<img alt="Screenshot 1" src="https://user-images.githubusercontent.com/40149823/101296047-e8a40080-37e6-11eb-900c-1ec47d832919.png" width="640" />
 
 As I wrote this mainly as a challenge for myself, this is more of a technical demo rather than a fully fleshed out
 games. The drones are equipped with several items like scanners and mining lasers and you can script them to perform
@@ -20,7 +20,7 @@ engine related features.
 * Custom UI framework and layout engine that supports text, text areas, layout boxes, padding/margins, and
   absolute/relative positioning (!)
 
-![Screenshot 2](https://user-images.githubusercontent.com/40149823/101296125-59e3b380-37e7-11eb-94d6-9ec32696c2eb.png | width=640)
+<img alt="Screenshot 2" src="https://user-images.githubusercontent.com/40149823/101296125-59e3b380-37e7-11eb-94d6-9ec32696c2eb.png" width="640" />
 
 *Sample drone script*
 ```lua
@@ -61,7 +61,7 @@ Controls are WASD to move the camera, `+` and `-` to zoom in and out, and left c
 can use right click to manually order drones around, but this may not work well with some of the scripts. You can pause
 the game by pressing space.
 
-![Screenshot 3](https://user-images.githubusercontent.com/40149823/101296179-a5965d00-37e7-11eb-8432-610879ad9e37.png | width=640)
+<img alt="Screenshot 3" src="https://user-images.githubusercontent.com/40149823/101296179-a5965d00-37e7-11eb-8432-610879ad9e37.png" width="640" />
 
 ## License
 
