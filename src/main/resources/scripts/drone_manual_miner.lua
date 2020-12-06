@@ -13,10 +13,5 @@ end
 
 print('Manual miner -- main script')
 
-for i=1,1000 do
-    print('Hello', i)
-    sleep(0.5)
-end
-
 scanner.on()
 move.return_to_base()

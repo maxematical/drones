@@ -113,8 +113,8 @@ fun main(args: Array<String>) {
     val debugDotShaderProgram = Shader.createProgram(defaultVsh, debugDotFsh)
 
     // Set up bitmap (font) texture
-    //val font = loadFont("Lemon", "medium", 14)
-    val font = loadFont("Consolas", "regular", 14)
+    val font = loadFont("Lemon", "medium", 14)
+    //val font = loadFont("Consolas", "regular", 14)
 
     // Set up alpha blending
     glEnable(GL_BLEND)
@@ -259,7 +259,7 @@ fun main(args: Array<String>) {
     val scriptMgr1 = ScriptManager("drone_advanced_miner.lua", Int.MAX_VALUE, installScripts(drone1))
     scriptMgr1.onComplete = { drone1.desiredVelocity.set(0f, 0f) }
     drone1.scriptManager = scriptMgr1
-    val scriptMgr2 = ScriptManager("drone_helper_miner.lua", Int.MAX_VALUE, installScripts(drone2))
+    val scriptMgr2 = ScriptManager("drone_manual_miner.lua", Int.MAX_VALUE, installScripts(drone2))
     scriptMgr2.onComplete = { drone2.desiredVelocity.set(0f, 0f) }
     drone2.scriptManager = scriptMgr2
 
@@ -374,6 +374,8 @@ fun main(args: Array<String>) {
                 var newText = obj.toString()
                 if (obj is Drone)
                     newText = "Drone (${obj.inventory.currentVolume}/${obj.inventory.capacity}L)"
+                if (obj is Base)
+                    newText = "Mining Base"
                 if (tooltipText.string != newText) {
                     tooltipText.string = newText
                     tooltipBox.rootComputeMeasurements(screenDimensions)
