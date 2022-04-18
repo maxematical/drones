@@ -1,32 +1,41 @@
 # Drones Game
 
-A small game/technical demo I was working on back in July. You are part of a space mining operation and are tasked with
-programming and operating a fleet of automated drones to locate and mine out valuable minerals in the area.
+This is a small game that I created in July 2020. You are part of an asteroid mining company and are tasked with mining
+out nearby minerals as fast as possible using your fleet of mining drones. You can program and automate the drones using
+the Lua scripting language.
 
-<img alt="Screenshot 1" src="https://user-images.githubusercontent.com/40149823/101296047-e8a40080-37e6-11eb-900c-1ec47d832919.png" width="640" />
+<img alt="Screenshot" src="https://user-images.githubusercontent.com/40149823/101296125-59e3b380-37e7-11eb-94d6-9ec32696c2eb.png" width="640" />
 
-As I wrote this mainly as a challenge for myself, this is more of a technical demo rather than a fully fleshed out
-games. The drones are equipped with several items like scanners and mining lasers and you can script them to perform
-tasks using Lua. The game is written from scratch using Kotlin and OpenGL (lwjgl) and I implemented several other game
-engine related features.
+This project still remains mostly a "technical demonstration" and is very far from being a fully playable game. The graphics
+are very simple and there isn't really any goal/objective yet. However, it
+has the basics down and you can write your own lua scripts then launch the game and watch as the drones complete the tasks
+you programmed them to do.
 
-* Integration with Lua; easy scripting that supports both blocking and callback styles of code
-* Custom (albeit simple) fast OpenGL 2D renderer
-* Grid based gameplay where autonomous drones can mine out blocks of ore and deposit it into the mining base
+The drones are equipped with several items like scanners and mining lasers and you can script them to perform
+tasks using Lua. The game is written from scratch using the Kotlin programming language, and implements:
+
+* Lua scripting; the game exposes an API for each drone and you can write your own logic for what they should do
+* A custom 2D renderer using the lwjgl (OpenGL) library
+* Grid-based gameplay where autonomous drones can mine out blocks of ore and deposit it into the mining base
 * A variety of virtual components that can be used by the drones, such as mining lasers, tractor beams, and inter-drone
   communications
-* Physics integration with dyn4j physics engine and semi-realistic propulsion model
-* GPU bitmap font renderer that works for monospaced fonts
-* Custom UI framework and layout engine that supports text, text areas, layout boxes, padding/margins, and
-  absolute/relative positioning (!)
+* Physics integration with dyn4j physics engine
+* Custom bitmap font renderer 
+* Custom UI framework and layout engine that supports text, text areas, layout boxes, padding and margins, and relative/absolute
+  positioned elements
 
-<img alt="Screenshot 2" src="https://user-images.githubusercontent.com/40149823/101296125-59e3b380-37e7-11eb-94d6-9ec32696c2eb.png" width="640" />
+<img alt="Screenshot" src="https://user-images.githubusercontent.com/40149823/101296179-a5965d00-37e7-11eb-8432-610879ad9e37.png" width="640" />
 
 *Sample drone script*
 ```lua
+-- Can store persistent state for each drone in the script
 local found_coords = nil
 
--- Callback function that will be called by Kotlin code
+-- Each drone has an in-game output console that can be
+-- used to debug Lua code
+print('Searching for ore')
+
+-- Callback function that will be called from Kotlin
 -- when the drone's scanner has detected nearby ore deposits
 function on_scan_detected(coords, has_detected_before)
     -- A variety of APIs for drones such as inventory,
@@ -43,25 +52,18 @@ function on_scan_detected(coords, has_detected_before)
     end
 end
 
--- Each drone has an in-game output console that can be
--- used to debug Lua code
-print('Searching for ore')
-
 comms.broadcast('Hello all')
 scanner.on()
 ```
 
-## Using
+## Compiling / contributing
 
-There are no precompiled binaries for this game so you will have to download and compile it yourself. Clone the
-repository and build with Gradle. The Lua scripts for drones are located under the path `src/main/resources/scripts`;
+To run the game, clone the repository and build with Gradle. The Lua scripts for drones are located under the path `src/main/resources/scripts`;
 to change which scripts are used, go to `Main.kt` and look at the instantiations of `ScriptManager` objects.
 
 Controls are WASD to move the camera, `+` and `-` to zoom in and out, and left click to select objects or drones. You
 can use right click to manually order drones around, but this may not work well with some of the scripts. You can pause
 the game by pressing space.
-
-<img alt="Screenshot 3" src="https://user-images.githubusercontent.com/40149823/101296179-a5965d00-37e7-11eb-8432-610879ad9e37.png" width="640" />
 
 ## License
 
